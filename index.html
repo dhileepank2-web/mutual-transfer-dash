@@ -3,194 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Mutual Transfer Live Portal</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Transfer Dashboard</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --success: #059669;
-            --bg: #f8fafc;
-            --card-border: #e2e8f0;
-        }
-
-        body { 
-            background-color: var(--bg); 
-            font-family: 'Inter', sans-serif; 
-            color: #1e293b;
-            padding-bottom: 50px;
-        }
-
-        /* --- UI Enhancements --- */
-        .dashboard-header {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 15px 0;
-            border-bottom: 1px solid var(--card-border);
-            position: sticky; top: 0; z-index: 1050;
-        }
-
-        .stat-card {
-            background: white; border-radius: 16px; padding: 20px; text-align: center;
-            border: 1px solid var(--card-border); transition: all 0.3s ease;
-        }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .stat-card h2 { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 800; margin-bottom: 5px; }
-        .stat-card p { font-size: 1.6rem; color: var(--primary); font-weight: 800; margin: 0; }
-
-        .filter-section {
-            background: white; border-radius: 20px; padding: 25px; margin-bottom: 25px;
-            border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
-        .search-input {
-            border-radius: 10px; border: 1px solid #cbd5e1; padding: 12px 15px;
-            font-size: 0.9rem; transition: border 0.2s;
-        }
-        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-
-        /* --- List Elements --- */
-        .table-container { background: white; border-radius: 16px; overflow: hidden; border: 1px solid var(--card-border); }
-        .thead-dark th { background-color: #0f172a; border: none; font-size: 0.85rem; padding: 15px; }
-
-        .mobile-card {
-            display: none; background: white; border-radius: 18px; padding: 20px;
-            margin-bottom: 15px; border: 1px solid var(--card-border); position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .badge-match { background: #dcfce7; color: #166534; font-weight: 700; padding: 6px 12px; border-radius: 10px; }
-        .badge-demand { background: #fee2e2; color: #dc2626; border-radius: 10px; font-weight: 600; font-size: 0.75rem; }
-
-        .btn-view-action {
-            background: var(--primary); color: white; border-radius: 12px;
-            font-weight: 700; padding: 10px; border: none; transition: 0.2s;
-        }
-        .btn-view-action:hover { background: var(--primary-dark); transform: scale(1.02); }
-
-        /* --- Modals --- */
-        .modal-content { border-radius: 28px; border: none; }
-        .input-verify { font-size: 1.4rem; font-weight: 700; text-align: center; letter-spacing: 3px; border-radius: 15px !important; height: 60px; }
-
-        @media (max-width: 768px) {
-            .desktop-only { display: none !important; }
-            .mobile-card { display: block; }
-        }
-
-        #loader-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9); z-index: 9999; display: flex;
-            align-items: center; justify-content: center; flex-direction: column;
-        }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { background: var(--bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .dashboard-header { background: white; border-bottom: 1px solid #e2e8f0; padding: 15px 0; position: sticky; top:0; z-index:100; }
+        .stat-card { background: white; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; }
+        .stat-card h2 { font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-card p { font-size: 1.4rem; color: var(--primary); font-weight: 700; margin: 0; }
+        .filter-section { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .table-container { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .badge-match { background: #dcfce7; color: #166534; font-weight: 600; }
+        .badge-demand { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.7rem; }
+        .mobile-card { display: none; background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        @media (max-width: 768px) { .desktop-only { display: none; } .mobile-card { display: block; } }
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; }
     </style>
 </head>
 <body>
 
-<div id="loader-overlay">
-    <div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;"></div>
-    <p class="mt-3 font-weight-bold text-primary">Live Syncing...</p>
-</div>
+<div id="loader"><div class="spinner-border text-primary"></div></div>
 
 <div class="dashboard-header mb-4">
     <div class="container d-flex justify-content-between align-items-center">
-        <h5 class="m-0 font-weight-bold"><i class="fas fa-sync-alt text-primary mr-2"></i>Mutual Live</h5>
-        <div id="userBadge" class="d-none">
-            <button class="btn btn-sm btn-light border-pill px-3" onclick="clearIdentity()">
-                <i class="fas fa-user-check text-success mr-1"></i> <span id="identityLabel"></span>
-            </button>
-        </div>
+        <h5 class="m-0 font-weight-bold text-primary"><i class="fas fa-exchange-alt mr-2"></i>Mutual Live</h5>
+        <button id="authBtn" class="btn btn-sm btn-outline-secondary" onclick="logout()">Not Verified</button>
     </div>
 </div>
 
 <div class="container">
     <div class="row no-gutters mb-4">
-        <div class="col-4 px-1"><div class="stat-card"><h2>Total</h2><p id="statTotal">0</p></div></div>
-        <div class="col-4 px-1"><div class="stat-card"><h2>Matches</h2><p id="statMatch">0</p></div></div>
-        <div class="col-4 px-1"><div class="stat-card"><h2>Success</h2><p id="statRate">0%</p></div></div>
+        <div class="col-4 px-1"><div class="stat-card"><h2>Total</h2><p id="sTotal">0</p></div></div>
+        <div class="col-4 px-1"><div class="stat-card"><h2>Matches</h2><p id="sMatch">0</p></div></div>
+        <div class="col-4 px-1"><div class="stat-card"><h2>Rate</h2><p id="sRate">0%</p></div></div>
     </div>
 
     <div class="filter-section">
         <div class="row">
-            <div class="col-md-4 mb-3">
-                <label class="small font-weight-bold text-muted">SEARCH BY DISTRICT / ROLE</label>
-                <input type="text" id="globalSearch" class="form-control search-input" placeholder="Type to search..." onkeyup="applyFilters()">
+            <div class="col-md-6 mb-2">
+                <input type="text" id="search" class="form-control" placeholder="Search District or Role..." onkeyup="render()">
             </div>
-            <div class="col-md-4 mb-3">
-                <label class="small font-weight-bold text-muted">ROLE FILTER</label>
-                <select id="fDes" class="form-control search-input" onchange="applyFilters()"></select>
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="small font-weight-bold text-muted">STATUS</label>
-                <select id="fStatus" class="form-control search-input" onchange="applyFilters()">
-                    <option value="all">All Records</option>
+            <div class="col-md-6 mb-2">
+                <select id="fStat" class="form-control" onchange="render()">
+                    <option value="all">All Status</option>
                     <option value="MATCH FOUND">Match Found</option>
-                    <option value="Pending">Pending Only</option>
                 </select>
             </div>
         </div>
-        <div class="d-flex justify-content-between mt-2">
-            <small id="resultsCount" class="text-muted font-weight-bold">Scanning database...</small>
-            <button class="btn btn-link btn-sm p-0 text-primary" onclick="resetFilters()">Clear Filters</button>
-        </div>
     </div>
 
-    <div id="dataDisplay">
-        <div class="table-container desktop-only shadow-sm">
-            <table class="table table-hover m-0">
-                <thead class="thead-dark">
-                    <tr><th>Designation</th><th>Current Dist.</th><th>Willing Dist.</th><th>Demand</th><th>Status</th><th>Contact</th></tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-        <div id="mobileBody" class="d-md-none"></div>
+    <div class="table-container desktop-only shadow-sm">
+        <table class="table m-0">
+            <thead class="thead-dark">
+                <tr><th>Designation</th><th>From</th><th>To</th><th>Demand</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="tBody"></tbody>
+        </table>
     </div>
+    <div id="mBody" class="d-md-none"></div>
 </div>
 
-<div class="modal fade" id="verifyModal" tabindex="-1">
+<div class="modal fade" id="cModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg">
-            <div class="modal-body p-4 p-md-5 text-center">
-                <div class="mb-4 mx-auto bg-light rounded-circle d-flex align-items-center justify-content-center" style="width:80px; height:80px;">
-                    <i class="fas fa-lock text-primary fa-2x"></i>
+        <div class="modal-content border-0 shadow" style="border-radius:20px;">
+            <div class="modal-body text-center p-5">
+                <div class="text-success mb-3"><i class="fas fa-check-circle fa-4x"></i></div>
+                <h4 id="resName" class="font-weight-bold">---</h4>
+                <p id="resPhone" class="h4 text-primary my-4">---</p>
+                <div class="row">
+                    <div class="col-6"><a id="call" href="#" class="btn btn-primary btn-block py-2"><i class="fas fa-phone mr-2"></i>Call</a></div>
+                    <div class="col-6"><a id="wa" href="#" target="_blank" class="btn btn-success btn-block py-2"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a></div>
                 </div>
-                <h4 class="font-weight-bold">Member Access</h4>
-                <p class="text-muted small mb-4">Verification is required to prevent misuse of contact data. Enter your registered mobile number.</p>
-                <input type="tel" id="userPhoneInput" class="form-control input-verify mb-4" placeholder="0000000000">
-                <button class="btn btn-primary btn-block btn-lg py-3 font-weight-bold" onclick="confirmIdentity()" style="border-radius:15px;">Unlock Data</button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="contactModal" tabindex="-1">
+<div class="modal fade" id="vModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg">
-            <div class="modal-body p-4 text-center">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <div class="my-4 bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width:70px; height:70px;">
-                    <i class="fas fa-check fa-2x"></i>
-                </div>
-                <h3 id="resName" class="font-weight-bold mb-1">---</h3>
-                <p class="text-muted small text-uppercase font-weight-bold mb-4">Verified Match Contact</p>
-                
-                <div class="bg-light p-4 rounded-lg mb-4 border">
-                    <small class="text-muted d-block mb-1 font-weight-bold">MOBILE NUMBER</small>
-                    <h4 id="resPhone" class="font-weight-bold text-primary mb-0">---</h4>
-                </div>
-
-                <div class="row no-gutters">
-                    <div class="col-6 pr-1">
-                        <a id="callBtn" href="#" class="btn btn-primary btn-block py-3 font-weight-bold" style="border-radius:14px;"><i class="fas fa-phone mr-2"></i>Call Now</a>
-                    </div>
-                    <div class="col-6 pl-1">
-                        <a id="waBtn" href="#" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold" style="border-radius:14px;"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a>
-                    </div>
-                </div>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <h5 class="font-weight-bold mb-3">Verify Identity</h5>
+                <input type="tel" id="uPhone" class="form-control text-center mb-3" placeholder="Enter Registered Phone">
+                <button class="btn btn-primary btn-block" onclick="saveAuth()">Unlock Contacts</button>
             </div>
         </div>
     </div>
@@ -200,125 +97,80 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    const SCRIPT_URL = "YOUR_SCRIPT_URL_HERE"; 
-    let db = [], pendingRowId = null;
+    const SCRIPT_URL = "YOUR_DEPLOYED_WEBAPP_URL_HERE"; 
+    let db = [], activeId = null;
 
-    $(document).ready(() => { updateLabel(); loadData(); });
+    $(document).ready(() => { checkAuth(); load(); });
 
-    function loadData() {
-        $('#loader-overlay').show();
-        fetch(SCRIPT_URL).then(r => r.json()).then(data => {
-            db = data; 
-            initFilters(data); 
-            applyFilters(); 
-            $('#loader-overlay').fadeOut();
-        }).catch(e => { console.error(e); $('#loader-overlay').hide(); });
+    function load() {
+        $('#loader').show();
+        fetch(SCRIPT_URL).then(r => r.json()).then(data => { db = data; render(); $('#loader').hide(); });
     }
 
-    function initFilters(data) {
-        const roles = [...new Set(data.map(r => r['Your Designation']))].sort();
-        $('#fDes').empty().append('<option value="all">All Designations</option>');
-        roles.forEach(v => $('#fDes').append(`<option value="${v}">${v}</option>`));
-    }
-
-    function applyFilters() {
-        const query = $('#globalSearch').val().toLowerCase();
-        const des = $('#fDes').val();
-        const stat = $('#fStatus').val();
-
+    function render() {
+        const q = $('#search').val().toLowerCase();
+        const s = $('#fStat').val();
         const filtered = db.filter(r => {
-            const matchesSearch = !query || 
-                r['Your Designation'].toLowerCase().includes(query) || 
-                r['Working District'].toLowerCase().includes(query) || 
-                r['Willing District'].toLowerCase().includes(query);
-            const matchesDes = des === 'all' || r['Your Designation'] === des;
-            const matchesStat = stat === 'all' || r['MATCH_STATUS'] === stat;
-            return matchesSearch && matchesDes && matchesStat;
+            const matchQuery = r['Your Designation'].toLowerCase().includes(q) || r['Working District'].toLowerCase().includes(q) || r['Willing District'].toLowerCase().includes(q);
+            const matchStatus = s === 'all' || r.MATCH_STATUS === s;
+            return matchQuery && matchStatus;
         });
 
-        updateMetrics(db, filtered.length);
-        renderContent(filtered);
-    }
+        $('#sTotal').text(db.length);
+        $('#sMatch').text(db.filter(x => x.MATCH_STATUS === 'MATCH FOUND').length);
+        
+        const tb = $('#tBody').empty();
+        const mb = $('#mBody').empty();
 
-    function updateMetrics(fullData, filteredCount) {
-        const matches = fullData.filter(r => r.MATCH_STATUS === 'MATCH FOUND').length;
-        $('#statTotal').text(fullData.length);
-        $('#statMatch').text(matches);
-        $('#statRate').text(fullData.length ? Math.round((matches/fullData.length)*100)+'%' : '0%');
-        $('#resultsCount').text(`Showing ${filteredCount} of ${fullData.length} records`);
-    }
-
-    function renderContent(data) {
-        const tBody = $('#tableBody').empty();
-        const mBody = $('#mobileBody').empty();
-
-        data.forEach(r => {
+        filtered.forEach(r => {
             const isM = r.MATCH_STATUS === 'MATCH FOUND';
-            const sBadge = isM ? `<span class="badge badge-match"><i class="fas fa-check-circle mr-1"></i>FOUND</span>` : `<span class="badge badge-light">PENDING</span>`;
-            const dBadge = r.DEMAND_STATUS ? `<span class="badge badge-demand p-1 px-2">${r.DEMAND_STATUS}</span>` : '';
-            const btn = isM ? `<button onclick="requestView(${r.id})" class="btn btn-view-action btn-sm px-3 shadow-sm">View Contact</button>` : `<button class="btn btn-light btn-sm text-muted" disabled>Waiting...</button>`;
+            const dBadge = r.DEMAND_STATUS.includes('HIGH') ? `<span class="badge badge-demand"><i class="fas fa-fire mr-1"></i>High</span>` : `<small class="text-muted">${r.DEMAND_STATUS}</small>`;
+            const sBadge = isM ? `<span class="badge badge-match">FOUND</span>` : `<span class="badge badge-light">PENDING</span>`;
+            const btn = isM ? `<button onclick="view(${r.id})" class="btn btn-primary btn-sm px-3">View</button>` : `<button class="btn btn-light btn-sm" disabled>Wait</button>`;
 
-            tBody.append(`<tr><td><strong>${r['Your Designation']}</strong></td><td>${r['Working District']}</td><td>${r['Willing District']}</td><td>${dBadge}</td><td>${sBadge}</td><td>${btn}</td></tr>`);
-            
-            mBody.append(`
-                <div class="mobile-card">
-                    <div class="d-flex justify-content-between mb-3">
-                        <div><small class="text-muted font-weight-bold text-uppercase" style="font-size:0.6rem">Designation</small><div class="font-weight-bold">${r['Your Designation']}</div></div>
-                        ${sBadge}
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-6"><small class="text-muted font-weight-bold">FROM</small><div class="small font-weight-bold">${r['Working District']}</div></div>
-                        <div class="col-6"><small class="text-muted font-weight-bold">TO</small><div class="small font-weight-bold">${r['Willing District']}</div></div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        ${dBadge}
-                        ${btn}
-                    </div>
-                </div>
-            `);
+            tb.append(`<tr><td>${r['Your Designation']}</td><td>${r['Working District']}</td><td>${r['Willing District']}</td><td>${dBadge}</td><td>${sBadge}</td><td>${btn}</td></tr>`);
+            mb.append(`<div class="mobile-card"><div class="d-flex justify-content-between"><b>${r['Your Designation']}</b>${sBadge}</div><div class="row mt-2"><div class="col-6"><small>FROM</small><div>${r['Working District']}</div></div><div class="col-6"><small>TO</small><div>${r['Willing District']}</div></div></div><div class="d-flex justify-content-between align-items-center mt-2">${dBadge}${btn}</div></div>`);
         });
     }
 
-    function requestView(id) {
-        pendingRowId = id;
-        const saved = localStorage.getItem('userPhone');
-        saved ? executePost(id, saved) : $('#verifyModal').modal('show');
+    function view(id) {
+        activeId = id;
+        const p = localStorage.getItem('up');
+        p ? fetchContact(id, p) : $('#vModal').modal('show');
     }
 
-    function confirmIdentity() {
-        const phone = $('#userPhoneInput').val().trim();
-        if (phone.length < 10) return alert("Enter a valid 10-digit number");
-        localStorage.setItem('userPhone', phone);
-        $('#verifyModal').modal('hide');
-        updateLabel();
-        executePost(pendingRowId, phone);
+    function saveAuth() {
+        const p = $('#uPhone').val();
+        if(p.length < 10) return alert("Invalid Phone");
+        localStorage.setItem('up', p);
+        $('#vModal').modal('hide');
+        checkAuth();
+        fetchContact(activeId, p);
     }
 
-    function executePost(rowId, phone) {
-        $('#loader-overlay').show();
-        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ rowId: rowId, userPhone: phone }) })
+    function fetchContact(id, phone) {
+        $('#loader').show();
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ rowId: id, userPhone: phone }) })
         .then(r => r.json()).then(res => {
-            $('#loader-overlay').hide();
-            if (res.error) { alert(res.error); localStorage.removeItem('userPhone'); updateLabel(); }
-            else { 
+            $('#loader').hide();
+            if(res.error) { alert(res.error); logout(); }
+            else {
                 $('#resName').text(res.name);
                 $('#resPhone').text(res.contact);
-                const clean = res.contact.replace(/\D/g, '');
-                $('#callBtn').attr('href', `tel:${clean}`);
-                $('#waBtn').attr('href', `https://wa.me/${clean}?text=Hello ${res.name}, I am your Mutual Transfer Match!`);
-                $('#contactModal').modal('show');
+                const c = res.contact.replace(/\D/g,'');
+                $('#call').attr('href', 'tel:'+c);
+                $('#wa').attr('href', 'https://wa.me/'+c);
+                $('#cModal').modal('show');
             }
-        }).catch(e => { $('#loader-overlay').hide(); alert("Server connection error."); });
+        });
     }
 
-    function resetFilters() { $('#globalSearch').val(''); $('#fDes').val('all'); $('#fStatus').val('all'); applyFilters(); }
-    function updateLabel() { 
-        const s = localStorage.getItem('userPhone'); 
-        if(s) { $('#identityLabel').text(`ID: ***${s.slice(-4)}`); $('#userBadge').removeClass('d-none'); }
-        else { $('#userBadge').addClass('d-none'); }
+    function checkAuth() {
+        const p = localStorage.getItem('up');
+        if(p) $('#authBtn').text('Verified: ***'+p.slice(-4)).removeClass('btn-outline-secondary').addClass('btn-success');
     }
-    function clearIdentity() { if(confirm("Sign out from this session?")) { localStorage.removeItem('userPhone'); location.reload(); } }
+
+    function logout() { localStorage.removeItem('up'); location.reload(); }
 </script>
-
 </body>
 </html>
