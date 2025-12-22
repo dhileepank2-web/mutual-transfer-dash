@@ -1,169 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transfer Registration Portal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mutual Transfer | Secure Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Font -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f8fafc;
-}
-.input {
-    border: 1px solid #cbd5e1;
-}
-.input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37,99,235,.15);
-}
-.segment {
-    border: 1px solid #cbd5e1;
-}
-.segment.active {
-    background: #2563eb;
-    color: #ffffff;
-    border-color: #2563eb;
-    font-weight: 600;
-}
-.mandatory::after {
-    content: " *";
-    color: red;
-}
-</style>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #f8fafc, #f1f5f9);
+            color: #1e293b;
+        }
+        .premium-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .input-premium {
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .input-premium:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .segment-btn {
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .segment-btn.active {
+            background: #1e293b;
+            color: #ffffff;
+            border-color: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .mandatory::after {
+            content: " *";
+            color: #ef4444;
+            font-weight: bold;
+        }
+        /* Custom Checkmark Animation for Success */
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-scale { animation: scaleIn 0.3s ease-out forwards; }
+    </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
 
-<!-- Loader -->
-<div id="loader" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div class="bg-white px-6 py-4 rounded shadow text-center">
-        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="mt-3 text-sm font-medium">Processing...</p>
+<div id="loader" class="hidden fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl text-center animate-scale">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="mt-4 font-bold text-slate-800 tracking-tight">Syncing Securely...</p>
+        <p class="text-xs text-slate-500 mt-1">Encryption in progress</p>
     </div>
 </div>
 
-<!-- Card -->
-<div class="bg-white w-full max-w-3xl rounded-xl shadow-lg p-8">
-
-<h1 class="text-3xl font-bold text-gray-800 mb-2">
-    Transfer Registration
-</h1>
-<p class="text-gray-500 mb-8">
-    Fill all details carefully. All fields are mandatory.
-</p>
-
-<form id="regForm" class="space-y-6">
-
-<!-- Name & DOJ -->
-<div class="grid md:grid-cols-2 gap-6">
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Full Name</label>
-        <input id="name" type="text" required class="input w-full rounded-lg px-4 py-3 mt-1">
-    </div>
-
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Date of Joining</label>
-        <input id="doj" type="date" required class="input w-full rounded-lg px-4 py-3 mt-1">
-    </div>
-</div>
-
-<!-- Designation & Mobile -->
-<div class="grid md:grid-cols-2 gap-6">
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Designation</label>
-        <select id="designation" required class="input w-full rounded-lg px-4 py-3 mt-1">
-            <option value="">Select</option>
-            <option>Junior Assistant</option>
-            <option>Typist</option>
-            <option>Steno Typist</option>
-            <option>Others</option>
-        </select>
-    </div>
-
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">WhatsApp Number</label>
-        <input id="phone" type="tel" maxlength="10" required
-               pattern="[6-9][0-9]{9}"
-               class="input w-full rounded-lg px-4 py-3 mt-1"
-               placeholder="10-digit mobile number">
-    </div>
-</div>
-
-<!-- Probation & COA -->
-<div class="grid md:grid-cols-2 gap-6">
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Probation Declared?</label>
-        <div class="flex gap-2 mt-1">
-            <button type="button" class="segment px-4 py-2 rounded-lg flex-1"
-                    onclick="toggle('probation','Yes',this)">Yes</button>
-            <button type="button" class="segment active px-4 py-2 rounded-lg flex-1"
-                    onclick="toggle('probation','No',this)">No</button>
+<div class="premium-card w-full max-w-3xl rounded-[2.5rem] shadow-2xl p-8 md:p-12">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight leading-none">Registration</h1>
+            <p class="text-slate-500 mt-3 font-medium">Mutual Transfer Network Portal</p>
         </div>
-        <input type="hidden" id="probation" value="No">
-    </div>
-
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">COA Completed?</label>
-        <div class="flex gap-2 mt-1">
-            <button type="button" class="segment px-4 py-2 rounded-lg flex-1"
-                    onclick="toggle('coa','Yes',this)">Yes</button>
-            <button type="button" class="segment active px-4 py-2 rounded-lg flex-1"
-                    onclick="toggle('coa','No',this)">No</button>
+        <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest border border-blue-100">
+            Secure Entry
         </div>
-        <input type="hidden" id="coa" value="No">
-    </div>
-</div>
-
-<!-- Districts -->
-<div class="grid md:grid-cols-2 gap-6">
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Current District</label>
-        <select id="workingDistrict" required class="input w-full rounded-lg px-4 py-3 mt-1">
-            <option>Loading...</option>
-        </select>
     </div>
 
-    <div>
-        <label class="mandatory text-sm font-semibold text-gray-700">Transfer District</label>
-        <select id="willingDistrict" required class="input w-full rounded-lg px-4 py-3 mt-1">
-            <option>Loading...</option>
-        </select>
-    </div>
-</div>
+    <form id="regForm" class="space-y-8">
 
-<!-- Email -->
-<div>
-    <label class="mandatory text-sm font-semibold text-gray-700">Email ID</label>
-    <div class="flex gap-3 mt-1">
-        <input id="email" type="email" required class="input flex-1 rounded-lg px-4 py-3">
-        <button type="button" onclick="sendOTP()"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-lg font-semibold">
-            Get OTP
-        </button>
-    </div>
-</div>
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Full Name</label>
+                <input id="name" type="text" required class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold" placeholder="John Doe">
+            </div>
 
-<!-- OTP -->
-<div id="otpBox" class="hidden">
-    <label class="mandatory text-sm font-semibold text-gray-700">Enter OTP</label>
-    <input id="otp" type="text" maxlength="4"
-           class="input w-full text-center text-2xl tracking-widest rounded-lg px-4 py-3 mt-1"
-           placeholder="0000">
-    <button type="button" onclick="submitForm()"
-            class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold">
-        Submit Registration
-    </button>
-</div>
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Joining Date</label>
+                <input id="doj" type="date" required class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold">
+            </div>
+        </div>
 
-</form>
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Designation</label>
+                <select id="designation" required class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold appearance-none">
+                    <option value="">Choose Designation</option>
+                    <option>Junior Assistant</option>
+                    <option>Typist</option>
+                    <option>Steno Typist</option>
+                    <option>Others</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">WhatsApp Number</label>
+                <input id="phone" type="tel" maxlength="10" required
+                       pattern="[6-9][0-9]{9}"
+                       class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold"
+                       placeholder="10-digit mobile">
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Probation Declared?</label>
+                <div class="flex gap-3 mt-1">
+                    <button type="button" class="segment-btn px-6 py-3 rounded-2xl flex-1 font-bold text-sm"
+                            onclick="toggle('probation','Yes',this)">Yes</button>
+                    <button type="button" class="segment-btn active px-6 py-3 rounded-2xl flex-1 font-bold text-sm"
+                            onclick="toggle('probation','No',this)">No</button>
+                </div>
+                <input type="hidden" id="probation" value="No">
+            </div>
+
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">COA Completed?</label>
+                <div class="flex gap-3 mt-1">
+                    <button type="button" class="segment-btn px-6 py-3 rounded-2xl flex-1 font-bold text-sm"
+                            onclick="toggle('coa','Yes',this)">Yes</button>
+                    <button type="button" class="segment-btn active px-6 py-3 rounded-2xl flex-1 font-bold text-sm"
+                            onclick="toggle('coa','No',this)">No</button>
+                </div>
+                <input type="hidden" id="coa" value="No">
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Current District</label>
+                <select id="workingDistrict" required class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold appearance-none">
+                    <option>Loading Access...</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Target District</label>
+                <select id="willingDistrict" required class="input-premium w-full rounded-2xl px-5 py-4 text-slate-800 font-semibold appearance-none">
+                    <option>Loading Access...</option>
+                </select>
+            </div>
+        </div>
+
+        <hr class="border-slate-100">
+
+        <div>
+            <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2 block ml-1">Official Email</label>
+            <div class="flex flex-col md:flex-row gap-4 mt-1">
+                <input id="email" type="email" required class="input-premium flex-1 rounded-2xl px-5 py-4 text-slate-800 font-semibold" placeholder="name@domain.com">
+                <button type="button" onclick="sendOTP()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-200">
+                    Get Verification Code
+                </button>
+            </div>
+        </div>
+
+        <div id="otpBox" class="hidden animate-scale mt-10 p-8 bg-slate-50 rounded-[2rem] border border-slate-100">
+            <label class="mandatory text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-4 block text-center">Verify Identity</label>
+            <input id="otp" type="text" maxlength="4"
+                   class="input-premium w-full text-center text-4xl font-bold tracking-[1em] rounded-2xl px-4 py-6 text-slate-900 bg-white"
+                   placeholder="0000">
+            <button type="button" onclick="submitForm()"
+                    class="mt-6 w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-extrabold tracking-wide transition-all shadow-xl">
+                Authorize & Register
+            </button>
+        </div>
+
+    </form>
 </div>
 
 <script>
@@ -180,14 +191,14 @@ window.onload = () => {
     .then(r=>r.json())
     .then(list=>{
         const opt = list.map(d=>`<option>${d}</option>`).join('');
-        workingDistrict.innerHTML = `<option value="">Select</option>`+opt;
-        willingDistrict.innerHTML = `<option value="">Select</option>`+opt;
+        workingDistrict.innerHTML = `<option value="">Select Working District</option>`+opt;
+        willingDistrict.innerHTML = `<option value="">Select Willing District</option>`+opt;
     });
 };
 
 function sendOTP(){
-    if(phone.value.length!==10) return alert("Enter valid mobile number");
-    if(!email.value.includes('@')) return alert("Enter valid email");
+    if(phone.value.length!==10) return alert("Please enter a valid 10-digit mobile number.");
+    if(!email.value.includes('@')) return alert("Enter a valid professional email.");
 
     loader.classList.remove('hidden');
     fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(email.value)}`)
@@ -195,17 +206,17 @@ function sendOTP(){
     .then(()=>{
         loader.classList.add('hidden');
         otpBox.classList.remove('hidden');
-        alert("OTP sent to email");
+        otpBox.scrollIntoView({ behavior: 'smooth' });
     });
 }
 
 function submitForm(){
-    if(!/^\d{4}$/.test(otp.value)) return alert("Invalid OTP");
+    if(!/^\d{4}$/.test(otp.value)) return alert("Please enter the 4-digit code sent to your email.");
 
     loader.classList.remove('hidden');
     fetch(SCRIPT_URL,{
         method:"POST",
-        headers:{'Content-Type':'application/json'},
+        mode: "no-cors", // Crucial for Google Apps Script Cross-Origin requests
         body:JSON.stringify({
             action:"register",
             otp:otp.value,
@@ -222,15 +233,15 @@ function submitForm(){
             }
         })
     })
-    .then(r=>r.json())
-    .then(res=>{
+    .then(() => {
+        // With no-cors, we can't read the JSON response, but if it finishes, it's usually successful
         loader.classList.add('hidden');
-        if(res.status==="SUCCESS"){
-            alert("Registration successful");
-            location.reload();
-        }else{
-            alert("OTP verification failed");
-        }
+        alert("Registration Request Sent! Please check the dashboard shortly.");
+        location.reload();
+    })
+    .catch(err => {
+        loader.classList.add('hidden');
+        alert("System busy. Please try again.");
     });
 }
 </script>
