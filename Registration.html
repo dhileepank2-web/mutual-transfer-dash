@@ -3,146 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mutual Transfer | Premium Portal</title>
+    <title>Transfer Portal | Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at top left, #f8fafc, #e2e8f0);
-            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0f172a; 
+            color: #f8fafc;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05);
+        .premium-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        .input-premium {
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid #e2e8f0;
+        .input-field {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .input-premium:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        .input-field:focus {
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
             outline: none;
-            background: white;
         }
-        .btn-gradient {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            transition: transform 0.2s ease;
+        /* Custom Styling for Select Wrappers */
+        .select-wrapper { position: relative; }
+        .select-wrapper::after {
+            content: '▼'; font-size: 0.7rem; color: #94a3b8;
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            pointer-events: none;
         }
-        .btn-gradient:active { transform: scale(0.98); }
+        .mandatory::after { content: " *"; color: #38bdf8; }
         .hidden { display: none; }
         
-        /* Smooth Spinner */
-        .shimmer {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+        /* Segmented Control for Yes/No */
+        .segment-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+        .segment-btn.active {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: 700;
+            border-color: #38bdf8;
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-6">
+<body class="min-h-screen flex items-center justify-center p-4 py-12">
 
-    <div id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden">
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-            <p class="mt-4 text-sm font-medium text-slate-600">Syncing with Cloud...</p>
+    <div id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="text-center">
+            <div class="inline-block w-10 h-10 border-4 border-sky-400/20 border-t-sky-400 rounded-full animate-spin"></div>
+            <p class="mt-4 text-sky-400 font-medium tracking-widest text-xs uppercase">Syncing Security Protocols</p>
         </div>
     </div>
 
-    <div class="glass-card w-full max-w-xl rounded-3xl p-8 md:p-12">
-        <header class="mb-10">
-            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Registration</h1>
-            <p class="text-slate-500 mt-2">Enter your details to find your mutual transfer match.</p>
-        </header>
+    <div class="premium-card w-full max-w-2xl rounded-[3rem] p-8 md:p-12">
+        <div class="mb-10">
+            <h1 class="text-4xl font-extrabold tracking-tight text-white">Service Profile</h1>
+            <p class="text-slate-400 mt-2 font-medium">Verify your service details to proceed.</p>
+        </div>
 
         <form id="regForm" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Full Name</label>
-                    <input type="text" id="name" class="input-premium w-full rounded-xl px-4 py-3 text-slate-800" placeholder="John Doe">
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+                    <input type="text" id="name" required class="input-field w-full rounded-2xl px-5 py-4 text-white" placeholder="Service Name">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">DOJ</label>
-                    <input type="date" id="doj" class="input-premium w-full rounded-xl px-4 py-3 text-slate-800">
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Joining Date</label>
+                    <input type="date" id="doj" required class="input-field w-full rounded-2xl px-5 py-4 text-white">
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Professional Role</label>
-                <select id="designation" class="input-premium w-full rounded-xl px-4 py-3 text-slate-800 appearance-none">
-                    <option>Junior Assistant</option>
-                    <option>Typist</option>
-                    <option>Steno Typist</option>
-                </select>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="select-wrapper">
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Designation</label>
+                    <select id="designation" required class="input-field w-full rounded-2xl px-5 py-4 text-white appearance-none">
+                        <option value="">Select Role</option>
+                        <option>Junior Assistant</option>
+                        <option>Typist</option>
+                        <option>Steno Typist</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">WhatsApp Number</label>
+                    <input type="tel" id="phone" maxlength="10" required 
+                           class="input-field w-full rounded-2xl px-5 py-4 text-white" 
+                           placeholder="10-digit mobile"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Current Post</label>
-                    <select id="workingDistrict" class="input-premium w-full rounded-xl px-4 py-3 text-slate-800">
-                        <option>Loading Districts...</option>
-                    </select>
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Probation Declared?</label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setToggle('probation', 'Yes')" id="prob-yes" class="segment-btn flex-1 py-3 rounded-xl text-sm font-semibold">Yes</button>
+                        <button type="button" onclick="setToggle('probation', 'No')" id="prob-no" class="segment-btn flex-1 py-3 rounded-xl text-sm font-semibold active">No</button>
+                    </div>
+                    <input type="hidden" id="probation" value="No">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Target Post</label>
-                    <select id="willingDistrict" class="input-premium w-full rounded-xl px-4 py-3 text-slate-800">
-                        <option>Loading Districts...</option>
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">COA Completed?</label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setToggle('coa', 'Yes')" id="coa-yes" class="segment-btn flex-1 py-3 rounded-xl text-sm font-semibold">Yes</button>
+                        <button type="button" onclick="setToggle('coa', 'No')" id="coa-no" class="segment-btn flex-1 py-3 rounded-xl text-sm font-semibold active">No</button>
+                    </div>
+                    <input type="hidden" id="coa" value="No">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="select-wrapper">
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Current District</label>
+                    <select id="workingDistrict" required class="input-field w-full rounded-2xl px-5 py-4 text-white appearance-none">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="select-wrapper">
+                    <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Transfer District</label>
+                    <select id="willingDistrict" required class="input-field w-full rounded-2xl px-5 py-4 text-white appearance-none">
+                        <option value="">Loading...</option>
                     </select>
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Official Email</label>
-                <div class="flex gap-2">
-                    <input type="email" id="email" class="input-premium flex-1 rounded-xl px-4 py-3 text-slate-800" placeholder="email@gov.in">
-                    <button type="button" onclick="sendOTP()" class="px-6 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors">
-                        Get OTP
-                    </button>
+                <label class="mandatory block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Verification Email</label>
+                <div class="flex gap-3">
+                    <input type="email" id="email" required class="input-field flex-1 rounded-2xl px-5 py-4 text-white" placeholder="name@email.com">
+                    <button type="button" onclick="validateAndSendOTP()" class="px-8 bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold rounded-2xl transition-all text-xs uppercase tracking-tighter">Get OTP</button>
                 </div>
             </div>
 
-            <div id="otpBox" class="hidden animate-in fade-in slide-in-from-top-4 duration-500">
-                <label class="block text-xs font-bold uppercase tracking-wider text-blue-600 mb-2 text-center">Security Verification</label>
-                <div class="bg-blue-50 border border-blue-100 p-6 rounded-2xl">
-                    <input type="text" id="otpInput" maxlength="4" class="w-full text-center text-3xl font-bold tracking-widest bg-transparent border-none focus:ring-0 text-blue-700" placeholder="0000">
-                    <button type="button" onclick="submitRegistration()" class="w-full mt-4 btn-gradient text-white font-semibold py-4 rounded-xl shadow-lg">
-                        Finalize Registration
-                    </button>
+            <div id="otpBox" class="hidden animate-pulse">
+                <div class="bg-sky-500/10 border border-sky-500/30 rounded-3xl p-6">
+                    <input type="text" id="otpInput" maxlength="4" class="bg-transparent text-4xl font-bold tracking-[1.5rem] text-center w-full focus:outline-none text-sky-400" placeholder="0000">
+                    <button type="button" onclick="submitRegistration()" class="w-full mt-4 bg-white text-slate-900 font-extrabold py-4 rounded-xl uppercase text-xs tracking-widest shadow-xl">Complete Encryption</button>
                 </div>
             </div>
         </form>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
+        const SCRIPT_URL = "YOUR_WEB_APP_URL";
+
+        // Segmented Toggle Logic
+        function setToggle(field, value) {
+            document.getElementById(field).value = value;
+            const isProb = field === 'probation';
+            const yesBtn = document.getElementById(isProb ? 'prob-yes' : 'coa-yes');
+            const noBtn = document.getElementById(isProb ? 'prob-no' : 'coa-no');
+            
+            if(value === 'Yes') {
+                yesBtn.classList.add('active');
+                noBtn.classList.remove('active');
+            } else {
+                noBtn.classList.add('active');
+                yesBtn.classList.remove('active');
+            }
+        }
 
         window.onload = () => {
             fetch(`${SCRIPT_URL}?action=getDistricts`)
                 .then(res => res.json())
                 .then(data => {
-                    const html = data.map(d => `<option value="${d}">${d}</option>`).join('');
-                    document.getElementById('workingDistrict').innerHTML = html;
-                    document.getElementById('willingDistrict').innerHTML = html;
+                    const options = data.map(d => `<option value="${d}">${d}</option>`).join('');
+                    document.getElementById('workingDistrict').innerHTML = `<option value="">Select District</option>` + options;
+                    document.getElementById('willingDistrict').innerHTML = `<option value="">Select District</option>` + options;
                 });
         };
 
-        function sendOTP() {
+        function validateAndSendOTP() {
+            const phone = document.getElementById('phone').value;
             const email = document.getElementById('email').value;
-            if(!email) return alert("Email Required");
             
+            if (phone.length !== 10) return alert("❌ Error: Mobile number must be 10 digits.");
+            if (!email.includes('@')) return alert("❌ Error: Please enter a valid email.");
+
             document.getElementById('loader').classList.remove('hidden');
-            fetch(`${SCRIPT_URL}?action=sendOTP&email=${email}`)
-                .then(() => {
+            fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(email)}`)
+                .then(res => res.json())
+                .then(res => {
                     document.getElementById('loader').classList.add('hidden');
-                    document.getElementById('otpBox').classList.remove('hidden');
+                    if(res.status === "SENT") {
+                        document.getElementById('otpBox').classList.remove('hidden');
+                        alert("✅ Security Code Sent!");
+                    }
                 });
         }
 
@@ -156,7 +209,9 @@
                     doj: document.getElementById('doj').value,
                     workingDistrict: document.getElementById('workingDistrict').value,
                     willingDistrict: document.getElementById('willingDistrict').value,
-                    phone: "N/A", // Add phone field if needed
+                    probation: document.getElementById('probation').value,
+                    coa: document.getElementById('coa').value,
+                    phone: document.getElementById('phone').value,
                     email: document.getElementById('email').value
                 }
             };
@@ -164,7 +219,8 @@
             document.getElementById('loader').classList.remove('hidden');
             fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
                 .then(() => {
-                    alert("Registration Successful!");
+                    document.getElementById('loader').classList.add('hidden');
+                    alert("✨ Registration Verified and Saved!");
                     window.location.reload();
                 });
         }
