@@ -313,17 +313,11 @@ $(document).ready(function() {
     }
     
     // 8. Handle Contact Button Click
-    function showContact(rowId) {
-      $('#contactName').text('Loading...');
-      $('#contactNumber').text('Loading...');
-      
-      google.script.run
-        .withSuccessHandler(displayContact)
-        .withFailureHandler(handleContactError)
-        .getPrivateContact(rowId);
-      
-      $('#contactModal').modal('show');
-    }
+function showContact(rowId) {
+  const scriptUrl = "YOUR_GOOGLE_SCRIPT_WEB_APP_URL";
+  // This opens the secure Google-hosted page for that specific row
+  window.open(`${scriptUrl}?rowId=${rowId}`, '_blank');
+}
 
     // 9. Display Contact Details in Modal
     function displayContact(contactDetails) {
