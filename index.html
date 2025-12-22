@@ -189,9 +189,32 @@
       filterTable();
     }
 
-    function showContact(rowId) {
-      window.open(`${SCRIPT_URL}?rowId=${rowId}`, '_blank');
+function showContact(rowId) {
+  const userPhone = prompt("Enter your registered Phone Number to verify identity:");
+  
+  if (!userPhone) return;
+
+  $('#loading').show();
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ rowId: rowId, userPhone: userPhone })
+  })
+  .then(res => res.json())
+  .then(response => {
+    $('#loading').hide();
+    if (response.error) {
+      alert(response.error);
+    } else {
+      // Show the details in a nice alert or update a modal
+      alert(`MATCH FOUND!\nName: ${response.name}\nContact: ${response.contact}`);
     }
+  })
+  .catch(err => {
+    $('#loading').hide();
+    alert("Verification failed. Please try again.");
+  });
+}
 </script>
 
 </body>
