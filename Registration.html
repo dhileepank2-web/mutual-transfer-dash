@@ -1,156 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Mutual Transfer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #f8f9fa; padding: 20px; }
-        .card { max-width: 600px; margin: auto; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 999; justify-content: center; align-items: center; }
         .hidden { display: none; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     </style>
 </head>
-<body>
-
-<div id="loader" class="loading-overlay hidden">
-    <div class="spinner-border text-primary"></div>
-</div>
-
-<div class="card p-4">
-    <h3 class="text-center mb-4">Registration Form</h3>
-    <form id="regForm">
-        <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input type="text" id="name" class="form-control" required>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-6">
-                <label class="form-label">Designation</label>
-                <select id="designation" class="form-select" onchange="toggleOther(this.value)" required>
-                    <option value="Junior Assistant">Junior Assistant</option>
-                    <option value="Typist">Typist</option>
-                    <option value="Steno Typist">Steno Typist</option>
-                    <option value="Other">Other</option>
+<body class="bg-light p-4">
+    <div id="loader" class="loading"><div class="spinner-border text-primary"></div></div>
+    
+    <div class="card mx-autoContent" style="max-width: 500px;">
+        <div class="card-body">
+            <h3 class="text-center">Create Request</h3>
+            <form id="regForm">
+                <input type="text" id="name" class="form-control mb-2" placeholder="Full Name" required>
+                <select id="designation" class="form-select mb-2">
+                    <option>Junior Assistant</option><option>Typist</option><option>Other</option>
                 </select>
-            </div>
-            <div class="col-6">
-                <label class="form-label">DOJ</label>
-                <input type="date" id="doj" class="form-control" required>
-            </div>
+                <input type="date" id="doj" class="form-control mb-2" required>
+                <select id="workingDistrict" class="form-select mb-2"><option>Loading Districts...</option></select>
+                <select id="willingDistrict" class="form-select mb-2"><option>Loading Districts...</option></select>
+                <input type="tel" id="phone" class="form-control mb-2" placeholder="WhatsApp Number" required>
+                
+                <div class="input-group mb-3">
+                    <input type="email" id="email" class="form-control" placeholder="Email">
+                    <button class="btn btn-primary" type="button" onclick="sendOTP()">Get OTP</button>
+                </div>
+
+                <div id="otpBox" class="hidden">
+                    <input type="text" id="otpInput" class="form-control mb-2" placeholder="4-Digit OTP">
+                    <button class="btn btn-success w-100" type="button" onclick="submitRegistration()">Register</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <input type="text" id="otherDesignation" class="form-control mb-3 hidden" placeholder="Specify Designation">
+    <script>
+        const SCRIPT_URL = "REPLACE_WITH_YOUR_EXEC_URL";
 
-        <div class="mb-3">
-            <label class="form-label">Working District</label>
-            <select id="workingDistrict" class="form-select" required><option>Loading...</option></select>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Willing District</label>
-            <select id="willingDistrict" class="form-select" required><option>Loading...</option></select>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-6">
-                <label class="form-label">Probation?</label>
-                <select id="probation" class="form-select"><option value="Yes">Yes</option><option value="No">No</option></select>
-            </div>
-            <div class="col-6">
-                <label class="form-label">COA?</label>
-                <select id="coa" class="form-select"><option value="Yes">Yes</option><option value="No">No</option></select>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">WhatsApp Number</label>
-            <input type="tel" id="phone" class="form-control" placeholder="10 Digit Number" required>
-        </div>
-
-        <div class="mb-4">
-            <label class="form-label">Email</label>
-            <div class="input-group">
-                <input type="email" id="email" class="form-control" placeholder="email@example.com" required>
-                <button class="btn btn-warning" type="button" onclick="sendOTP()">Send OTP</button>
-            </div>
-        </div>
-
-        <div id="otpBox" class="mb-4 hidden">
-            <label class="form-label text-danger fw-bold">Enter OTP</label>
-            <input type="text" id="otpInput" class="form-control mb-2" maxlength="4">
-            <button class="btn btn-success w-100" type="button" onclick="submitRegistration()">Verify & Register</button>
-        </div>
-    </form>
-</div>
-
-<script>
-    // REPLACE THIS WITH YOUR DEPLOYED GOOGLE WEB APP URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
-
-    window.onload = function() {
-        fetch(`${SCRIPT_URL}?action=getDistricts`)
-            .then(res => res.json())
-            .then(data => {
-                const options = data.map(d => `<option value="${d}">${d}</option>`).join('');
-                document.getElementById('workingDistrict').innerHTML = options;
-                document.getElementById('willingDistrict').innerHTML = options;
-            });
-    };
-
-    function toggleOther(val) {
-        document.getElementById('otherDesignation').classList.toggle('hidden', val !== 'Other');
-    }
-
-    function sendOTP() {
-        const email = document.getElementById('email').value;
-        if(!email) return alert("Enter email first");
-        
-        document.getElementById('loader').classList.remove('hidden');
-        fetch(`${SCRIPT_URL}?action=sendOTP&email=${email}`)
-            .then(() => {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('otpBox').classList.remove('hidden');
-                alert("OTP Sent!");
-            });
-    }
-
-    function submitRegistration() {
-        const payload = {
-            action: "register",
-            otp: document.getElementById('otpInput').value,
-            userData: {
-                name: document.getElementById('name').value,
-                designation: document.getElementById('designation').value === 'Other' ? document.getElementById('otherDesignation').value : document.getElementById('designation').value,
-                doj: document.getElementById('doj').value,
-                workingDistrict: document.getElementById('workingDistrict').value,
-                willingDistrict: document.getElementById('willingDistrict').value,
-                probation: document.getElementById('probation').value,
-                coa: document.getElementById('coa').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value
-            }
+        window.onload = () => {
+            fetch(`${SCRIPT_URL}?action=getDistricts`)
+                .then(res => res.json())
+                .then(data => {
+                    const html = data.map(d => `<option value="${d}">${d}</option>`).join('');
+                    document.getElementById('workingDistrict').innerHTML = html;
+                    document.getElementById('willingDistrict').innerHTML = html;
+                });
         };
 
-        document.getElementById('loader').classList.remove('hidden');
+        function sendOTP() {
+            const email = document.getElementById('email').value;
+            document.getElementById('loader').style.display = 'flex';
+            fetch(`${SCRIPT_URL}?action=sendOTP&email=${email}`)
+                .then(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('otpBox').classList.remove('hidden');
+                    alert("OTP Sent!");
+                });
+        }
 
-        fetch(SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(res => {
-            document.getElementById('loader').classList.add('hidden');
-            if(res.status === "SUCCESS") {
-                alert("Registered Successfully!");
-                window.location.href = "index.html";
-            } else {
-                alert("Error: " + res.message);
-            }
-        });
-    }
-</script>
+        function submitRegistration() {
+            const payload = {
+                action: "register",
+                otp: document.getElementById('otpInput').value,
+                userData: {
+                    name: document.getElementById('name').value,
+                    designation: document.getElementById('designation').value,
+                    doj: document.getElementById('doj').value,
+                    workingDistrict: document.getElementById('workingDistrict').value,
+                    willingDistrict: document.getElementById('willingDistrict').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value
+                }
+            };
+
+            document.getElementById('loader').style.display = 'flex';
+            fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+                .then(() => {
+                    alert("Success! Check Dashboard.");
+                    window.location.href = "index.html";
+                });
+        }
+    </script>
 </body>
 </html>
