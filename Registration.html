@@ -79,13 +79,32 @@
     <div class="grid md:grid-cols-2 gap-8">
       <div>
         <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Designation</label>
-        <select id="designation" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+        <select id="designation" required onchange="handleRoleChange(this.value)" class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
           <option value="">Select Role</option>
+          <option>Assistant</option>
           <option>Junior Assistant</option>
           <option>Typist</option>
           <option>Steno Typist</option>
-          <option>Others</option>
+          <option>WATCHMAN</option>
+          <option>CLEANLINESS WORKER</option>
+          <option>MASALCHI</option>
+          <option>NIGHT WATCHMAN – CUM – MASALCHI</option>
+          <option>MASALCHI CUM – NIGHT WATCHMAN</option>
+          <option>OFFICE ASSISTANT</option>
+          <option>COPYIST ATTENDER</option>
+          <option>RECORD CLERK</option>
+          <option>XEROX MACHINE OPERATOR (Adhoc Rules)</option>
+          <option>JUNIOR BAILIFF</option>
+          <option>DRIVER</option>
+          <option>SENIOR BAILIFF</option>
+          <option>BENCH CLERKS GRADE - III</option>
+          <option>BENCH CLERKS GRADE - II</option>
+          <option value="OTHER">OTHER (Specify below)</option>
         </select>
+        
+        <div id="otherRoleBox" class="hidden mt-3 fade-in">
+            <input id="otherDesignation" type="text" class="input w-full rounded-xl px-4 py-3 border-blue-200 text-sm font-semibold text-slate-800" placeholder="Type your designation here...">
+        </div>
       </div>
       <div>
         <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
@@ -169,6 +188,19 @@ function toggle(field,val,btn){
   btn.classList.add('active');
 }
 
+// Logic for showing Other Role input
+function handleRoleChange(val) {
+    const otherBox = document.getElementById('otherRoleBox');
+    const otherInput = document.getElementById('otherDesignation');
+    if(val === "OTHER") {
+        otherBox.classList.remove('hidden');
+        otherInput.focus();
+    } else {
+        otherBox.classList.add('hidden');
+        otherInput.value = "";
+    }
+}
+
 window.onload=()=>{
   fetch(`${SCRIPT_URL}?action=getDistricts`)
   .then(r=>r.json())
@@ -229,14 +261,19 @@ function submitForm() {
     const wDist = document.getElementById('workingDistrict').value;
     const lDist = document.getElementById('willingDistrict').value;
     const otpVal = document.getElementById('otp').value;
+    const mainRole = document.getElementById('designation').value;
+    const otherRole = document.getElementById('otherDesignation').value;
 
+    // Logic to choose final designation
+    const finalDesignation = (mainRole === "OTHER") ? otherRole : mainRole;
+
+    if (!finalDesignation || (mainRole === "OTHER" && otherRole.trim() === "")) return alert("Please provide your designation.");
     if (!wDist || !lDist) return alert("Please select districts.");
     if (wDist === lDist) return alert("Working and Willing districts cannot be the same.");
     if (otpVal.length !== 4) return alert("Please enter the 4-digit OTP.");
 
     document.getElementById('loader').classList.remove("hidden");
 
-    // Standard POST without high-level headers to avoid CORS Preflight issues in GAS
     fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify({
@@ -245,7 +282,7 @@ function submitForm() {
             userData: {
                 name: document.getElementById('name').value,
                 doj: document.getElementById('doj').value,
-                designation: document.getElementById('designation').value,
+                designation: finalDesignation, // Using the logic result here
                 phone: document.getElementById('phone').value,
                 probation: document.getElementById('probation').value,
                 coa: document.getElementById('coa').value,
@@ -267,7 +304,6 @@ function submitForm() {
     })
     .catch(err => {
         document.getElementById('loader').classList.add("hidden");
-        // For GAS, a network error during POST often means the data was still sent but the redirect failed.
         alert("System busy. Please refresh the dashboard in a moment to check your registration.");
         location.reload();
     });
