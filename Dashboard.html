@@ -38,94 +38,50 @@
 
         .stat-card {
             background: var(--surface);
-            border-radius: 24px;
-            padding: 24px;
+            border-radius: 20px;
+            padding: 20px;
             text-align: center;
             border: 1px solid var(--border);
-            transition: transform 0.2s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-        .stat-card:hover { transform: translateY(-4px); }
-        .stat-card h2 { font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-        .stat-card p { font-size: 1.8rem; color: var(--primary); font-weight: 800; margin: 0; }
+        .stat-card h2 { font-size: 0.7rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-card p { font-size: 1.6rem; color: var(--primary); font-weight: 800; margin: 0; }
 
         .filter-section {
             background: var(--surface);
-            border-radius: 24px;
+            border-radius: 20px;
             padding: 20px;
             border: 1px solid var(--border);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
         }
-        .search-input {
-            border-radius: 14px;
-            border: 1.5px solid var(--border);
-            height: 50px;
-            font-weight: 500;
-        }
-        
-        .btn-my-matches {
-            height: 50px;
-            border-radius: 14px;
-            font-weight: 700;
-            transition: all 0.3s;
-        }
+        .search-input { border-radius: 12px; height: 48px; font-weight: 500; }
 
         .table-container {
             background: var(--surface);
-            border-radius: 24px;
+            border-radius: 20px;
             border: 1px solid var(--border);
             overflow: hidden;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
         }
         .thead-dark th {
             background: #0f172a;
-            border: none;
             color: #fff;
-            font-weight: 600;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            padding: 20px;
+            padding: 15px;
         }
         
-        .badge-match { background: #dcfce7; color: #166534; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
-        .badge-3way { background: #e0f2fe; color: #0369a1; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
-        .badge-high { background: #fee2e2; color: #dc2626; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
-        
-        .btn-view-action {
-            background: var(--primary);
-            color: #fff !important;
-            border-radius: 12px;
-            font-weight: 700;
-            padding: 8px 20px;
-            border: none;
-            transition: all 0.2s;
-        }
-        .btn-view-action:hover { background: var(--primary-dark); transform: scale(1.05); }
+        /* Demand & Match Badges */
+        .badge-match { background: #dcfce7; color: #166534; border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.7rem; }
+        .badge-3way { background: #e0f2fe; color: #0369a1; border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.7rem; }
+        .badge-high { background: #fee2e2; color: #dc2626; border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.7rem; }
+        .badge-mod { background: #fef9c3; color: #854d0e; border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.7rem; }
 
-        .mobile-card {
-            background: var(--surface);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
+        .btn-view-action { background: var(--primary); color: #fff !important; border-radius: 10px; font-weight: 700; padding: 6px 16px; border: none; }
+        .mobile-card { background: var(--surface); border-radius: 18px; padding: 18px; margin-bottom: 15px; border: 1px solid var(--border); }
 
         #globalLoader {
-            position: fixed;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        @media (max-width: 768px) {
-            .desktop-only { display: none; }
-            .mobile-card { display: block; }
+            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95);
+            z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column;
         }
     </style>
 </head>
@@ -133,20 +89,17 @@
 <body>
 
 <div id="globalLoader">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-    <p class="mt-3 font-weight-bold text-dark">Syncing Live Transfers...</p>
+    <div class="spinner-border text-primary"></div>
+    <p class="mt-3 font-weight-bold">Loading Live Data...</p>
 </div>
 
 <div class="dashboard-header">
     <div class="container d-flex justify-content-between align-items-center">
-        <h5 class="font-weight-bold mb-0">
-            <i class="fas fa-bolt text-warning mr-2"></i>Live Dashboard
-        </h5>
+        <h5 class="font-weight-bold mb-0"><i class="fas fa-sync-alt text-primary mr-2"></i>Transfer Portal</h5>
         <div id="idBadge" class="d-none">
             <span class="badge badge-light p-2 border">
-                <i class="fas fa-user-circle text-primary mr-1"></i>
-                <span id="identityLabel" class="mr-2"></span>
-                <i class="fas fa-times-circle text-danger cursor-pointer" onclick="clearIdentity()"></i>
+                <i class="fas fa-user-check text-success mr-1"></i> <span id="identityLabel"></span>
+                <i class="fas fa-sign-out-alt ml-2 text-danger cursor-pointer" onclick="clearIdentity()"></i>
             </span>
         </div>
     </div>
@@ -155,32 +108,32 @@
 <div class="container mt-4 pb-5">
 
     <div class="row mb-4">
-        <div class="col-4"><div class="stat-card"><h2>Live Requests</h2><p id="totalRequests">0</p></div></div>
-        <div class="col-4"><div class="stat-card"><h2>Matches Found</h2><p id="totalMatches">0</p></div></div>
-        <div class="col-4"><div class="stat-card"><h2>Match Rate</h2><p id="successRate">0%</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Total</h2><p id="totalRequests">0</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Matches</h2><p id="totalMatches">0</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Rate</h2><p id="successRate">0%</p></div></div>
     </div>
 
     <div class="filter-section mb-4">
         <div class="row">
             <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">SEARCH DESIGNATION</label>
-                <input id="globalSearch" class="form-control search-input" placeholder="e.g. Typist" onkeyup="filterTable()">
+                <label class="small font-weight-bold text-muted ml-1">DESIGNATION</label>
+                <input id="globalSearch" class="form-control search-input" placeholder="Search..." onkeyup="renderTable()">
             </div>
             <div class="col-md-3 mb-2">
                 <label class="small font-weight-bold text-muted ml-1">FROM DISTRICT</label>
-                <select id="filterFrom" class="form-control search-input" onchange="filterTable()">
+                <select id="filterFrom" class="form-control search-input" onchange="renderTable()">
                     <option value="all">All Locations</option>
                 </select>
             </div>
             <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">YOUR ACCOUNT</label>
-                <button id="btnMyMatches" class="btn btn-outline-primary btn-block btn-my-matches" onclick="toggleMyMatches()">
-                    <i class="fas fa-user-check mr-2"></i>My Matches
+                <label class="small font-weight-bold text-muted ml-1">MY TRANSFERS</label>
+                <button id="btnMyMatches" class="btn btn-outline-primary btn-block search-input font-weight-bold" onclick="toggleMyMatches()">
+                    <i class="fas fa-user-friends mr-2"></i>My Matches
                 </button>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="small font-weight-bold text-muted ml-1">DEMAND LEVEL</label>
-                <select id="filterDemand" class="form-control search-input" onchange="filterTable()">
+                <select id="filterDemand" class="form-control search-input" onchange="renderTable()">
                     <option value="all">Any Demand</option>
                     <option value="HIGH">High Demand Only</option>
                 </select>
@@ -188,7 +141,7 @@
         </div>
     </div>
 
-    <div class="table-container desktop-only">
+    <div class="table-container d-none d-md-block">
         <table class="table table-hover m-0">
             <thead class="thead-dark">
                 <tr>
@@ -210,32 +163,28 @@
 
 <div class="modal fade" id="verifyModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg p-4 rounded-lg">
-            <div class="text-center">
-                <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3">
-                    <i class="fas fa-shield-alt fa-2x"></i>
-                </div>
-                <h5 class="font-weight-bold">Identity Verification</h5>
-                <p class="text-muted small">Enter your 10-digit mobile number to view your specific matches.</p>
+        <div class="modal-content p-4 border-0 shadow">
+            <div class="text-center mb-3">
+                <h5 class="font-weight-bold">Identity Unlock</h5>
+                <p class="text-muted small">Enter your 10-digit registered number to see your matches.</p>
             </div>
-            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center py-4 font-weight-bold mb-3" style="font-size: 1.5rem;" placeholder="9876543210">
-            <button class="btn btn-primary btn-block py-3 font-weight-bold" onclick="handleVerify()">Unlock Access</button>
+            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="font-size: 1.4rem; height: 60px;" placeholder="9876543210">
+            <button class="btn btn-primary btn-block py-3 font-weight-bold" onclick="handleVerify()">Unlock Matches</button>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="contactModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg p-4 rounded-lg text-center">
-            <h6 class="text-muted font-weight-bold mb-1">MATCH DETAILS</h6>
-            <h4 id="resName" class="font-weight-extrabold text-dark">---</h4>
-            <div class="bg-light py-3 rounded-xl my-3 border">
-                <span class="text-muted small d-block">CONTACT NUMBER</span>
+        <div class="modal-content p-4 border-0 shadow text-center">
+            <h6 class="text-muted font-weight-bold small">MUTUAL PARTNER FOUND</h6>
+            <h4 id="resName" class="font-weight-bold text-dark my-2">---</h4>
+            <div class="bg-light p-3 rounded-lg border my-3">
                 <h2 class="text-primary font-weight-bold mb-0" id="resPhone">---</h2>
             </div>
             <div class="row">
-                <div class="col-6"><a id="callBtn" class="btn btn-primary btn-block py-3 font-weight-bold"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                <div class="col-6"><a id="waBtn" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a></div>
+                <div class="col-6"><a id="callBtn" class="btn btn-primary btn-block font-weight-bold py-2"><i class="fas fa-phone mr-1"></i> Call</a></div>
+                <div class="col-6"><a id="waBtn" target="_blank" class="btn btn-success btn-block font-weight-bold py-2"><i class="fab fa-whatsapp mr-1"></i> WhatsApp</a></div>
             </div>
         </div>
     </div>
@@ -245,13 +194,13 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec"; 
-    let allData = [], pendingRowId = null, filterTimer = null, showOnlyMyMatches = false;
+    // 1. SETTINGS
+    const SCRIPT_URL = "YOUR_SCRIPT_URL_HERE"; // Update this with your Web App URL
+    let allData = [], showOnlyMyMatches = false;
 
     $(document).ready(() => {
         checkStoredIdentity();
         fetchData();
-        setInterval(fetchData, 300000); // Auto-refresh every 5 mins
     });
 
     function fetchData() {
@@ -261,11 +210,14 @@
         .then(d => {
             allData = d || [];
             updateMetrics(d);
-            populateDropdowns(d);
+            populateDistricts(d);
             renderTable();
             $("#globalLoader").fadeOut();
         })
-        .catch(() => $("#globalLoader").html("<h5 class='text-danger'>Server Offline. Check URL.</h5>"));
+        .catch(err => {
+            alert("Connection error. Ensure SCRIPT_URL is correct.");
+            $("#globalLoader").hide();
+        });
     }
 
     function updateMetrics(d) {
@@ -275,35 +227,24 @@
         $('#successRate').text(d.length ? Math.round((matches/d.length)*100) + "%" : "0%");
     }
 
-    function populateDropdowns(d) {
-        const fromSet = new Set();
-        d.forEach(r => { if(r['Working District']) fromSet.add(r['Working District']); });
-        const sortedFrom = [...fromSet].sort();
-        $('#filterFrom').html('<option value="all">All Locations</option>' + sortedFrom.map(x => `<option value="${x}">${x}</option>`).join(''));
+    function populateDistricts(d) {
+        const districts = [...new Set(d.map(r => r['Working District']))].sort();
+        $('#filterFrom').html('<option value="all">All Locations</option>' + districts.map(x => `<option value="${x}">${x}</option>`).join(''));
     }
 
     function toggleMyMatches() {
-        const storedPhone = localStorage.getItem("userPhone");
-        if (!storedPhone) {
+        if (!localStorage.getItem("userPhone")) {
             $('#verifyModal').modal('show');
             return;
         }
         showOnlyMyMatches = !showOnlyMyMatches;
-        
         const btn = $('#btnMyMatches');
         if (showOnlyMyMatches) {
-            btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
-            btn.html('<i class="fas fa-times mr-2"></i> Show All');
+            btn.removeClass('btn-outline-primary').addClass('btn-primary text-white').html('<i class="fas fa-times mr-2"></i> Show All');
         } else {
-            btn.removeClass('btn-primary text-white').addClass('btn-outline-primary');
-            btn.html('<i class="fas fa-user-check mr-2"></i> My Matches');
+            btn.removeClass('btn-primary text-white').addClass('btn-outline-primary').html('<i class="fas fa-user-friends mr-2"></i> My Matches');
         }
         renderTable();
-    }
-
-    function filterTable() {
-        clearTimeout(filterTimer);
-        filterTimer = setTimeout(renderTable, 300);
     }
 
     function renderTable() {
@@ -312,13 +253,21 @@
         const demand = $('#filterDemand').val();
         const userPhone = localStorage.getItem("userPhone");
 
+        // Find current user's details for intelligent matching
+        const myProfile = allData.find(r => String(r.phone) === String(userPhone));
+
         const filtered = allData.filter(r => {
             const matchesBasic = r['Your Designation'].toLowerCase().includes(search) &&
                                (from === 'all' || r['Working District'] === from) &&
                                (demand === 'all' || r.DEMAND_STATUS.includes("HIGH"));
 
-            if (showOnlyMyMatches) {
-                return matchesBasic && (String(r.phone) === String(userPhone));
+            if (showOnlyMyMatches && myProfile) {
+                // LOGIC: Show my own rows OR rows that match my swap requirement
+                const isMatchForMe = r['Working District'] === myProfile['Willing District'] && 
+                                   r['Willing District'] === myProfile['Working District'] &&
+                                   r['Your Designation'] === myProfile['Your Designation'];
+                const isMyOwn = String(r.phone) === String(userPhone);
+                return matchesBasic && (isMatchForMe || isMyOwn);
             }
             return matchesBasic;
         });
@@ -327,66 +276,58 @@
 
         filtered.forEach(r => {
             const hasMatch = r.MATCH_STATUS.includes("MATCH");
-            const statusBadge = hasMatch ? 
-                `<span class="${r.MATCH_STATUS.includes('3-WAY') ? 'badge-3way' : 'badge-match'}">${r.MATCH_STATUS}</span>` : 
-                `<span class="badge badge-light text-muted border">PENDING</span>`;
             
-            const demandBadge = r.DEMAND_STATUS.includes("HIGH") ? 
-                `<span class="badge-high">HIGH</span>` : `<span class="badge badge-light border">Normal</span>`;
+            // Demand Badge Logic
+            let demandHtml = `<span class="badge badge-light border">Low</span>`;
+            if (r.DEMAND_STATUS.includes("HIGH")) demandHtml = `<span class="badge-high">HIGH</span>`;
+            else if (r.DEMAND_STATUS.includes("Moderate")) demandHtml = `<span class="badge-mod">MODERATE</span>`;
 
-            // Render Desktop
-            $('#tableBody').append(`
-                <tr>
-                    <td class="p-4 font-weight-bold">${r['Your Designation']}</td>
-                    <td class="p-4">${r['Working District']}</td>
-                    <td class="p-4">${r['Willing District']}</td>
-                    <td class="p-4">${demandBadge}</td>
-                    <td class="p-4">${statusBadge}</td>
-                    <td class="p-4 text-center">
-                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border disabled'}" 
-                                onclick="initiateView(${r.id}, ${hasMatch})">
-                            ${hasMatch ? 'Unlock' : 'Locked'}
-                        </button>
-                    </td>
-                </tr>
-            `);
+            // Match Status Badge
+            const statusHtml = hasMatch ? 
+                `<span class="${r.MATCH_STATUS.includes('3-WAY') ? 'badge-3way' : 'badge-match'}">${r.MATCH_STATUS}</span>` : 
+                `<span class="badge badge-light text-muted border small">PENDING</span>`;
 
-            // Render Mobile
-            $('#mobileCardContainer').append(`
-                <div class="mobile-card">
-                    <div class="d-flex justify-content-between">
-                        <span class="font-weight-bold text-primary">${r['Your Designation']}</span>
-                        ${demandBadge}
-                    </div>
-                    <div class="my-2 small">${r['Working District']} → ${r['Willing District']}</div>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        ${statusBadge}
-                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border'}" 
-                                onclick="initiateView(${r.id}, ${hasMatch})">
-                             ${hasMatch ? 'Unlock' : 'Waiting'}
-                        </button>
-                    </div>
+            // Action Button
+            const btnHtml = `<button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border disabled'}" onclick="initiateView(${r.id}, ${hasMatch})">${hasMatch ? 'Unlock' : 'Locked'}</button>`;
+
+            // Append Desktop
+            $('#tableBody').append(`<tr>
+                <td class="font-weight-bold py-3">${r['Your Designation']}</td>
+                <td>${r['Working District']}</td>
+                <td>${r['Willing District']}</td>
+                <td>${demandHtml}</td>
+                <td>${statusHtml}</td>
+                <td class="text-center">${btnHtml}</td>
+            </tr>`);
+
+            // Append Mobile
+            $('#mobileCardContainer').append(`<div class="mobile-card">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="font-weight-bold text-primary">${r['Your Designation']}</span>
+                    ${demandHtml}
                 </div>
-            `);
+                <div class="small mb-3"><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${r['Working District']} &nbsp; <i class="fas fa-arrow-right text-muted"></i> &nbsp; <i class="fas fa-heart text-danger"></i> ${r['Willing District']}</div>
+                <div class="d-flex justify-content-between align-items-center">${statusHtml} ${btnHtml}</div>
+            </div>`);
         });
     }
 
     function initiateView(id, hasMatch) {
         if (!hasMatch) return;
-        pendingRowId = id;
         const storedPhone = localStorage.getItem("userPhone");
         if (storedPhone) processRequest(id, storedPhone);
-        else $('#verifyModal').modal('show');
+        else {
+            pendingRowId = id;
+            $('#verifyModal').modal('show');
+        }
     }
 
     function handleVerify() {
         const phone = $('#userPhoneInput').val().trim();
-        if (!/^\d{10}$/.test(phone)) return alert("Enter 10-digit number.");
+        if (!/^[6-9]\d{9}$/.test(phone)) return alert("Invalid Phone Number");
         localStorage.setItem("userPhone", phone);
         $('#verifyModal').modal('hide');
-        checkStoredIdentity();
-        if (pendingRowId) processRequest(pendingRowId, phone);
-        else renderTable();
+        location.reload();
     }
 
     function processRequest(id, phone) {
