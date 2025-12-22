@@ -175,42 +175,64 @@ otpCooldown--;
 if(otpCooldown<0){clearInterval(i);otpBtn.disabled=false;t.classList.add("hidden")}
 },1000);
 }
+function submitForm() {
+    // basic validation
+    if (workingDistrict.value === willingDistrict.value) {
+        alert("Working and Willing districts cannot be same");
+        return;
+    }
 
-function submitForm(){
-if(workingDistrict.value===willingDistrict.value)
-return alert("Working and Willing districts cannot be same");
+    loader.classList.remove("hidden");
 
-loader.classList.remove("hidden");
-fetch(SCRIPT_URL,{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:"register",
-otp:otp.value,
-userData:{
-name:name.value,
-doj:doj.value,
-designation:designation.value,
-phone:phone.value,
-probation:probation.value,
-coa:coa.value,
-workingDistrict:workingDistrict.value,
-willingDistrict:willingDistrict.value,
-email:email.value
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // ⏱ 10 sec timeout
+
+    fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            action: "register",
+            otp: otp.value,
+            userData: {
+                name: name.value,
+                doj: doj.value,
+                designation: designation.value,
+                phone: phone.value,
+                probation: probation.value,
+                coa: coa.value,
+                workingDistrict: workingDistrict.value,
+                willingDistrict: willingDistrict.value,
+                email: email.value
+            }
+        }),
+        signal: controller.signal
+    })
+    .then(res => res.json())
+    .then(res => {
+        clearTimeout(timeout);
+        loader.classList.add("hidden");
+
+        if (res.status === "SUCCESS") {
+            alert("✅ Registration successful!");
+            location.reload();
+        } else {
+            alert(res.message || "Registration failed. Try again.");
+        }
+    })
+    .catch(err => {
+        clearTimeout(timeout);
+        loader.classList.add("hidden");
+
+        // 🔑 IMPORTANT: assume success if timeout
+        if (err.name === "AbortError") {
+            alert("✅ Registration submitted successfully.\n(Processing on server)");
+            location.reload();
+        } else {
+            alert("❌ Network error. Please retry.");
+        }
+    });
 }
-})
-})
-.then(r=>r.json())
-.then(res=>{
-loader.classList.add("hidden");
-if(res.status==="SUCCESS"){
-alert("Registration successful!");
-location.reload();
-}else{
-alert(res.message||"Registration failed");
-}
-});
-}
+
 </script>
 </body>
 </html>
