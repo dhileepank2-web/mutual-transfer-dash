@@ -17,7 +17,6 @@
             --border: #e2e8f0;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            /* Demand Colors */
             --demand-high: #ef4444;
             --demand-mod: #f59e0b;
             --demand-low: #10b981;
@@ -42,7 +41,16 @@
             flex-direction: column;
         }
 
-        /* --- Header & Glassmorphism --- */
+        /* --- Stats Row --- */
+        .stat-container {
+            background: white; border-radius: 24px; border: 1px solid var(--border);
+            padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+        .stat-box { text-align: center; border-right: 1px solid var(--border); }
+        .stat-box:last-child { border-right: none; }
+        .stat-label { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.6rem; font-weight: 800; display: block; line-height: 1.2; margin-top: 4px; }
+
         .glass-header {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(15px);
@@ -53,7 +61,6 @@
             z-index: 1060;
         }
 
-        /* --- Modern Table UI --- */
         .table-wrapper {
             background: var(--surface);
             border-radius: 24px;
@@ -70,7 +77,6 @@
             text-transform: uppercase;
             padding: 20px;
             border-bottom: 2px solid var(--border);
-            letter-spacing: 0.08em;
         }
 
         .table td {
@@ -81,20 +87,11 @@
             font-size: 0.9rem;
         }
 
-        /* --- Your Post Highlight --- */
         .row-identity {
             background-color: #f0f7ff !important;
             box-shadow: inset 4px 0 0 var(--primary);
         }
 
-        /* --- Demand Logic Indicators --- */
-        .demand-dot {
-            height: 8px;
-            width: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
         .demand-pill {
             display: inline-flex;
             align-items: center;
@@ -107,7 +104,6 @@
         .lvl-mod { background: #fff7ed; color: var(--demand-mod); }
         .lvl-low { background: #ecfdf5; color: var(--demand-low); }
 
-        /* --- Match Badges --- */
         .badge-status {
             padding: 6px 14px;
             border-radius: 10px;
@@ -119,18 +115,12 @@
         .s-3way { background: #7c3aed; color: white; }
         .s-pending { background: #f1f5f9; color: var(--text-muted); }
 
-        /* --- Controls --- */
         .filter-control {
             height: 52px;
             border-radius: 14px;
             border: 1px solid var(--border);
             font-weight: 600;
-            transition: all 0.2s ease;
             font-size: 0.88rem;
-        }
-        .filter-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
         }
 
         .btn-unlock {
@@ -140,13 +130,14 @@
             padding: 8px 16px;
             font-weight: 700;
             border: none;
-            transition: transform 0.2s;
         }
-        .btn-unlock:hover { transform: scale(1.05); }
+
+        .rounded-24 { border-radius: 24px; }
+        .rounded-15 { border-radius: 15px; }
 
         @media (max-width: 768px) {
-            .table td { padding: 15px 10px; font-size: 0.8rem; }
-            .desktop-only { display: none; }
+            .stat-box { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 0; }
+            .stat-box:last-child { border-bottom: none; }
         }
     </style>
 </head>
@@ -155,7 +146,7 @@
 
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
-    <h6 class="mt-4 font-weight-bold text-dark">Optimizing Dashboard...</h6>
+    <h6 class="mt-4 font-weight-bold text-dark">Syncing Live Database...</h6>
 </div>
 
 <header class="glass-header">
@@ -177,13 +168,29 @@
 </header>
 
 <div class="container mt-4 pb-5">
+    
+    <div class="stat-container">
+        <div class="row">
+            <div class="col-md-4 stat-box">
+                <span class="stat-label">Total Requests</span>
+                <span class="stat-value" id="statTotal">0</span>
+            </div>
+            <div class="col-md-4 stat-box">
+                <span class="stat-label">System Matches</span>
+                <span class="stat-value text-primary" id="statMatched">0</span>
+            </div>
+            <div class="col-md-4 stat-box">
+                <span class="stat-label">Success Rate</span>
+                <span class="stat-value text-success" id="statRate">0%</span>
+            </div>
+        </div>
+    </div>
+
     <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
         <div class="row">
             <div class="col-lg-4 col-md-12 mb-3">
                 <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
-                <div class="input-group">
-                    <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
-                </div>
+                <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
             </div>
             <div class="col-lg-2 col-md-6 mb-3">
                 <label class="small text-muted font-weight-bold">FROM</label>
@@ -231,12 +238,26 @@
 
 <div class="modal fade" id="modalVerify" tabindex="-1" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
             <div class="text-center py-3">
-                <h4 class="font-weight-bold">Secure Access</h4>
-                <p class="text-muted">Enter the mobile number used during registration.</p>
-                <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-4" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="0000000000">
-                <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="saveVerify()">Verify & Sync</button>
+                <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3 shadow">
+                    <i class="fas fa-user-lock fa-2x"></i>
+                </div>
+                <h4 class="font-weight-bold">Member Login</h4>
+                <p class="text-muted small">Access verified contact details by entering your registered number.</p>
+                
+                <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="0000000000">
+                
+                <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div>
+                
+                <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button>
+                
+                <div id="regSection" style="display:none;" class="border-top pt-3">
+                    <p class="text-muted small mb-2">Not a member yet?</p>
+                    <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15">
+                        <i class="fas fa-user-plus mr-2"></i>Register Now
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -267,13 +288,9 @@
 <script>
     const API = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
     let MASTER_DATA = [], FILTER_MATCHES = false;
-    const MY_PHONE = localStorage.getItem("userPhone");
+    let MY_PHONE = localStorage.getItem("userPhone");
 
     $(document).ready(() => {
-        if(MY_PHONE) {
-            $('#idContainer').removeClass('d-none');
-            $('#lblUserPhone').text(MY_PHONE.slice(0,2) + '****' + MY_PHONE.slice(8));
-        }
         loadData();
     });
 
@@ -283,10 +300,50 @@
         .then(r => r.json())
         .then(data => {
             MASTER_DATA = data || [];
+            updateStats(MASTER_DATA);
             buildFilters();
+
+            // If phone exists in local storage, verify it's still in the DB
+            if(MY_PHONE) {
+                const userExists = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+                if(userExists) {
+                    $('#idContainer').removeClass('d-none');
+                    $('#lblUserPhone').text(MY_PHONE.slice(0,2) + '****' + MY_PHONE.slice(8));
+                } else {
+                    localStorage.removeItem("userPhone");
+                    MY_PHONE = null;
+                    $('#modalVerify').modal('show');
+                }
+            } else {
+                $('#modalVerify').modal('show');
+            }
+
             renderTable();
             $("#globalLoader").fadeOut();
         });
+    }
+
+    function updateStats(data) {
+        const total = data.length;
+        const matched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+        const rate = total > 0 ? Math.round((matched / total) * 100) : 0;
+        
+        $('#statTotal').text(total);
+        $('#statMatched').text(matched);
+        $('#statRate').text(rate + '%');
+    }
+
+    function saveVerify() {
+        const val = $('#verifyPhone').val();
+        if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
+
+        const user = MASTER_DATA.find(x => String(x.phone) === String(val));
+        if(user) {
+            localStorage.setItem("userPhone", val);
+            location.reload();
+        } else {
+            $('#loginError, #regSection').fadeIn();
+        }
     }
 
     function buildFilters() {
@@ -294,13 +351,6 @@
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
         fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
-    }
-
-    function toggleMatches() {
-        if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-        FILTER_MATCHES = !FILTER_MATCHES;
-        $('#btnMatches').toggleClass('btn-primary btn-outline-primary text-white');
-        renderTable();
     }
 
     function renderTable() {
@@ -330,12 +380,10 @@
             const isMe = String(row.phone) === String(MY_PHONE);
             const hasMatch = row.MATCH_STATUS.includes("MATCH");
             
-            // Modern Demand UI Logic
             let demandClass = "lvl-low", demandDot = "#10b981";
             if(row.DEMAND_STATUS.includes("HIGH")) { demandClass = "lvl-high"; demandDot = "#ef4444"; }
             else if(row.DEMAND_STATUS.includes("Moderate")) { demandClass = "lvl-mod"; demandDot = "#f59e0b"; }
 
-            // Status Badge Logic
             let statusMarkup = `<span class="badge-status s-pending">Pending</span>`;
             if(row.MATCH_STATUS.includes("3-WAY")) statusMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
             else if(hasMatch) statusMarkup = `<span class="badge-status s-match">Matched</span>`;
@@ -350,7 +398,7 @@
                     <td><i class="fas fa-paper-plane text-muted mr-1"></i> ${row['Willing District']}</td>
                     <td class="desktop-only">
                         <div class="demand-pill ${demandClass}">
-                            <span class="demand-dot" style="background:${demandDot}"></span>
+                            <span class="demand-dot" style="background:${demandDot}; height:8px; width:8px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
                             ${row.DEMAND_STATUS}
                         </div>
                     </td>
@@ -389,12 +437,11 @@
         } catch(e) { $("#globalLoader").fadeOut(); alert("Connection failed."); }
     }
 
-    function saveVerify() {
-        const val = $('#verifyPhone').val();
-        if(/^\d{10}$/.test(val)) {
-            localStorage.setItem("userPhone", val);
-            location.reload();
-        } else alert("Invalid phone number format.");
+    function toggleMatches() {
+        if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+        FILTER_MATCHES = !FILTER_MATCHES;
+        $('#btnMatches').toggleClass('btn-primary btn-outline-primary text-white');
+        renderTable();
     }
 
     function resetUI() {
