@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Mutual Transfer | Pro Dashboard</title>
+    <title>Mutual Transfer | Secure Access</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -22,25 +22,19 @@
             --demand-low: #10b981;
         }
 
-        body {
-            background: var(--bg);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--text-main);
-            letter-spacing: -0.01em;
-        }
+        body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-main); }
 
-        /* --- Login Screen --- */
+        /* --- Login/Error Screen --- */
         #loginOverlay {
             position: fixed; inset: 0; background: var(--bg);
             z-index: 2000; display: flex; align-items: center; justify-content: center;
         }
         .login-card {
             background: #fff; padding: 40px; border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05); width: 100%; max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); width: 100%; max-width: 420px;
             border: 1px solid var(--border);
         }
 
-        /* --- Dashboard Hidden by Default --- */
         #mainDashboard { display: none; }
 
         /* --- Global Loader --- */
@@ -56,22 +50,14 @@
 
         .stat-card {
             background: var(--surface); border-radius: 20px; padding: 20px;
-            border: 1px solid var(--border); transition: transform 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-        .stat-label { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
         .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-main); display: block; }
-        .success-accent { color: #10b981; }
 
         .table-wrapper {
             background: var(--surface); border-radius: 24px; border: 1px solid var(--border);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); overflow: hidden;
         }
-        .table thead th {
-            background: #f8fafc; color: var(--text-muted); font-size: 0.72rem;
-            font-weight: 800; text-transform: uppercase; padding: 20px; border-bottom: 2px solid var(--border);
-        }
-        .table td { padding: 20px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-weight: 500; font-size: 0.9rem; }
 
         .row-identity { background-color: #f0f7ff !important; box-shadow: inset 4px 0 0 var(--primary); }
 
@@ -85,34 +71,46 @@
         .s-3way { background: #7c3aed; color: white; }
         .s-pending { background: #f1f5f9; color: var(--text-muted); }
 
-        .filter-control { height: 52px; border-radius: 14px; border: 1px solid var(--border); font-weight: 600; font-size: 0.88rem; }
+        .filter-control { height: 52px; border-radius: 14px; border: 1px solid var(--border); font-weight: 600; }
         .btn-unlock { background: var(--primary); color: white !important; border-radius: 12px; padding: 8px 16px; font-weight: 700; border: none; }
+        
+        .error-msg { color: #ef4444; font-weight: 700; font-size: 0.85rem; display: none; }
 
-        @media (max-width: 768px) {
-            .table td { padding: 15px 10px; font-size: 0.8rem; }
-            .desktop-only { display: none; }
-        }
+        @media (max-width: 768px) { .desktop-only { display: none; } }
     </style>
 </head>
 <body>
 
 <div id="globalLoader">
-    <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
-    <h6 class="mt-4 font-weight-bold text-dark">Processing...</h6>
+    <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem;"></div>
+    <h6 class="mt-4 font-weight-bold">Syncing Records...</h6>
 </div>
 
 <div id="loginOverlay">
-    <div class="login-card text-center">
+    <div class="login-card text-center" id="loginFormBox">
         <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-4">
-            <i class="fas fa-user-lock fa-2x"></i>
+            <i class="fas fa-id-badge fa-2x"></i>
         </div>
-        <h3 class="font-weight-bold">Registered Access</h3>
-        <p class="text-muted small mb-4">Enter your 10-digit mobile number used during registration to view the dashboard.</p>
-        <input id="loginPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" 
-               style="height:60px; font-size:1.6rem; border-radius:15px;" placeholder="9876543210">
-        <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow" onclick="handleLogin()">
+        <h3 class="font-weight-bold">Dashboard Login</h3>
+        <p class="text-muted small mb-4">Access is restricted to registered members only.</p>
+        
+        <input id="loginPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-2" 
+               style="height:60px; font-size:1.6rem; border-radius:15px;" placeholder="Phone Number">
+        
+        <div id="loginError" class="error-msg mb-3">
+            <i class="fas fa-exclamation-circle mr-1"></i> Number not found in our records!
+        </div>
+
+        <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow mb-3" onclick="handleLogin()">
             Verify & Enter
         </button>
+
+        <div id="regBox" style="display:none;">
+            <p class="text-muted small mb-2">Not registered yet?</p>
+            <a href="YOUR_REGISTRATION_LINK_HERE" class="btn btn-outline-success btn-block py-2 font-weight-bold rounded-15">
+                <i class="fas fa-user-plus mr-2"></i>Register Now
+            </a>
+        </div>
     </div>
 </div>
 
@@ -123,12 +121,10 @@
                 <div class="bg-primary text-white p-2 rounded-lg mr-3 shadow-sm"><i class="fas fa-sync-alt fa-lg"></i></div>
                 <h5 class="font-weight-bold mb-0 text-dark">Mutual Hub</h5>
             </div>
-            <div id="idContainer">
-                <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
-                    <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
-                    <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                    <i class="fas fa-power-off text-danger cursor-pointer" onclick="clearIdentity()"></i>
-                </div>
+            <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
+                <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
+                <small class="font-weight-bold mr-3" id="lblUserPhone">---</small>
+                <i class="fas fa-power-off text-danger cursor-pointer" onclick="clearIdentity()"></i>
             </div>
         </div>
     </header>
@@ -137,45 +133,40 @@
         <div class="row mb-4">
             <div class="col-md-4 mb-3">
                 <div class="stat-card text-center">
-                    <span class="stat-label">Total Requests</span>
+                    <span class="stat-label small font-weight-bold text-muted">TOTAL REQUESTS</span>
                     <span class="stat-value" id="statTotal">0</span>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="stat-card text-center">
-                    <span class="stat-label">Matches Identified</span>
-                    <span class="stat-value" id="statMatched">0</span>
+                    <span class="stat-label small font-weight-bold text-muted">MATCHES FOUND</span>
+                    <span class="stat-value text-primary" id="statMatched">0</span>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="stat-card text-center">
-                    <span class="stat-label">System Success Rate</span>
-                    <span class="stat-value success-accent" id="statRate">0%</span>
+                    <span class="stat-label small font-weight-bold text-muted">SUCCESS RATE</span>
+                    <span class="stat-value text-success" id="statRate">0%</span>
                 </div>
             </div>
         </div>
 
         <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
             <div class="row">
-                <div class="col-lg-4 col-md-12 mb-3">
-                    <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
+                <div class="col-lg-4 mb-3">
                     <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
                 </div>
-                <div class="col-lg-2 col-md-6 mb-3">
-                    <label class="small text-muted font-weight-bold">FROM</label>
-                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                <div class="col-lg-2 col-6 mb-3">
+                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">From: All</option></select>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-3">
-                    <label class="small text-muted font-weight-bold">TO</label>
-                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                <div class="col-lg-2 col-6 mb-3">
+                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">To: All</option></select>
                 </div>
-                <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
-                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
-                        <i class="fas fa-filter mr-2"></i>My Potential Matches
+                <div class="col-lg-4 mb-3 d-flex gap-2">
+                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 flex-grow-1" style="height:52px;" onclick="toggleMatches()">
+                        My Potential Matches
                     </button>
-                </div>
-                <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
-                    <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()"><i class="fas fa-redo"></i></button>
+                    <button class="btn btn-light border rounded-14 ml-2" style="height:52px; width:52px" onclick="resetUI()"><i class="fas fa-redo"></i></button>
                 </div>
             </div>
         </div>
@@ -185,20 +176,16 @@
                 <table class="table m-0">
                     <thead>
                         <tr>
-                            <th>Employee Listing</th>
-                            <th>Current Base</th>
-                            <th>Transfer To</th>
+                            <th>Designation</th>
+                            <th>Current District</th>
+                            <th>Willing District</th>
                             <th class="desktop-only">Market Demand</th>
                             <th>Status</th>
-                            <th class="text-center">Connect</th>
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="mainTbody"></tbody>
                 </table>
-            </div>
-            <div id="noData" class="text-center p-5 d-none">
-                <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" class="mb-3 opacity-50">
-                <h6 class="text-muted font-weight-bold">No results found for your criteria</h6>
             </div>
         </div>
     </div>
@@ -206,18 +193,15 @@
 
 <div class="modal fade" id="modalContact" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-            <div class="text-center">
-                <div class="small font-weight-bold text-primary mb-2 uppercase">Verified Match Found</div>
-                <h2 id="resName" class="font-weight-bold">---</h2>
-                <div class="bg-light p-4 rounded-24 my-4 border">
-                    <span class="text-muted small font-weight-bold">MOBILE NUMBER</span>
-                    <h1 class="text-dark font-weight-bold mb-0 mt-1" id="resPhone">---</h1>
-                </div>
-                <div class="row">
-                    <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                    <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fab fa-whatsapp mr-2"></i>Chat</a></div>
-                </div>
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg text-center">
+            <h6 class="text-primary font-weight-bold mb-2">VERIFIED CONTACT</h6>
+            <h2 id="resName" class="font-weight-bold">---</h2>
+            <div class="bg-light p-4 rounded-24 my-4 border">
+                <h1 class="text-dark font-weight-bold mb-0" id="resPhone">---</h1>
+            </div>
+            <div class="row">
+                <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm">Call</a></div>
+                <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm">WhatsApp</a></div>
             </div>
         </div>
     </div>
@@ -232,38 +216,59 @@
     let MY_PHONE = localStorage.getItem("userPhone");
 
     $(document).ready(() => {
+        // Pre-fetch data immediately to check registration later
+        loadData(false); 
         if(MY_PHONE) {
-            enterDashboard();
+            checkAndEnter(MY_PHONE);
         }
     });
 
-    function handleLogin() {
-        const val = $('#loginPhone').val();
-        if(/^\d{10}$/.test(val)) {
-            localStorage.setItem("userPhone", val);
-            MY_PHONE = val;
-            enterDashboard();
-        } else alert("Invalid format. Please enter a 10-digit number.");
-    }
-
-    function enterDashboard() {
-        $('#loginOverlay').fadeOut();
-        $('#mainDashboard').fadeIn();
-        $('#lblUserPhone').text(MY_PHONE.slice(0,2) + '****' + MY_PHONE.slice(8));
-        loadData();
-    }
-
-    function loadData() {
+    function loadData(shouldRender = true) {
         $("#globalLoader").show();
         fetch(`${API}?action=getDashboardData`)
         .then(r => r.json())
         .then(data => {
             MASTER_DATA = data || [];
+            if(shouldRender) {
+                updateStatistics(MASTER_DATA);
+                buildFilters();
+                renderTable();
+            }
+            $("#globalLoader").fadeOut();
+        });
+    }
+
+    function handleLogin() {
+        const val = $('#loginPhone').val();
+        $('#loginError').hide();
+        $('#regBox').hide();
+
+        if(!/^\d{10}$/.test(val)) {
+            alert("Please enter a valid 10-digit number.");
+            return;
+        }
+
+        checkAndEnter(val);
+    }
+
+    function checkAndEnter(phone) {
+        // Check if phone exists in the fetched MASTER_DATA
+        const userExists = MASTER_DATA.some(x => String(x.phone) === String(phone));
+
+        if(userExists) {
+            localStorage.setItem("userPhone", phone);
+            MY_PHONE = phone;
+            $('#loginOverlay').fadeOut();
+            $('#mainDashboard').fadeIn();
+            $('#lblUserPhone').text(MY_PHONE.slice(0,2) + '****' + MY_PHONE.slice(8));
             updateStatistics(MASTER_DATA);
             buildFilters();
             renderTable();
-            $("#globalLoader").fadeOut();
-        });
+        } else {
+            $('#loginError').fadeIn();
+            $('#regBox').fadeIn();
+            localStorage.removeItem("userPhone");
+        }
     }
 
     function updateStatistics(data) {
@@ -278,8 +283,8 @@
     function buildFilters() {
         const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-        $('#selFrom').html('<option value="all">All Districts</option>');
-        $('#selTo').html('<option value="all">All Districts</option>');
+        $('#selFrom').html('<option value="all">From: All</option>');
+        $('#selTo').html('<option value="all">To: All</option>');
         fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
     }
@@ -311,35 +316,25 @@
         });
 
         const tbody = $('#mainTbody').empty();
-        $('#noData').toggleClass('d-none', filtered.length > 0);
-
         filtered.forEach(row => {
             const isMe = String(row.phone) === String(MY_PHONE);
             const hasMatch = row.MATCH_STATUS.includes("MATCH");
             
-            let demandClass = "lvl-low", demandDot = "#10b981";
-            if(row.DEMAND_STATUS.includes("HIGH")) { demandClass = "lvl-high"; demandDot = "#ef4444"; }
-            else if(row.DEMAND_STATUS.includes("Moderate")) { demandClass = "lvl-mod"; demandDot = "#f59e0b"; }
+            let dClass = "lvl-low";
+            if(row.DEMAND_STATUS.includes("HIGH")) dClass = "lvl-high";
+            else if(row.DEMAND_STATUS.includes("Moderate")) dClass = "lvl-mod";
 
-            let statusMarkup = `<span class="badge-status s-pending">Pending</span>`;
-            if(row.MATCH_STATUS.includes("3-WAY")) statusMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
-            else if(hasMatch) statusMarkup = `<span class="badge-status s-match">Matched</span>`;
+            let sMarkup = `<span class="badge-status s-pending">Pending</span>`;
+            if(row.MATCH_STATUS.includes("3-WAY")) sMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
+            else if(hasMatch) sMarkup = `<span class="badge-status s-match">Matched</span>`;
 
             tbody.append(`
                 <tr class="${isMe ? 'row-identity' : ''}">
-                    <td>
-                        <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem">YOUR CURRENT POST</div>' : ''}
-                    </td>
-                    <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                    <td><i class="fas fa-paper-plane text-muted mr-1"></i> ${row['Willing District']}</td>
-                    <td class="desktop-only">
-                        <div class="demand-pill ${demandClass}">
-                            <span class="demand-dot" style="background:${demandDot}"></span>
-                            ${row.DEMAND_STATUS}
-                        </div>
-                    </td>
-                    <td>${statusMarkup}</td>
+                    <td><div class="font-weight-bold">${row['Your Designation']}</div>${isMe ? '<small class="text-primary font-weight-bold">YOUR POST</small>':''}</td>
+                    <td>${row['Working District']}</td>
+                    <td>${row['Willing District']}</td>
+                    <td class="desktop-only"><div class="demand-pill ${dClass}">${row.DEMAND_STATUS}</div></td>
+                    <td>${sMarkup}</td>
                     <td class="text-center">
                         <button class="btn btn-unlock shadow-sm" onclick="unlockRow(${row.id}, ${hasMatch})">
                             ${hasMatch ? '<i class="fas fa-lock-open"></i>' : '<i class="fas fa-lock text-white-50"></i>'}
@@ -354,29 +349,22 @@
         if(!active) return;
         $("#globalLoader").show();
         try {
-            const res = await fetch(API, {
-                method: "POST",
-                body: JSON.stringify({ rowId: id, userPhone: MY_PHONE })
-            });
+            const res = await fetch(API, { method: "POST", body: JSON.stringify({ rowId: id, userPhone: MY_PHONE }) });
             const data = await res.json();
             $("#globalLoader").fadeOut();
             if(data.error) alert(data.error);
             else {
-                $('#resName').text(data.name);
-                $('#resPhone').text(data.contact);
+                $('#resName').text(data.name); $('#resPhone').text(data.contact);
                 $('#callLink').attr("href", "tel:" + data.contact);
                 $('#waLink').attr("href", "https://wa.me/91" + data.contact);
                 $('#modalContact').modal('show');
             }
-        } catch(e) { $("#globalLoader").fadeOut(); alert("Connection failed."); }
+        } catch(e) { $("#globalLoader").fadeOut(); }
     }
 
     function resetUI() {
-        $('#inpSearch').val('');
-        $('#selFrom').val('all');
-        $('#selTo').val('all');
-        FILTER_MATCHES = false;
-        $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
+        $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
+        FILTER_MATCHES = false; $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
         renderTable();
     }
 
