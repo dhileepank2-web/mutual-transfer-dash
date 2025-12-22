@@ -1,68 +1,152 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Mutual Transfer Live Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
   <style>
-    body { padding: 15px; background-color: #f8f9fa; font-family: 'Roboto', sans-serif; }
-    .header-box { background: white; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #eee; }
-    .header-box h2 { font-size: 0.9rem; color: #6c757d; text-transform: uppercase; }
-    .header-box p { font-size: 1.8rem; color: #007bff; font-weight: 700; margin: 0; }
-    
-    /* Responsive Table/Card Toggle */
-    .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 10px; overflow-x: auto; }
-    
-    /* Mobile Card Style */
-    .mobile-card {
-      display: none; 
-      background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff;
+    :root {
+      --primary: #2563eb;
+      --success: #059669;
+      --bg: #f8fafc;
     }
-    .card-label { font-weight: bold; color: #666; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 2px; }
-    .card-value { font-size: 1rem; margin-bottom: 10px; color: #333; }
+
+    body { 
+      background-color: var(--bg); 
+      font-family: 'Inter', sans-serif; 
+      color: #1e293b;
+      padding-bottom: 50px;
+    }
+
+    /* Modern Glassmorphism Header */
+    .dashboard-header {
+      background: white;
+      padding: 20px 0;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid #f1f5f9;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card h2 { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+    .stat-card p { font-size: 1.5rem; color: var(--primary); font-weight: 700; margin: 0; }
+
+    /* Filter Section */
+    .filter-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Table Styling */
+    .table-container { 
+      background: white; 
+      border-radius: 12px; 
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .thead-dark th { background-color: #0f172a; border: none; font-weight: 500; }
+
+    /* Mobile Responsive Cards */
+    .mobile-card {
+      display: none;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+      position: relative;
+    }
+    .mobile-card .status-badge { position: absolute; top: 16px; right: 16px; }
+    .card-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; }
+    .card-value { font-size: 0.95rem; font-weight: 500; margin-bottom: 8px; }
+
+    /* Demand Badges */
+    .badge-high { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .badge-match { background: #dcfce7; color: #166534; }
 
     @media (max-width: 768px) {
       .desktop-only { display: none !important; }
-      .mobile-card { display: block; }
-      .container-fluid { padding: 0; }
+      .mobile-card { display: block; animation: fadeIn 0.4s ease; }
     }
 
-    #loading { margin-top: 50px; }
-    .badge-high { background-color: #ff4757; color: white; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Loading Overlay */
+    #loading { padding: 100px 0; }
+    
+    .btn-verify {
+      background-color: var(--primary);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
 
-<div class="container-fluid">
-    <h2 id="dashboard-title" class="text-primary font-weight-bold mb-3">Transfer Dashboard</h2>
+<div class="dashboard-header">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+      <h4 class="m-0 font-weight-bold text-dark"><i class="fas fa-exchange-alt text-primary mr-2"></i>Mutual Transfer</h4>
+      <button class="btn btn-sm btn-outline-primary" onclick="clearIdentity()">
+        <i class="fas fa-user-circle mr-1"></i> <span id="identityLabel">Not Verified</span>
+      </button>
+    </div>
+  </div>
+</div>
 
-    <div class="row no-gutters">
-      <div class="col-4 px-1"><div class="header-box"><h2>Requests</h2><p id="totalRequests">0</p></div></div>
-      <div class="col-4 px-1"><div class="header-box"><h2>Matches</h2><p id="totalMatches">0</p></div></div>
-      <div class="col-4 px-1"><div class="header-box"><h2>Success</h2><p id="successRate">0%</p></div></div>
+<div class="container">
+    <div class="row mb-4">
+      <div class="col-4"><div class="stat-card"><h2>Requests</h2><p id="totalRequests">0</p></div></div>
+      <div class="col-4"><div class="stat-card"><h2>Matches</h2><p id="totalMatches">0</p></div></div>
+      <div class="col-4"><div class="stat-card"><h2>Success</h2><p id="successRate">0%</p></div></div>
     </div>
 
-    <div class="bg-white p-3 rounded shadow-sm mb-4 border">
+    <div class="filter-section shadow-sm">
       <div class="row">
-        <div class="col-md-3 mb-2"><select id="filterDesignation" class="form-control" onchange="filterTable()"></select></div>
-        <div class="col-md-3 mb-2"><select id="filterWorking" class="form-control" onchange="filterTable()"></select></div>
-        <div class="col-md-3 mb-2"><select id="filterWilling" class="form-control" onchange="filterTable()"></select></div>
-        <div class="col-md-3"><button class="btn btn-outline-secondary btn-block" onclick="clearFilters()">Clear</button></div>
+        <div class="col-md-4 mb-2">
+          <label class="card-label">Designation</label>
+          <select id="filterDesignation" class="form-control" onchange="filterTable()"></select>
+        </div>
+        <div class="col-md-4 mb-2">
+          <label class="card-label">Working District</label>
+          <select id="filterWorking" class="form-control" onchange="filterTable()"></select>
+        </div>
+        <div class="col-md-4 mb-2">
+          <label class="card-label">Willing District</label>
+          <select id="filterWilling" class="form-control" onchange="filterTable()"></select>
+        </div>
+      </div>
+      <div class="text-right mt-2">
+        <button class="btn btn-link btn-sm text-muted" onclick="clearFilters()">Reset All Filters</button>
       </div>
     </div>
 
     <div id="loading" class="text-center">
       <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2">Connecting to Live Data...</p>
+      <p class="mt-3 text-muted font-weight-medium">Syncing with Live Database...</p>
     </div>
 
     <div id="data-wrapper" style="display: none;">
-      <div class="table-container desktop-only">
-        <table id="transferTable" class="table table-hover table-sm">
+      <div class="table-container desktop-only shadow-sm">
+        <table id="transferTable" class="table table-hover m-0">
           <thead class="thead-dark">
             <tr>
               <th>Designation</th><th>From</th><th>To</th><th>Joining</th><th>Demand</th><th>Status</th><th>Action</th>
@@ -76,20 +160,53 @@
     </div>
 </div>
 
+<div class="modal fade" id="verifyModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3"><i class="fas fa-shield-alt fa-3x text-primary"></i></div>
+        <h5 class="font-weight-bold">Identity Verification</h5>
+        <p class="text-muted small">Enter your registered phone number to unlock contact details.</p>
+        <input type="tel" id="userPhoneInput" class="form-control form-control-lg mb-3 text-center" placeholder="Phone Number" style="letter-spacing: 2px;">
+        <button class="btn btn-verify btn-block btn-lg" onclick="handleVerify()">Unlock Details</button>
+        <button class="btn btn-link btn-sm mt-2 text-muted" data-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
     let allData = [];
+    let selectedRowId = null;
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
 
     $(document).ready(function() {
+      checkStoredIdentity();
+      fetchData();
+    });
+
+    function fetchData() {
       fetch(SCRIPT_URL)
         .then(res => res.json())
         .then(data => { renderData(data); })
         .catch(err => { 
-            $('#loading').html(`<div class="alert alert-danger">Error: Cannot load data. Ensure your Google Script is deployed to 'Anyone'.</div>`);
+            $('#loading').html(`<div class="alert alert-danger">Connection Error. Please refresh.</div>`);
         });
-    });
+    }
+
+    function checkStoredIdentity() {
+      const savedPhone = localStorage.getItem('userPhone');
+      if(savedPhone) $('#identityLabel').text('Verified: ' + savedPhone.slice(-4).padStart(savedPhone.length, '*'));
+    }
+
+    function clearIdentity() {
+      localStorage.removeItem('userPhone');
+      location.reload();
+    }
 
     function renderData(data) {
       $('#loading').hide();
@@ -140,45 +257,39 @@
       const tbody = $('#transferTable tbody').empty();
       const mContainer = $('#mobileCardContainer').empty();
 
-      if (filtered.length === 0) {
-          const emptyMsg = '<tr><td colspan="7" class="text-center">No matches found</td></tr>';
-          tbody.append(emptyMsg);
-          mContainer.append('<div class="text-center p-5">No requests found with these filters.</div>');
-          return;
-      }
-
       filtered.forEach(row => {
         const isMatched = row.MATCH_STATUS === 'MATCH FOUND';
-        const btnClass = isMatched ? 'btn-success' : 'btn-outline-primary disabled';
-        const btnText = isMatched ? 'View Contact' : 'Pending';
-        const clickAction = isMatched ? `onclick="showContact(${row.id})"` : '';
-        const badgeClass = isMatched ? 'badge-success' : 'badge-warning';
+        const isHighDemand = row.DEMAND_STATUS && row.DEMAND_STATUS.includes('HIGH');
+        const badgeClass = isMatched ? 'badge-match' : 'badge-light text-muted';
+        const demandBadge = isHighDemand ? `<span class="badge badge-high"><i class="fas fa-fire mr-1"></i>High Demand</span>` : `<small class="text-muted">${row.DEMAND_STATUS || ''}</small>`;
 
-        // Add to Desktop Table
+        // Desktop
         tbody.append(`
           <tr>
-            <td>${row['Your Designation']}</td>
+            <td class="font-weight-bold">${row['Your Designation']}</td>
             <td>${row['Working District']}</td>
             <td>${row['Willing District']}</td>
-            <td>${row['Date of Joining (DD-MM-YYYY)']}</td>
-            <td><small>${row['DEMAND_STATUS'] || ''}</small></td>
-            <td><span class="badge ${badgeClass}">${row.MATCH_STATUS}</span></td>
-            <td><button class="btn ${btnClass} btn-sm" ${clickAction}>${btnText}</button></td>
+            <td><small>${row['Date of Joining (DD-MM-YYYY)']}</small></td>
+            <td>${demandBadge}</td>
+            <td><span class="badge p-2 ${badgeClass}">${row.MATCH_STATUS}</span></td>
+            <td><button class="btn ${isMatched ? 'btn-primary' : 'btn-light'} btn-sm shadow-sm" onclick="initiateView(${row.id}, ${isMatched})">${isMatched ? 'View' : 'Wait'}</button></td>
           </tr>
         `);
 
-        // Add to Mobile Cards
+        // Mobile
         mContainer.append(`
-          <div class="mobile-card">
+          <div class="mobile-card shadow-sm">
+            <span class="badge p-2 status-badge ${badgeClass}">${row.MATCH_STATUS}</span>
             <div class="card-label">Designation</div>
             <div class="card-value">${row['Your Designation']}</div>
             <div class="row">
                <div class="col-6"><div class="card-label">From</div><div class="card-value">${row['Working District']}</div></div>
                <div class="col-6"><div class="card-label">To</div><div class="card-value">${row['Willing District']}</div></div>
             </div>
-            <div class="card-label">Status</div>
-            <div class="mb-3"><span class="badge ${badgeClass}">${row.MATCH_STATUS}</span> <small class="text-muted ml-2">${row['DEMAND_STATUS'] || ''}</small></div>
-            <button class="btn ${btnClass} btn-block" ${clickAction}>${btnText}</button>
+            <div class="mt-2">${demandBadge}</div>
+            <button class="btn ${isMatched ? 'btn-verify' : 'btn-light text-muted'} btn-block mt-3" onclick="initiateView(${row.id}, ${isMatched})">
+              ${isMatched ? '<i class="fas fa-lock-open mr-2"></i>View Contact' : 'Match Pending'}
+            </button>
           </div>
         `);
       });
@@ -189,32 +300,49 @@
       filterTable();
     }
 
-function showContact(rowId) {
-  const userPhone = prompt("Enter your registered Phone Number to verify identity:");
-  
-  if (!userPhone) return;
-
-  $('#loading').show();
-
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ rowId: rowId, userPhone: userPhone })
-  })
-  .then(res => res.json())
-  .then(response => {
-    $('#loading').hide();
-    if (response.error) {
-      alert(response.error);
-    } else {
-      // Show the details in a nice alert or update a modal
-      alert(`MATCH FOUND!\nName: ${response.name}\nContact: ${response.contact}`);
+    function initiateView(rowId, isMatched) {
+      if(!isMatched) return;
+      selectedRowId = rowId;
+      
+      const savedPhone = localStorage.getItem('userPhone');
+      if(savedPhone) {
+        processRequest(rowId, savedPhone);
+      } else {
+        $('#verifyModal').modal('show');
+      }
     }
-  })
-  .catch(err => {
-    $('#loading').hide();
-    alert("Verification failed. Please try again.");
-  });
-}
+
+    function handleVerify() {
+      const phone = $('#userPhoneInput').val().trim();
+      if(!phone) return alert("Please enter your phone number");
+      
+      localStorage.setItem('userPhone', phone);
+      $('#verifyModal').modal('hide');
+      processRequest(selectedRowId, phone);
+    }
+
+    function processRequest(rowId, phone) {
+      $('#loading').show();
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ rowId: rowId, userPhone: phone })
+      })
+      .then(res => res.json())
+      .then(response => {
+        $('#loading').hide();
+        if (response.error) {
+          alert(response.error);
+          localStorage.removeItem('userPhone'); // Clear invalid login
+        } else {
+          showContactResult(response);
+        }
+      });
+    }
+
+    function showContactResult(res) {
+      // Modern outcome: A detailed alert (can be upgraded to another modal)
+      alert(`🎉 MATCH FOUND!\n\nName: ${res.name}\nContact: ${res.contact}\n\nPlease reach out to your colleague to discuss the transfer.`);
+    }
 </script>
 
 </body>
