@@ -9,122 +9,154 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-body{
-  font-family:'Plus Jakarta Sans',sans-serif;
-  background:radial-gradient(circle at top right,#f8fafc,#f1f5f9);
-}
-.input{border:1.5px solid #e2e8f0}
-.input:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.15)}
-.segment.active{background:#1e293b;color:#fff}
-.mandatory::after{content:" *";color:#ef4444}
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
+    color: #0f172a;
+  }
+  .input { 
+    border: 1.5px solid #e2e8f0; 
+    transition: all 0.2s ease;
+  }
+  .input:focus { 
+    border-color: #2563eb; 
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.1); 
+    outline: none;
+    background-color: #fff;
+  }
+  .segment {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+  }
+  .segment.active { 
+    background: #1e293b; 
+    color: #fff; 
+    border-color: #1e293b;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
+  
+  /* Smooth Fade In */
+  .fade-in { animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 py-12">
 
-<!-- Loader -->
-<div id="loader" class="hidden fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-xl text-center shadow-xl">
-    <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-    <p class="mt-3 font-semibold">Processing securely…</p>
+<div id="loader" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl text-center shadow-2xl fade-in">
+    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="mt-4 font-bold text-slate-800">Securing your profile...</p>
+    <p class="text-xs text-slate-500 mt-1">Please do not refresh</p>
   </div>
 </div>
 
-<div class="bg-white/90 backdrop-blur-xl w-full max-w-3xl rounded-3xl shadow-2xl p-8">
+<div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
 
-<h1 class="text-3xl font-extrabold mb-1">Registration</h1>
-<p class="text-slate-500 mb-8">Mutual Transfer Network Portal</p>
-
-<form id="regForm" class="space-y-6">
-
-<div class="grid md:grid-cols-2 gap-6">
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">FULL NAME</label>
-    <input id="name" required class="input w-full rounded-xl px-4 py-3 mt-1">
-  </div>
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">DATE OF JOINING</label>
-    <input id="doj" type="date" required class="input w-full rounded-xl px-4 py-3 mt-1">
-  </div>
-</div>
-
-<div class="grid md:grid-cols-2 gap-6">
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">DESIGNATION</label>
-    <select id="designation" required class="input w-full rounded-xl px-4 py-3 mt-1">
-      <option value="">Select</option>
-      <option>Junior Assistant</option>
-      <option>Typist</option>
-      <option>Steno Typist</option>
-      <option>Others</option>
-    </select>
-  </div>
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">WHATSAPP NUMBER</label>
-    <input id="phone" maxlength="10" pattern="[6-9][0-9]{9}" required
-           class="input w-full rounded-xl px-4 py-3 mt-1"
-           placeholder="10-digit mobile">
-  </div>
-</div>
-
-<div class="grid md:grid-cols-2 gap-6">
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">PROBATION DECLARED?</label>
-    <div class="flex gap-2 mt-1">
-      <button type="button" class="segment flex-1 border rounded-xl py-2"
-        onclick="toggle('probation','Yes',this)">Yes</button>
-      <button type="button" class="segment active flex-1 border rounded-xl py-2"
-        onclick="toggle('probation','No',this)">No</button>
+  <header class="mb-10">
+    <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full mb-4">
+      <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Secure Enrollment</span>
     </div>
-    <input type="hidden" id="probation" value="No">
-  </div>
+    <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
+    <p class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
+  </header>
 
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">COA COMPLETED?</label>
-    <div class="flex gap-2 mt-1">
-      <button type="button" class="segment flex-1 border rounded-xl py-2"
-        onclick="toggle('coa','Yes',this)">Yes</button>
-      <button type="button" class="segment active flex-1 border rounded-xl py-2"
-        onclick="toggle('coa','No',this)">No</button>
+  <form id="regForm" class="space-y-8">
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
+        <input id="name" type="text" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800" placeholder="Enter Full Name">
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Joining Date</label>
+        <input id="doj" type="date" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800">
+      </div>
     </div>
-    <input type="hidden" id="coa" value="No">
-  </div>
-</div>
 
-<div class="grid md:grid-cols-2 gap-6">
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">WORKING DISTRICT</label>
-    <select id="workingDistrict" required class="input w-full rounded-xl px-4 py-3 mt-1"></select>
-  </div>
-  <div>
-    <label class="mandatory text-xs font-bold text-slate-500">WILLING DISTRICT</label>
-    <select id="willingDistrict" required class="input w-full rounded-xl px-4 py-3 mt-1"></select>
-  </div>
-</div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Designation</label>
+        <select id="designation" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Select Role</option>
+          <option>Junior Assistant</option>
+          <option>Typist</option>
+          <option>Steno Typist</option>
+          <option>Others</option>
+        </select>
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
+        <input id="phone" maxlength="10" inputmode="numeric" required
+               class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800"
+               placeholder="10-digit mobile" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+      </div>
+    </div>
 
-<div>
-  <label class="mandatory text-xs font-bold text-slate-500">EMAIL</label>
-  <div class="flex gap-3 mt-1">
-    <input id="email" type="email" required class="input flex-1 rounded-xl px-4 py-3">
-    <button type="button" id="otpBtn" onclick="sendOTP()"
-      class="bg-blue-600 text-white px-6 rounded-xl font-bold">
-      Get OTP
-    </button>
-  </div>
-  <p id="otpTimer" class="text-xs text-slate-500 mt-2 hidden"></p>
-</div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Probation Declared?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','No',this)">No</button>
+        </div>
+        <input type="hidden" id="probation" value="No">
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">COA Completed?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','No',this)">No</button>
+        </div>
+        <input type="hidden" id="coa" value="No">
+      </div>
+    </div>
 
-<div id="otpBox" class="hidden">
-  <label class="mandatory text-xs font-bold text-slate-500">ENTER OTP</label>
-  <input id="otp" maxlength="4"
-    class="input w-full text-center text-3xl tracking-widest rounded-xl px-4 py-4 mt-2">
-  <button type="button" onclick="submitForm()"
-    class="mt-4 w-full bg-slate-900 text-white py-4 rounded-xl font-bold">
-    Submit Registration
-  </button>
-</div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Working District</label>
+        <select id="workingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
+        </select>
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Willing District</label>
+        <select id="willingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
+        </select>
+      </div>
+    </div>
 
-</form>
+    <hr class="border-slate-100 my-4">
+
+    <div>
+      <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Official Email</label>
+      <div class="flex flex-col md:flex-row gap-4 mt-2">
+        <input id="email" type="email" required class="input flex-1 rounded-2xl px-5 py-4 font-semibold text-slate-800" placeholder="name@email.com">
+        <button type="button" id="otpBtn" onclick="sendOTP()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-200">
+          Get Secure OTP
+        </button>
+      </div>
+      <p id="otpTimer" class="text-xs font-bold text-blue-600 mt-3 hidden"></p>
+    </div>
+
+    <div id="otpBox" class="hidden space-y-4 pt-4 fade-in">
+      <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-center">
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-widest block mb-4">Enter 4-Digit Code</label>
+        <input id="otp" maxlength="4" inputmode="numeric"
+          class="input w-full max-w-[240px] text-center text-4xl font-bold tracking-[0.75em] rounded-2xl px-4 py-5 bg-white shadow-inner"
+          placeholder="0000" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        <button type="button" onclick="submitForm()"
+          class="mt-8 w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl">
+          Complete Registration
+        </button>
+      </div>
+    </div>
+
+  </form>
 </div>
 
 <script>
@@ -138,101 +170,108 @@ function toggle(field,val,btn){
 }
 
 window.onload=()=>{
-fetch(`${SCRIPT_URL}?action=getDistricts`)
-.then(r=>r.json())
-.then(d=>{
-const opt=d.map(x=>`<option>${x}</option>`).join('');
-workingDistrict.innerHTML='<option value="">Select</option>'+opt;
-willingDistrict.innerHTML='<option value="">Select</option>'+opt;
-});
+  fetch(`${SCRIPT_URL}?action=getDistricts`)
+  .then(r=>r.json())
+  .then(d=>{
+    const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
+    document.getElementById('workingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+    document.getElementById('willingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+  })
+  .catch(err => console.error("District Load Error:", err));
 };
 
 function sendOTP(){
-if(otpCooldown>0)return;
-if(!/^[6-9]\d{9}$/.test(phone.value))return alert("Invalid mobile");
-if(!email.value.includes("@"))return alert("Invalid email");
+  if(otpCooldown > 0) return;
+  const emailVal = document.getElementById('email').value;
+  const phoneVal = document.getElementById('phone').value;
 
-loader.classList.remove("hidden");
-fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(email.value)}`)
-.then(r=>r.json())
-.then(res=>{
-loader.classList.add("hidden");
-if(res.status!=="SENT")return alert(res.message);
-otpBox.classList.remove("hidden");
-otp.focus();
-startCooldown();
-});
+  if(!/^[6-9]\d{9}$/.test(phoneVal)) return alert("Please enter a valid 10-digit mobile number.");
+  if(!emailVal.includes("@")) return alert("Please enter a valid email address.");
+
+  document.getElementById('loader').classList.remove("hidden");
+  
+  fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(emailVal)}`)
+  .then(r=>r.json())
+  .then(res=>{
+    document.getElementById('loader').classList.add("hidden");
+    if(res.status!=="SENT") return alert(res.message || "Email failed to send.");
+    document.getElementById('otpBox').classList.remove("hidden");
+    document.getElementById('otp').focus();
+    startCooldown();
+  })
+  .catch(err => {
+    document.getElementById('loader').classList.add("hidden");
+    alert("Server error. Check your connection.");
+  });
 }
 
 function startCooldown(){
-otpCooldown=60;
-otpBtn.disabled=true;
-const t=document.getElementById("otpTimer");
-t.classList.remove("hidden");
-const i=setInterval(()=>{
-t.textContent=`Resend OTP in ${otpCooldown}s`;
-otpCooldown--;
-if(otpCooldown<0){clearInterval(i);otpBtn.disabled=false;t.classList.add("hidden")}
-},1000);
-}
-function submitForm() {
-    // basic validation
-    if (workingDistrict.value === willingDistrict.value) {
-        alert("Working and Willing districts cannot be same");
-        return;
+  otpCooldown=60;
+  const btn = document.getElementById('otpBtn');
+  const t = document.getElementById("otpTimer");
+  btn.disabled = true;
+  btn.classList.add('opacity-50', 'cursor-not-allowed');
+  t.classList.remove("hidden");
+  
+  const timer = setInterval(()=>{
+    t.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span> Resend OTP in ${otpCooldown}s`;
+    otpCooldown--;
+    if(otpCooldown < 0){
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      t.classList.add("hidden");
     }
+  }, 1000);
+}
 
-    loader.classList.remove("hidden");
+function submitForm() {
+    const wDist = document.getElementById('workingDistrict').value;
+    const lDist = document.getElementById('willingDistrict').value;
+    const otpVal = document.getElementById('otp').value;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // ⏱ 10 sec timeout
+    if (!wDist || !lDist) return alert("Please select districts.");
+    if (wDist === lDist) return alert("Working and Willing districts cannot be the same.");
+    if (otpVal.length !== 4) return alert("Please enter the 4-digit OTP.");
 
+    document.getElementById('loader').classList.remove("hidden");
+
+    // Standard POST without high-level headers to avoid CORS Preflight issues in GAS
     fetch(SCRIPT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             action: "register",
-            otp: otp.value,
+            otp: otpVal,
             userData: {
-                name: name.value,
-                doj: doj.value,
-                designation: designation.value,
-                phone: phone.value,
-                probation: probation.value,
-                coa: coa.value,
-                workingDistrict: workingDistrict.value,
-                willingDistrict: willingDistrict.value,
-                email: email.value
+                name: document.getElementById('name').value,
+                doj: document.getElementById('doj').value,
+                designation: document.getElementById('designation').value,
+                phone: document.getElementById('phone').value,
+                probation: document.getElementById('probation').value,
+                coa: document.getElementById('coa').value,
+                workingDistrict: wDist,
+                willingDistrict: lDist,
+                email: document.getElementById('email').value
             }
-        }),
-        signal: controller.signal
+        })
     })
     .then(res => res.json())
     .then(res => {
-        clearTimeout(timeout);
-        loader.classList.add("hidden");
-
+        document.getElementById('loader').classList.add("hidden");
         if (res.status === "SUCCESS") {
-            alert("✅ Registration successful!");
+            alert("✅ Registration successful! Welcome to the network.");
             location.reload();
         } else {
-            alert(res.message || "Registration failed. Try again.");
+            alert(res.message || "OTP verification failed. Please try again.");
         }
     })
     .catch(err => {
-        clearTimeout(timeout);
-        loader.classList.add("hidden");
-
-        // 🔑 IMPORTANT: assume success if timeout
-        if (err.name === "AbortError") {
-            alert("✅ Registration submitted successfully.\n(Processing on server)");
-            location.reload();
-        } else {
-            alert("❌ Network error. Please retry.");
-        }
+        document.getElementById('loader').classList.add("hidden");
+        // For GAS, a network error during POST often means the data was still sent but the redirect failed.
+        alert("System busy. Please refresh the dashboard in a moment to check your registration.");
+        location.reload();
     });
 }
-
 </script>
 </body>
 </html>
