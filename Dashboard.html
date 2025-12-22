@@ -59,12 +59,13 @@
         .search-input {
             border-radius: 14px;
             border: 1.5px solid var(--border);
-            height: 50px;
+            height: 45px;
             font-weight: 500;
+            font-size: 0.9rem;
         }
         
-        .btn-my-matches {
-            height: 50px;
+        .btn-action-group {
+            height: 45px;
             border-radius: 14px;
             font-weight: 700;
             transition: all 0.3s;
@@ -83,12 +84,11 @@
             color: #fff;
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             letter-spacing: 0.05em;
-            padding: 20px;
+            padding: 18px;
         }
         
-        /* Badge Styling */
         .badge-match { background: #dcfce7; color: #166534; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
         .badge-3way { background: #e0f2fe; color: #0369a1; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
         .badge-high { background: #fee2e2; color: #dc2626; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
@@ -99,11 +99,9 @@
             color: #fff !important;
             border-radius: 12px;
             font-weight: 700;
-            padding: 8px 20px;
+            padding: 6px 16px;
             border: none;
-            transition: all 0.2s;
         }
-        .btn-view-action:hover { background: var(--primary-dark); transform: scale(1.05); }
 
         .mobile-card {
             background: var(--surface);
@@ -111,17 +109,14 @@
             padding: 20px;
             margin-bottom: 16px;
             border: 1px solid var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .my-post-highlight {
-            background-color: #fffbeb !important;
-        }
+        .my-post-highlight { background-color: #fffbeb !important; border-left: 4px solid #f59e0b !important; }
 
         #globalLoader {
             position: fixed;
             inset: 0;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -131,7 +126,6 @@
 
         @media (max-width: 768px) {
             .desktop-only { display: none; }
-            .mobile-card { display: block; }
         }
     </style>
 </head>
@@ -140,19 +134,17 @@
 
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-    <p class="mt-3 font-weight-bold text-dark">Syncing Live Transfers...</p>
+    <p class="mt-3 font-weight-bold">Fetching Live Data...</p>
 </div>
 
 <div class="dashboard-header">
     <div class="container d-flex justify-content-between align-items-center">
-        <h5 class="font-weight-bold mb-0">
-            <i class="fas fa-bolt text-warning mr-2"></i>Live Dashboard
-        </h5>
+        <h6 class="font-weight-bold mb-0"><i class="fas fa-bolt text-warning mr-2"></i>Mutual Transfer</h6>
         <div id="idBadge" class="d-none">
-            <span class="badge badge-light p-2 border">
+            <span class="badge badge-light border p-2">
                 <i class="fas fa-user-circle text-primary mr-1"></i>
-                <span id="identityLabel" class="mr-2"></span>
-                <i class="fas fa-times-circle text-danger cursor-pointer" onclick="clearIdentity()"></i>
+                <span id="identityLabel"></span>
+                <i class="fas fa-times-circle text-danger ml-2 cursor-pointer" onclick="clearIdentity()"></i>
             </span>
         </div>
     </div>
@@ -161,35 +153,40 @@
 <div class="container mt-4 pb-5">
 
     <div class="row mb-4">
-        <div class="col-4"><div class="stat-card"><h2>Live Requests</h2><p id="totalRequests">0</p></div></div>
-        <div class="col-4"><div class="stat-card"><h2>Matches Found</h2><p id="totalMatches">0</p></div></div>
-        <div class="col-4"><div class="stat-card"><h2>Match Rate</h2><p id="successRate">0%</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Requests</h2><p id="totalRequests">0</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Matches</h2><p id="totalMatches">0</p></div></div>
+        <div class="col-4"><div class="stat-card"><h2>Rate</h2><p id="successRate">0%</p></div></div>
     </div>
 
     <div class="filter-section mb-4">
         <div class="row">
             <div class="col-md-3 mb-2">
                 <label class="small font-weight-bold text-muted ml-1">SEARCH DESIGNATION</label>
-                <input id="globalSearch" class="form-control search-input" placeholder="e.g. Typist" onkeyup="filterTable()">
+                <input id="globalSearch" class="form-control search-input" placeholder="e.g. Assistant" onkeyup="filterTable()">
             </div>
-            <div class="col-md-3 mb-2">
+            <div class="col-md-2 mb-2">
                 <label class="small font-weight-bold text-muted ml-1">FROM DISTRICT</label>
                 <select id="filterFrom" class="form-control search-input" onchange="filterTable()">
-                    <option value="all">All Locations</option>
+                    <option value="all">All Districts</option>
+                </select>
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="small font-weight-bold text-muted ml-1">TO DISTRICT</label>
+                <select id="filterTo" class="form-control search-input" onchange="filterTable()">
+                    <option value="all">All Districts</option>
                 </select>
             </div>
             <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">YOUR ACCOUNT</label>
-                <button id="btnMyMatches" class="btn btn-outline-primary btn-block btn-my-matches" onclick="toggleMyMatches()">
+                <label class="small font-weight-bold text-muted ml-1">ACCOUNT</label>
+                <button id="btnMyMatches" class="btn btn-outline-primary btn-block btn-action-group" onclick="toggleMyMatches()">
                     <i class="fas fa-user-check mr-2"></i>My Matches
                 </button>
             </div>
-            <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">DEMAND LEVEL</label>
-                <select id="filterDemand" class="form-control search-input" onchange="filterTable()">
-                    <option value="all">Any Demand</option>
-                    <option value="HIGH">High Demand Only</option>
-                </select>
+            <div class="col-md-2 mb-2">
+                <label class="small font-weight-bold text-muted ml-1">CLEAR</label>
+                <button class="btn btn-light border btn-block btn-action-group" onclick="resetFilters()">
+                    <i class="fas fa-undo"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -216,32 +213,28 @@
 
 <div class="modal fade" id="verifyModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg p-4 rounded-lg">
+        <div class="modal-content border-0 p-4 rounded-lg shadow">
             <div class="text-center">
-                <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3">
-                    <i class="fas fa-shield-alt fa-2x"></i>
-                </div>
-                <h5 class="font-weight-bold">Identity Verification</h5>
-                <p class="text-muted small">Enter your 10-digit mobile number to view your specific matches.</p>
+                <h5 class="font-weight-bold">Verify Identity</h5>
+                <p class="text-muted small">Enter registered mobile to unlock contacts.</p>
             </div>
-            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center py-4 font-weight-bold mb-3" style="font-size: 1.5rem;" placeholder="9876543210">
-            <button class="btn btn-primary btn-block py-3 font-weight-bold" onclick="handleVerify()">Unlock Access</button>
+            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center py-4 font-weight-bold mb-3" placeholder="9876543210">
+            <button class="btn btn-primary btn-block py-3 font-weight-bold" onclick="handleVerify()">Unlock Dashboard</button>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="contactModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg p-4 rounded-lg text-center">
-            <h6 class="text-muted font-weight-bold mb-1">MATCH DETAILS</h6>
-            <h4 id="resName" class="font-weight-extrabold text-dark">---</h4>
-            <div class="bg-light py-3 rounded-xl my-3 border">
-                <span class="text-muted small d-block">CONTACT NUMBER</span>
+        <div class="modal-content border-0 p-4 rounded-lg text-center shadow">
+            <h6 class="text-muted font-weight-bold">MATCH CONTACT</h6>
+            <h4 id="resName" class="font-weight-bold text-dark">---</h4>
+            <div class="bg-light py-3 rounded my-3 border">
                 <h2 class="text-primary font-weight-bold mb-0" id="resPhone">---</h2>
             </div>
             <div class="row">
-                <div class="col-6"><a id="callBtn" class="btn btn-primary btn-block py-3 font-weight-bold"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                <div class="col-6"><a id="waBtn" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a></div>
+                <div class="col-6"><a id="callBtn" class="btn btn-primary btn-block font-weight-bold py-2"><i class="fas fa-phone mr-1"></i>Call</a></div>
+                <div class="col-6"><a id="waBtn" target="_blank" class="btn btn-success btn-block font-weight-bold py-2"><i class="fab fa-whatsapp mr-1"></i>Chat</a></div>
             </div>
         </div>
     </div>
@@ -252,12 +245,11 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec"; 
-    let allData = [], pendingRowId = null, filterTimer = null, showOnlyMyMatches = false;
+    let allData = [], showOnlyMyMatches = false;
 
     $(document).ready(() => {
         checkStoredIdentity();
         fetchData();
-        setInterval(fetchData, 300000); 
     });
 
     function fetchData() {
@@ -266,12 +258,11 @@
         .then(r => r.json())
         .then(d => {
             allData = d || [];
-            updateMetrics(d);
-            populateDropdowns(d);
+            updateMetrics(allData);
+            populateDropdowns(allData);
             renderTable();
             $("#globalLoader").fadeOut();
-        })
-        .catch(() => $("#globalLoader").html("<h5 class='text-danger'>Server Offline. Check URL.</h5>"));
+        });
     }
 
     function updateMetrics(d) {
@@ -282,20 +273,39 @@
     }
 
     function populateDropdowns(d) {
-        const fromSet = new Set();
-        d.forEach(r => { if(r['Working District']) fromSet.add(r['Working District']); });
+        const fromSet = new Set(), toSet = new Set();
+        d.forEach(r => { 
+            if(r['Working District']) fromSet.add(r['Working District']); 
+            if(r['Willing District']) toSet.add(r['Willing District']);
+        });
+        
         const sortedFrom = [...fromSet].sort();
-        $('#filterFrom').html('<option value="all">All Locations</option>' + sortedFrom.map(x => `<option value="${x}">${x}</option>`).join(''));
+        const sortedTo = [...toSet].sort();
+
+        $('#filterFrom').html('<option value="all">All Districts</option>' + sortedFrom.map(x => `<option value="${x}">${x}</option>`).join(''));
+        $('#filterTo').html('<option value="all">All Districts</option>' + sortedTo.map(x => `<option value="${x}">${x}</option>`).join(''));
+    }
+
+    function resetFilters() {
+        $('#globalSearch').val('');
+        $('#filterFrom').val('all');
+        $('#filterTo').val('all');
+        showOnlyMyMatches = false;
+        const btn = $('#btnMyMatches');
+        btn.removeClass('btn-primary text-white').addClass('btn-outline-primary');
+        btn.html('<i class="fas fa-user-check mr-2"></i>My Matches');
+        renderTable();
+    }
+
+    function filterTable() {
+        renderTable();
     }
 
     function toggleMyMatches() {
         const storedPhone = localStorage.getItem("userPhone");
-        if (!storedPhone) {
-            $('#verifyModal').modal('show');
-            return;
-        }
-        showOnlyMyMatches = !showOnlyMyMatches;
+        if (!storedPhone) { $('#verifyModal').modal('show'); return; }
         
+        showOnlyMyMatches = !showOnlyMyMatches;
         const btn = $('#btnMyMatches');
         if (showOnlyMyMatches) {
             btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
@@ -307,39 +317,23 @@
         renderTable();
     }
 
-    function filterTable() {
-        clearTimeout(filterTimer);
-        filterTimer = setTimeout(renderTable, 300);
-    }
-
     function renderTable() {
         const search = $('#globalSearch').val().toLowerCase();
         const from = $('#filterFrom').val();
-        const demandF = $('#filterDemand').val();
+        const to = $('#filterTo').val();
         const userPhone = localStorage.getItem("userPhone");
-
-        // Find my own record
         const myProfile = allData.find(r => String(r.phone) === String(userPhone));
 
         const filtered = allData.filter(r => {
             const matchesBasic = r['Your Designation'].toLowerCase().includes(search) &&
                                (from === 'all' || r['Working District'] === from) &&
-                               (demandF === 'all' || r.DEMAND_STATUS.includes("HIGH"));
+                               (to === 'all' || r['Willing District'] === to);
 
-            if (showOnlyMyMatches) {
-                if(!myProfile) return false;
-                
-                const myWork = myProfile['Working District'];
-                const myWill = myProfile['Willing District'];
-                const theirWork = r['Working District'];
-                const theirWill = r['Willing District'];
-
-                // Logic for 2-way, 3-way, and self-listing
-                const isDirectMatch = (theirWork === myWill && theirWill === myWork);
-                const isPartof3Way = r.MATCH_STATUS.includes("3-WAY") && (theirWork === myWill || theirWill === myWork);
-                const isMyOwn = String(r.phone) === String(userPhone);
-
-                return matchesBasic && (isDirectMatch || isPartof3Way || isMyOwn);
+            if (showOnlyMyMatches && myProfile) {
+                const isMatch = (r['Working District'] === myProfile['Willing District'] && r['Willing District'] === myProfile['Working District']) ||
+                                (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === myProfile['Willing District'] || r['Willing District'] === myProfile['Working District'])) ||
+                                (String(r.phone) === String(userPhone));
+                return matchesBasic && isMatch;
             }
             return matchesBasic;
         });
@@ -350,57 +344,42 @@
             const hasMatch = r.MATCH_STATUS.includes("MATCH");
             const isMyOwn = String(r.phone) === String(userPhone);
 
-            // Demand Status with Count
-            let demandBadge = `<span class="badge badge-light border">Low</span>`;
-            if (r.DEMAND_STATUS.includes("HIGH")) {
-                demandBadge = `<span class="badge-high">${r.DEMAND_STATUS}</span>`;
-            } else if (r.DEMAND_STATUS.includes("Moderate")) {
-                demandBadge = `<span class="badge-mod">${r.DEMAND_STATUS}</span>`;
-            }
-            
-            // Match Status Icons
-            let statusBadge = `<span class="badge badge-light text-muted border">PENDING</span>`;
-            if (r.MATCH_STATUS.includes("3-WAY")) {
-                statusBadge = `<span class="badge-3way"><i class="fas fa-sync mr-1"></i>3-WAY</span>`;
-            } else if (hasMatch) {
-                statusBadge = `<span class="badge-match"><i class="fas fa-check mr-1"></i>MATCHED</span>`;
-            }
+            let dBadge = `<span class="badge badge-light border">Low</span>`;
+            if (r.DEMAND_STATUS.includes("HIGH")) dBadge = `<span class="badge-high">${r.DEMAND_STATUS}</span>`;
+            else if (r.DEMAND_STATUS.includes("Moderate")) dBadge = `<span class="badge-mod">${r.DEMAND_STATUS}</span>`;
 
-            const rowHighlight = isMyOwn ? 'my-post-highlight' : '';
+            let sBadge = `<span class="badge badge-light text-muted border">PENDING</span>`;
+            if (r.MATCH_STATUS.includes("3-WAY")) sBadge = `<span class="badge-3way">3-WAY</span>`;
+            else if (hasMatch) sBadge = `<span class="badge-match">MATCHED</span>`;
 
-            // Desktop Row
+            const highlight = isMyOwn ? 'my-post-highlight' : '';
+
             $('#tableBody').append(`
-                <tr class="${rowHighlight}">
-                    <td class="p-4 font-weight-bold">
-                        ${r['Your Designation']}
-                        ${isMyOwn ? '<br><small class="text-primary">YOUR POST</small>' : ''}
-                    </td>
-                    <td class="p-4">${r['Working District']}</td>
-                    <td class="p-4">${r['Willing District']}</td>
-                    <td class="p-4">${demandBadge}</td>
-                    <td class="p-4">${statusBadge}</td>
-                    <td class="p-4 text-center">
-                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border disabled'}" 
-                                onclick="initiateView(${r.id}, ${hasMatch})">
+                <tr class="${highlight}">
+                    <td class="p-3 font-weight-bold">${r['Your Designation']}</td>
+                    <td class="p-3">${r['Working District']}</td>
+                    <td class="p-3">${r['Willing District']}</td>
+                    <td class="p-3">${dBadge}</td>
+                    <td class="p-3">${sBadge}</td>
+                    <td class="p-3 text-center">
+                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border disabled'}" onclick="initiateView(${r.id}, ${hasMatch})">
                             ${hasMatch ? 'Unlock' : 'Locked'}
                         </button>
                     </td>
                 </tr>
             `);
 
-            // Mobile Card
             $('#mobileCardContainer').append(`
-                <div class="mobile-card ${rowHighlight}">
-                    <div class="d-flex justify-content-between">
+                <div class="mobile-card ${highlight}">
+                    <div class="d-flex justify-content-between mb-2">
                         <span class="font-weight-bold text-primary">${r['Your Designation']}</span>
-                        ${demandBadge}
+                        ${dBadge}
                     </div>
-                    <div class="my-2 small"><b>${r['Working District']}</b> → <b>${r['Willing District']}</b></div>
+                    <div class="small"><b>${r['Working District']}</b> → <b>${r['Willing District']}</b></div>
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        ${statusBadge}
-                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border'}" 
-                                onclick="initiateView(${r.id}, ${hasMatch})">
-                             ${hasMatch ? 'Unlock' : 'Waiting'}
+                        ${sBadge}
+                        <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border'}" onclick="initiateView(${r.id}, ${hasMatch})">
+                             ${hasMatch ? 'Unlock' : 'Wait'}
                         </button>
                     </div>
                 </div>
@@ -410,19 +389,9 @@
 
     function initiateView(id, hasMatch) {
         if (!hasMatch) return;
-        pendingRowId = id;
         const storedPhone = localStorage.getItem("userPhone");
         if (storedPhone) processRequest(id, storedPhone);
         else $('#verifyModal').modal('show');
-    }
-
-    function handleVerify() {
-        const phone = $('#userPhoneInput').val().trim();
-        if (!/^\d{10}$/.test(phone)) return alert("Enter 10-digit number.");
-        localStorage.setItem("userPhone", phone);
-        $('#verifyModal').modal('hide');
-        checkStoredIdentity();
-        location.reload(); 
     }
 
     function processRequest(id, phone) {
@@ -445,10 +414,19 @@
         });
     }
 
+    function handleVerify() {
+        const phone = $('#userPhoneInput').val().trim();
+        if (/^\d{10}$/.test(phone)) {
+            localStorage.setItem("userPhone", phone);
+            $('#verifyModal').modal('hide');
+            location.reload();
+        } else alert("Enter valid 10-digit number.");
+    }
+
     function checkStoredIdentity() {
         const p = localStorage.getItem("userPhone");
         if (p) {
-            $('#identityLabel').text(p.substring(0,2) + "******" + p.substring(8));
+            $('#identityLabel').text(p.substring(0,2) + "..." + p.substring(8));
             $('#idBadge').removeClass("d-none");
         }
     }
