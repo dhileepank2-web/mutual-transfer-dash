@@ -26,7 +26,6 @@
             color: var(--text-main);
         }
 
-        /* Premium Header */
         .dashboard-header {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px);
@@ -37,7 +36,6 @@
             z-index: 1050;
         }
 
-        /* Stats Cards */
         .stat-card {
             background: var(--surface);
             border-radius: 24px;
@@ -51,7 +49,6 @@
         .stat-card h2 { font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
         .stat-card p { font-size: 1.8rem; color: var(--primary); font-weight: 800; margin: 0; }
 
-        /* Filter Section */
         .filter-section {
             background: var(--surface);
             border-radius: 24px;
@@ -65,12 +62,14 @@
             height: 50px;
             font-weight: 500;
         }
-        .search-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        
+        .btn-my-matches {
+            height: 50px;
+            border-radius: 14px;
+            font-weight: 700;
+            transition: all 0.3s;
         }
 
-        /* Table & Cards */
         .table-container {
             background: var(--surface);
             border-radius: 24px;
@@ -88,6 +87,7 @@
             letter-spacing: 0.05em;
             padding: 20px;
         }
+        
         .badge-match { background: #dcfce7; color: #166534; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
         .badge-3way { background: #e0f2fe; color: #0369a1; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
         .badge-high { background: #fee2e2; color: #dc2626; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.7rem; }
@@ -163,7 +163,7 @@
     <div class="filter-section mb-4">
         <div class="row">
             <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">DESIGNATION</label>
+                <label class="small font-weight-bold text-muted ml-1">SEARCH DESIGNATION</label>
                 <input id="globalSearch" class="form-control search-input" placeholder="e.g. Typist" onkeyup="filterTable()">
             </div>
             <div class="col-md-3 mb-2">
@@ -173,10 +173,10 @@
                 </select>
             </div>
             <div class="col-md-3 mb-2">
-                <label class="small font-weight-bold text-muted ml-1">TO DISTRICT</label>
-                <select id="filterTo" class="form-control search-input" onchange="filterTable()">
-                    <option value="all">All Locations</option>
-                </select>
+                <label class="small font-weight-bold text-muted ml-1">YOUR ACCOUNT</label>
+                <button id="btnMyMatches" class="btn btn-outline-primary btn-block btn-my-matches" onclick="toggleMyMatches()">
+                    <i class="fas fa-user-check mr-2"></i>My Matches
+                </button>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="small font-weight-bold text-muted ml-1">DEMAND LEVEL</label>
@@ -216,9 +216,9 @@
                     <i class="fas fa-shield-alt fa-2x"></i>
                 </div>
                 <h5 class="font-weight-bold">Identity Verification</h5>
-                <p class="text-muted small">Enter your 10-digit mobile number registered during enrollment to unlock contact details.</p>
+                <p class="text-muted small">Enter your 10-digit mobile number to view your specific matches.</p>
             </div>
-            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center py-4 font-weight-bold mb-3" style="font-size: 1.5rem; letter-spacing: 2px;" placeholder="9876543210">
+            <input id="userPhoneInput" type="tel" maxlength="10" class="form-control text-center py-4 font-weight-bold mb-3" style="font-size: 1.5rem;" placeholder="9876543210">
             <button class="btn btn-primary btn-block py-3 font-weight-bold" onclick="handleVerify()">Unlock Access</button>
         </div>
     </div>
@@ -233,7 +233,7 @@
                 <span class="text-muted small d-block">CONTACT NUMBER</span>
                 <h2 class="text-primary font-weight-bold mb-0" id="resPhone">---</h2>
             </div>
-            <div class="row gutter-sm">
+            <div class="row">
                 <div class="col-6"><a id="callBtn" class="btn btn-primary btn-block py-3 font-weight-bold"><i class="fas fa-phone mr-2"></i>Call</a></div>
                 <div class="col-6"><a id="waBtn" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a></div>
             </div>
@@ -245,13 +245,13 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec"; // PASTE YOUR WEB APP URL HERE
-    let allData = [], pendingRowId = null, filterTimer = null;
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec"; 
+    let allData = [], pendingRowId = null, filterTimer = null, showOnlyMyMatches = false;
 
     $(document).ready(() => {
         checkStoredIdentity();
         fetchData();
-        setInterval(fetchData, 120000); // Auto-refresh every 2 mins
+        setInterval(fetchData, 300000); // Auto-refresh every 5 mins
     });
 
     function fetchData() {
@@ -276,17 +276,29 @@
     }
 
     function populateDropdowns(d) {
-        const fromSet = new Set(), toSet = new Set();
-        d.forEach(r => {
-            if(r['Working District']) fromSet.add(r['Working District']);
-            if(r['Willing District']) toSet.add(r['Willing District']);
-        });
-        
+        const fromSet = new Set();
+        d.forEach(r => { if(r['Working District']) fromSet.add(r['Working District']); });
         const sortedFrom = [...fromSet].sort();
-        const sortedTo = [...toSet].sort();
-
         $('#filterFrom').html('<option value="all">All Locations</option>' + sortedFrom.map(x => `<option value="${x}">${x}</option>`).join(''));
-        $('#filterTo').html('<option value="all">All Locations</option>' + sortedTo.map(x => `<option value="${x}">${x}</option>`).join(''));
+    }
+
+    function toggleMyMatches() {
+        const storedPhone = localStorage.getItem("userPhone");
+        if (!storedPhone) {
+            $('#verifyModal').modal('show');
+            return;
+        }
+        showOnlyMyMatches = !showOnlyMyMatches;
+        
+        const btn = $('#btnMyMatches');
+        if (showOnlyMyMatches) {
+            btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
+            btn.html('<i class="fas fa-times mr-2"></i> Show All');
+        } else {
+            btn.removeClass('btn-primary text-white').addClass('btn-outline-primary');
+            btn.html('<i class="fas fa-user-check mr-2"></i> My Matches');
+        }
+        renderTable();
     }
 
     function filterTable() {
@@ -297,29 +309,32 @@
     function renderTable() {
         const search = $('#globalSearch').val().toLowerCase();
         const from = $('#filterFrom').val();
-        const to = $('#filterTo').val();
         const demand = $('#filterDemand').val();
+        const userPhone = localStorage.getItem("userPhone");
 
         const filtered = allData.filter(r => {
-            return r['Your Designation'].toLowerCase().includes(search) &&
-                   (from === 'all' || r['Working District'] === from) &&
-                   (to === 'all' || r['Willing District'] === to) &&
-                   (demand === 'all' || r.DEMAND_STATUS.includes("HIGH"));
+            const matchesBasic = r['Your Designation'].toLowerCase().includes(search) &&
+                               (from === 'all' || r['Working District'] === from) &&
+                               (demand === 'all' || r.DEMAND_STATUS.includes("HIGH"));
+
+            if (showOnlyMyMatches) {
+                return matchesBasic && (String(r.phone) === String(userPhone));
+            }
+            return matchesBasic;
         });
 
-        $('#tableBody').empty();
-        $('#mobileCardContainer').empty();
+        $('#tableBody, #mobileCardContainer').empty();
 
         filtered.forEach(r => {
             const hasMatch = r.MATCH_STATUS.includes("MATCH");
             const statusBadge = hasMatch ? 
-                `<span class="${r.MATCH_STATUS.includes('3-WAY') ? 'badge-3way' : 'badge-match'}"><i class="fas fa-check-circle mr-1"></i>${r.MATCH_STATUS}</span>` : 
+                `<span class="${r.MATCH_STATUS.includes('3-WAY') ? 'badge-3way' : 'badge-match'}">${r.MATCH_STATUS}</span>` : 
                 `<span class="badge badge-light text-muted border">PENDING</span>`;
             
             const demandBadge = r.DEMAND_STATUS.includes("HIGH") ? 
                 `<span class="badge-high">HIGH</span>` : `<span class="badge badge-light border">Normal</span>`;
 
-            // Row for Desktop
+            // Render Desktop
             $('#tableBody').append(`
                 <tr>
                     <td class="p-4 font-weight-bold">${r['Your Designation']}</td>
@@ -330,29 +345,25 @@
                     <td class="p-4 text-center">
                         <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border disabled'}" 
                                 onclick="initiateView(${r.id}, ${hasMatch})">
-                            ${hasMatch ? 'Unlock Contact' : '<i class="fas fa-lock mr-1"></i> Locked'}
+                            ${hasMatch ? 'Unlock' : 'Locked'}
                         </button>
                     </td>
                 </tr>
             `);
 
-            // Card for Mobile
+            // Render Mobile
             $('#mobileCardContainer').append(`
                 <div class="mobile-card">
                     <div class="d-flex justify-content-between">
                         <span class="font-weight-bold text-primary">${r['Your Designation']}</span>
                         ${demandBadge}
                     </div>
-                    <div class="my-2 small">
-                        <i class="fas fa-map-marker-alt text-muted mr-1"></i> ${r['Working District']} 
-                        <i class="fas fa-arrow-right mx-2 text-muted"></i> 
-                        <i class="fas fa-heart text-danger mr-1"></i> ${r['Willing District']}
-                    </div>
+                    <div class="my-2 small">${r['Working District']} → ${r['Willing District']}</div>
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         ${statusBadge}
                         <button class="btn btn-sm ${hasMatch ? 'btn-view-action' : 'btn-light border'}" 
                                 onclick="initiateView(${r.id}, ${hasMatch})">
-                             ${hasMatch ? 'Unlock' : 'Wait for Match'}
+                             ${hasMatch ? 'Unlock' : 'Waiting'}
                         </button>
                     </div>
                 </div>
@@ -364,21 +375,18 @@
         if (!hasMatch) return;
         pendingRowId = id;
         const storedPhone = localStorage.getItem("userPhone");
-        if (storedPhone) {
-            processRequest(id, storedPhone);
-        } else {
-            $('#verifyModal').modal('show');
-        }
+        if (storedPhone) processRequest(id, storedPhone);
+        else $('#verifyModal').modal('show');
     }
 
     function handleVerify() {
         const phone = $('#userPhoneInput').val().trim();
-        if (!/^[6-9]\d{9}$/.test(phone)) return alert("Enter a valid 10-digit mobile number.");
-        
+        if (!/^\d{10}$/.test(phone)) return alert("Enter 10-digit number.");
         localStorage.setItem("userPhone", phone);
         $('#verifyModal').modal('hide');
         checkStoredIdentity();
-        processRequest(pendingRowId, phone);
+        if (pendingRowId) processRequest(pendingRowId, phone);
+        else renderTable();
     }
 
     function processRequest(id, phone) {
@@ -390,27 +398,21 @@
         .then(r => r.json())
         .then(res => {
             $("#globalLoader").hide();
-            if (res.error) {
-                alert(res.error);
-                clearIdentity();
-            } else {
+            if (res.error) alert(res.error);
+            else {
                 $('#resName').text(res.name);
                 $('#resPhone').text(res.contact);
                 $('#callBtn').attr("href", "tel:" + res.contact);
                 $('#waBtn').attr("href", "https://wa.me/91" + res.contact);
                 $('#contactModal').modal('show');
             }
-        })
-        .catch(() => {
-            $("#globalLoader").hide();
-            alert("Network Error. Try again.");
         });
     }
 
     function checkStoredIdentity() {
         const p = localStorage.getItem("userPhone");
         if (p) {
-            $('#identityLabel').text("Verified: " + p.substring(0,2) + "******" + p.substring(8));
+            $('#identityLabel').text(p.substring(0,2) + "******" + p.substring(8));
             $('#idBadge').removeClass("d-none");
         }
     }
