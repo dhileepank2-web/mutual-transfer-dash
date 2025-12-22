@@ -36,7 +36,6 @@
   }
   .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
   
-  /* Smooth Fade In */
   .fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -47,7 +46,7 @@
 <div id="loader" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
   <div class="bg-white p-8 rounded-2xl text-center shadow-2xl fade-in">
     <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-    <p class="mt-4 font-bold text-slate-800">Securing your profile...</p>
+    <p class="mt-4 font-bold text-slate-800" id="loaderText">Processing...</p>
     <p class="text-xs text-slate-500 mt-1">Please do not refresh</p>
   </div>
 </div>
@@ -101,16 +100,16 @@
           <option>BENCH CLERKS GRADE - II</option>
           <option value="OTHER">OTHER (Specify below)</option>
         </select>
-        
         <div id="otherRoleBox" class="hidden mt-3 fade-in">
-            <input id="otherDesignation" type="text" class="input w-full rounded-xl px-4 py-3 border-blue-200 text-sm font-semibold text-slate-800" placeholder="Type your designation here...">
+            <input id="otherDesignation" type="text" class="input w-full rounded-xl px-4 py-3 border-blue-200 text-sm font-semibold text-slate-800" placeholder="Enter your designation">
         </div>
       </div>
       <div>
         <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
         <input id="phone" maxlength="10" inputmode="numeric" required
                class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800"
-               placeholder="10-digit mobile" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+               placeholder="10-digit mobile" oninput="livePhoneCheck(this)">
+        <p id="phoneStatus" class="text-[10px] font-bold mt-2 ml-1 hidden"></p>
       </div>
     </div>
 
@@ -181,6 +180,7 @@
 <script>
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
 let otpCooldown=0;
+let isMobileUnique = false;
 
 function toggle(field,val,btn){
   document.getElementById(field).value=val;
@@ -188,17 +188,45 @@ function toggle(field,val,btn){
   btn.classList.add('active');
 }
 
-// Logic for showing Other Role input
 function handleRoleChange(val) {
-    const otherBox = document.getElementById('otherRoleBox');
-    const otherInput = document.getElementById('otherDesignation');
-    if(val === "OTHER") {
-        otherBox.classList.remove('hidden');
-        otherInput.focus();
-    } else {
-        otherBox.classList.add('hidden');
-        otherInput.value = "";
-    }
+    const box = document.getElementById('otherRoleBox');
+    if(val === "OTHER") box.classList.remove('hidden');
+    else { box.classList.add('hidden'); document.getElementById('otherDesignation').value = ""; }
+}
+
+// LIVE MOBILE UNIQUE CHECK
+function livePhoneCheck(input) {
+  input.value = input.value.replace(/[^0-9]/g, '');
+  const phone = input.value;
+  const statusEl = document.getElementById('phoneStatus');
+  const otpBtn = document.getElementById('otpBtn');
+
+  if(phone.length === 10) {
+    statusEl.classList.remove('hidden');
+    statusEl.innerText = "Verifying number...";
+    statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-blue-500";
+    
+    fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`)
+    .then(r => r.json())
+    .then(res => {
+      if(res.exists) {
+        statusEl.innerText = "❌ Mobile number already present!";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-red-500";
+        otpBtn.disabled = true;
+        otpBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = false;
+      } else {
+        statusEl.innerText = "✅ Mobile number available";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-green-600";
+        otpBtn.disabled = false;
+        otpBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = true;
+      }
+    });
+  } else {
+    statusEl.classList.add('hidden');
+    isMobileUnique = false;
+  }
 }
 
 window.onload=()=>{
@@ -208,32 +236,26 @@ window.onload=()=>{
     const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
     document.getElementById('workingDistrict').innerHTML='<option value="">Select District</option>'+opt;
     document.getElementById('willingDistrict').innerHTML='<option value="">Select District</option>'+opt;
-  })
-  .catch(err => console.error("District Load Error:", err));
+  });
 };
 
 function sendOTP(){
+  if(!isMobileUnique) return alert("Mobile number already present or invalid.");
   if(otpCooldown > 0) return;
+  
   const emailVal = document.getElementById('email').value;
-  const phoneVal = document.getElementById('phone').value;
-
-  if(!/^[6-9]\d{9}$/.test(phoneVal)) return alert("Please enter a valid 10-digit mobile number.");
-  if(!emailVal.includes("@")) return alert("Please enter a valid email address.");
+  if(!emailVal.includes("@")) return alert("Please enter a valid email.");
 
   document.getElementById('loader').classList.remove("hidden");
+  document.getElementById('loaderText').innerText = "Sending Secure OTP...";
   
   fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(emailVal)}`)
   .then(r=>r.json())
   .then(res=>{
     document.getElementById('loader').classList.add("hidden");
-    if(res.status!=="SENT") return alert(res.message || "Email failed to send.");
+    if(res.status!=="SENT") return alert(res.message);
     document.getElementById('otpBox').classList.remove("hidden");
-    document.getElementById('otp').focus();
     startCooldown();
-  })
-  .catch(err => {
-    document.getElementById('loader').classList.add("hidden");
-    alert("Server error. Check your connection.");
   });
 }
 
@@ -242,52 +264,37 @@ function startCooldown(){
   const btn = document.getElementById('otpBtn');
   const t = document.getElementById("otpTimer");
   btn.disabled = true;
-  btn.classList.add('opacity-50', 'cursor-not-allowed');
   t.classList.remove("hidden");
-  
   const timer = setInterval(()=>{
-    t.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span> Resend OTP in ${otpCooldown}s`;
+    t.innerHTML = `Resend in ${otpCooldown}s`;
     otpCooldown--;
-    if(otpCooldown < 0){
-      clearInterval(timer);
-      btn.disabled = false;
-      btn.classList.remove('opacity-50', 'cursor-not-allowed');
-      t.classList.add("hidden");
-    }
+    if(otpCooldown < 0){ clearInterval(timer); btn.disabled = false; t.classList.add("hidden"); }
   }, 1000);
 }
 
 function submitForm() {
-    const wDist = document.getElementById('workingDistrict').value;
-    const lDist = document.getElementById('willingDistrict').value;
-    const otpVal = document.getElementById('otp').value;
     const mainRole = document.getElementById('designation').value;
-    const otherRole = document.getElementById('otherDesignation').value;
-
-    // Logic to choose final designation
-    const finalDesignation = (mainRole === "OTHER") ? otherRole : mainRole;
-
-    if (!finalDesignation || (mainRole === "OTHER" && otherRole.trim() === "")) return alert("Please provide your designation.");
-    if (!wDist || !lDist) return alert("Please select districts.");
-    if (wDist === lDist) return alert("Working and Willing districts cannot be the same.");
-    if (otpVal.length !== 4) return alert("Please enter the 4-digit OTP.");
+    const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
+    
+    if(!finalRole) return alert("Designation is required");
 
     document.getElementById('loader').classList.remove("hidden");
+    document.getElementById('loaderText').innerText = "Registering...";
 
     fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify({
             action: "register",
-            otp: otpVal,
+            otp: document.getElementById('otp').value,
             userData: {
                 name: document.getElementById('name').value,
                 doj: document.getElementById('doj').value,
-                designation: finalDesignation, // Using the logic result here
+                designation: finalRole,
                 phone: document.getElementById('phone').value,
                 probation: document.getElementById('probation').value,
                 coa: document.getElementById('coa').value,
-                workingDistrict: wDist,
-                willingDistrict: lDist,
+                workingDistrict: document.getElementById('workingDistrict').value,
+                willingDistrict: document.getElementById('willingDistrict').value,
                 email: document.getElementById('email').value
             }
         })
@@ -295,17 +302,8 @@ function submitForm() {
     .then(res => res.json())
     .then(res => {
         document.getElementById('loader').classList.add("hidden");
-        if (res.status === "SUCCESS") {
-            alert("✅ Registration successful! Welcome to the network.");
-            location.reload();
-        } else {
-            alert(res.message || "OTP verification failed. Please try again.");
-        }
-    })
-    .catch(err => {
-        document.getElementById('loader').classList.add("hidden");
-        alert("System busy. Please refresh the dashboard in a moment to check your registration.");
-        location.reload();
+        if (res.status === "SUCCESS") { alert("✅ Registered Successfully!"); location.reload(); }
+        else alert(res.message);
     });
 }
 </script>
