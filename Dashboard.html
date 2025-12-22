@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Mutual Transfer | Secure Access</title>
+    <title>Mutual Hub | Professional Dashboard</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -12,69 +12,91 @@
     <style>
         :root {
             --primary: #2563eb;
-            --bg: #f4f7fa;
+            --primary-soft: #dbeafe;
+            --bg: #f8fafc;
             --surface: #ffffff;
             --border: #e2e8f0;
-            --text-main: #1e293b;
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --demand-high: #ef4444;
-            --demand-mod: #f59e0b;
-            --demand-low: #10b981;
+            --success: #10b981;
         }
 
-        body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-main); }
+        body { 
+            background: var(--bg); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
 
-        /* --- Login/Error Screen --- */
+        /* --- Modern Centered Loader --- */
+        #globalLoader {
+            position: fixed; inset: 0; 
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 9999; display: none; align-items: center; justify-content: center;
+        }
+        .loader-content {
+            background: white; padding: 30px 50px; border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            text-align: center; border: 1px solid var(--border);
+        }
+
+        /* --- Login/Overlay --- */
         #loginOverlay {
             position: fixed; inset: 0; background: var(--bg);
-            z-index: 2000; display: flex; align-items: center; justify-content: center;
+            z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         .login-card {
-            background: #fff; padding: 40px; border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05); width: 100%; max-width: 420px;
+            background: #fff; padding: 40px; border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.08); width: 100%; max-width: 420px;
             border: 1px solid var(--border);
         }
 
         #mainDashboard { display: none; }
 
-        /* --- Global Loader --- */
-        #globalLoader {
-            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98);
-            z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;
-        }
-
+        /* --- Header & Stats --- */
         .glass-header {
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px);
-            border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 1060;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border); padding: 12px 0; position: sticky; top: 0; z-index: 1060;
         }
-
         .stat-card {
-            background: var(--surface); border-radius: 20px; padding: 20px;
-            border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background: var(--surface); border-radius: 24px; padding: 24px;
+            border: 1px solid var(--border); transition: all 0.3s ease;
         }
-        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-main); display: block; }
+        .stat-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
 
+        /* --- Filters --- */
+        .filter-section {
+            background: white; border-radius: 28px; border: 1px solid var(--border);
+            padding: 24px; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+        .filter-label {
+            font-size: 0.75rem; font-weight: 800; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: block;
+        }
+        .filter-control { 
+            height: 52px; border-radius: 14px; border: 1.5px solid var(--border); 
+            font-weight: 600; color: var(--text-main); transition: all 0.2s;
+        }
+        .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+
+        /* --- Table --- */
         .table-wrapper {
-            background: var(--surface); border-radius: 24px; border: 1px solid var(--border);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); overflow: hidden;
+            background: white; border-radius: 28px; border: 1px solid var(--border);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); overflow: hidden;
+        }
+        .table thead th {
+            background: #f8fafc; text-transform: uppercase; font-size: 0.7rem;
+            letter-spacing: 0.05em; padding: 20px; color: var(--text-muted); border-bottom: 1px solid var(--border);
+        }
+        .row-identity { background: #eff6ff !important; border-left: 4px solid var(--primary); }
+
+        .btn-unlock { 
+            background: var(--primary); color: white !important; border-radius: 12px; 
+            padding: 10px 20px; font-weight: 700; border: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
 
-        .row-identity { background-color: #f0f7ff !important; box-shadow: inset 4px 0 0 var(--primary); }
-
-        .demand-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
-        .lvl-high { background: #fee2e2; color: var(--demand-high); }
-        .lvl-mod { background: #fff7ed; color: var(--demand-mod); }
-        .lvl-low { background: #ecfdf5; color: var(--demand-low); }
-
-        .badge-status { padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.65rem; text-transform: uppercase; }
-        .s-match { background: var(--primary); color: white; }
-        .s-3way { background: #7c3aed; color: white; }
-        .s-pending { background: #f1f5f9; color: var(--text-muted); }
-
-        .filter-control { height: 52px; border-radius: 14px; border: 1px solid var(--border); font-weight: 600; }
-        .btn-unlock { background: var(--primary); color: white !important; border-radius: 12px; padding: 8px 16px; font-weight: 700; border: none; }
-        
-        .error-msg { color: #ef4444; font-weight: 700; font-size: 0.85rem; display: none; }
+        .error-msg { color: #ef4444; font-weight: 700; font-size: 0.85rem; display: none; margin-top: 10px; }
 
         @media (max-width: 768px) { .desktop-only { display: none; } }
     </style>
@@ -82,33 +104,36 @@
 <body>
 
 <div id="globalLoader">
-    <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem;"></div>
-    <h6 class="mt-4 font-weight-bold">Syncing Records...</h6>
+    <div class="loader-content">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h6 class="mt-4 font-weight-bold text-dark">Processing Data...</h6>
+        <p class="text-muted small mb-0">Please wait a moment</p>
+    </div>
 </div>
 
 <div id="loginOverlay">
-    <div class="login-card text-center" id="loginFormBox">
-        <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-4">
-            <i class="fas fa-id-badge fa-2x"></i>
+    <div class="login-card text-center">
+        <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-4 shadow-lg">
+            <i class="fas fa-fingerprint fa-2xl"></i>
         </div>
-        <h3 class="font-weight-bold">Dashboard Login</h3>
-        <p class="text-muted small mb-4">Access is restricted to registered members only.</p>
+        <h3 class="font-weight-bold">Member Portal</h3>
+        <p class="text-muted small mb-4">Secure access for registered employees.</p>
         
-        <input id="loginPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-2" 
-               style="height:60px; font-size:1.6rem; border-radius:15px;" placeholder="Phone Number">
+        <input id="loginPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold" 
+               style="height:64px; font-size:1.8rem; border-radius:18px; border: 2px solid var(--border);" placeholder="0000000000">
         
-        <div id="loginError" class="error-msg mb-3">
-            <i class="fas fa-exclamation-circle mr-1"></i> Number not found in our records!
+        <div id="loginError" class="error-msg">
+            <i class="fas fa-circle-xmark mr-1"></i> Number not found!
         </div>
 
-        <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow mb-3" onclick="handleLogin()">
-            Verify & Enter
+        <button class="btn btn-primary btn-block py-3 mt-4 font-weight-bold rounded-18 shadow-lg" onclick="handleLogin()">
+            Verify Identity
         </button>
 
-        <div id="regBox" style="display:none;">
-            <p class="text-muted small mb-2">Not registered yet?</p>
-            <a href="YOUR_REGISTRATION_LINK_HERE" class="btn btn-outline-success btn-block py-2 font-weight-bold rounded-15">
-                <i class="fas fa-user-plus mr-2"></i>Register Now
+        <div id="regBox" class="mt-4 pt-3 border-top" style="display:none;">
+            <p class="text-muted small mb-3">Don't have an account?</p>
+            <a href="YOUR_REG_LINK" class="btn btn-outline-success btn-block py-2 font-weight-bold rounded-15">
+                Register & Join Now
             </a>
         </div>
     </div>
@@ -118,13 +143,15 @@
     <header class="glass-header">
         <div class="container d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-                <div class="bg-primary text-white p-2 rounded-lg mr-3 shadow-sm"><i class="fas fa-sync-alt fa-lg"></i></div>
-                <h5 class="font-weight-bold mb-0 text-dark">Mutual Hub</h5>
+                <div class="bg-primary text-white p-2 rounded-lg mr-2 shadow-sm"><i class="fas fa-bolt"></i></div>
+                <h5 class="font-weight-bold mb-0">Mutual Hub</h5>
             </div>
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
-                <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
-                <small class="font-weight-bold mr-3" id="lblUserPhone">---</small>
-                <i class="fas fa-power-off text-danger cursor-pointer" onclick="clearIdentity()"></i>
+                <span class="badge badge-success badge-pill mr-2" style="width:8px; height:8px; padding:0"> </span>
+                <small class="font-weight-bold text-muted" id="lblUserPhone">---</small>
+                <div class="border-left ml-3 pl-3">
+                    <i class="fas fa-sign-out-alt text-danger cursor-pointer" onclick="clearIdentity()"></i>
+                </div>
             </div>
         </div>
     </header>
@@ -132,41 +159,46 @@
     <div class="container mt-4 pb-5">
         <div class="row mb-4">
             <div class="col-md-4 mb-3">
-                <div class="stat-card text-center">
-                    <span class="stat-label small font-weight-bold text-muted">TOTAL REQUESTS</span>
-                    <span class="stat-value" id="statTotal">0</span>
+                <div class="stat-card">
+                    <span class="filter-label">Total Listings</span>
+                    <span class="stat-value text-dark" id="statTotal">0</span>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="stat-card text-center">
-                    <span class="stat-label small font-weight-bold text-muted">MATCHES FOUND</span>
+                <div class="stat-card">
+                    <span class="filter-label">Verified Matches</span>
                     <span class="stat-value text-primary" id="statMatched">0</span>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="stat-card text-center">
-                    <span class="stat-label small font-weight-bold text-muted">SUCCESS RATE</span>
+                <div class="stat-card">
+                    <span class="filter-label">System Accuracy</span>
                     <span class="stat-value text-success" id="statRate">0%</span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+        <div class="filter-section shadow-sm">
             <div class="row">
-                <div class="col-lg-4 mb-3">
-                    <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
+                <div class="col-lg-4 col-md-12 mb-3">
+                    <label class="filter-label"><i class="fas fa-search mr-1"></i> Designation Search</label>
+                    <input id="inpSearch" class="form-control filter-control" placeholder="e.g. Teacher, Clerk..." oninput="renderTable()">
                 </div>
                 <div class="col-lg-2 col-6 mb-3">
-                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">From: All</option></select>
+                    <label class="filter-label"><i class="fas fa-map-pin mr-1"></i> From District</label>
+                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">Any District</option></select>
                 </div>
                 <div class="col-lg-2 col-6 mb-3">
-                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">To: All</option></select>
+                    <label class="filter-label"><i class="fas fa-location-arrow mr-1"></i> To District</label>
+                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">Any District</option></select>
                 </div>
-                <div class="col-lg-4 mb-3 d-flex gap-2">
-                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 flex-grow-1" style="height:52px;" onclick="toggleMatches()">
-                        My Potential Matches
+                <div class="col-lg-3 col-10 mb-3 d-flex align-items-end">
+                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
+                        View My Matches
                     </button>
-                    <button class="btn btn-light border rounded-14 ml-2" style="height:52px; width:52px" onclick="resetUI()"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="col-lg-1 col-2 mb-3 d-flex align-items-end">
+                    <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()"><i class="fas fa-undo"></i></button>
                 </div>
             </div>
         </div>
@@ -176,32 +208,15 @@
                 <table class="table m-0">
                     <thead>
                         <tr>
-                            <th>Designation</th>
-                            <th>Current District</th>
+                            <th>Employee Details</th>
+                            <th>Current Station</th>
                             <th>Willing District</th>
-                            <th class="desktop-only">Market Demand</th>
-                            <th>Status</th>
+                            <th class="desktop-only text-center">Status</th>
                             <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="mainTbody"></tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalContact" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg text-center">
-            <h6 class="text-primary font-weight-bold mb-2">VERIFIED CONTACT</h6>
-            <h2 id="resName" class="font-weight-bold">---</h2>
-            <div class="bg-light p-4 rounded-24 my-4 border">
-                <h1 class="text-dark font-weight-bold mb-0" id="resPhone">---</h1>
-            </div>
-            <div class="row">
-                <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm">Call</a></div>
-                <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm">WhatsApp</a></div>
             </div>
         </div>
     </div>
@@ -216,15 +231,12 @@
     let MY_PHONE = localStorage.getItem("userPhone");
 
     $(document).ready(() => {
-        // Pre-fetch data immediately to check registration later
-        loadData(false); 
-        if(MY_PHONE) {
-            checkAndEnter(MY_PHONE);
-        }
+        loadData(false); // Silent pre-load
+        if(MY_PHONE) checkAndEnter(MY_PHONE);
     });
 
     function loadData(shouldRender = true) {
-        $("#globalLoader").show();
+        $("#globalLoader").css("display", "flex");
         fetch(`${API}?action=getDashboardData`)
         .then(r => r.json())
         .then(data => {
@@ -240,21 +252,13 @@
 
     function handleLogin() {
         const val = $('#loginPhone').val();
-        $('#loginError').hide();
-        $('#regBox').hide();
-
-        if(!/^\d{10}$/.test(val)) {
-            alert("Please enter a valid 10-digit number.");
-            return;
-        }
-
+        $('#loginError').hide(); $('#regBox').hide();
+        if(!/^\d{10}$/.test(val)) return alert("Enter valid 10-digit number.");
         checkAndEnter(val);
     }
 
     function checkAndEnter(phone) {
-        // Check if phone exists in the fetched MASTER_DATA
         const userExists = MASTER_DATA.some(x => String(x.phone) === String(phone));
-
         if(userExists) {
             localStorage.setItem("userPhone", phone);
             MY_PHONE = phone;
@@ -267,32 +271,24 @@
         } else {
             $('#loginError').fadeIn();
             $('#regBox').fadeIn();
-            localStorage.removeItem("userPhone");
         }
     }
 
     function updateStatistics(data) {
         const total = data.length;
         const matched = data.filter(r => r.MATCH_STATUS.includes("MATCH")).length;
-        const rate = total > 0 ? Math.round((matched / total) * 100) : 0;
         $('#statTotal').text(total);
         $('#statMatched').text(matched);
-        $('#statRate').text(rate + '%');
+        $('#statRate').text(total > 0 ? Math.round((matched / total) * 100) + '%' : '0%');
     }
 
     function buildFilters() {
         const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-        $('#selFrom').html('<option value="all">From: All</option>');
-        $('#selTo').html('<option value="all">To: All</option>');
+        $('#selFrom').html('<option value="all">Any District</option>');
+        $('#selTo').html('<option value="all">Any District</option>');
         fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
-    }
-
-    function toggleMatches() {
-        FILTER_MATCHES = !FILTER_MATCHES;
-        $('#btnMatches').toggleClass('btn-primary btn-outline-primary text-white');
-        renderTable();
     }
 
     function renderTable() {
@@ -302,17 +298,16 @@
         const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
 
         const filtered = MASTER_DATA.filter(r => {
-            const matchesSearch = r['Your Designation'].toLowerCase().includes(query);
-            const matchesFrom = from === 'all' || r['Working District'] === from;
-            const matchesTo = to === 'all' || r['Willing District'] === to;
-
+            const matchesBasic = r['Your Designation'].toLowerCase().includes(query) &&
+                                (from === 'all' || r['Working District'] === from) &&
+                                (to === 'all' || r['Willing District'] === to);
             if (FILTER_MATCHES && me) {
-                const isDirect = (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']);
-                const is3Way = r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District']);
-                const isOwn = String(r.phone) === String(MY_PHONE);
-                return matchesSearch && matchesFrom && matchesTo && (isDirect || is3Way || isOwn);
+                const isMatch = (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) ||
+                                (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District'])) ||
+                                (String(r.phone) === String(MY_PHONE));
+                return matchesBasic && isMatch;
             }
-            return matchesSearch && matchesFrom && matchesTo;
+            return matchesBasic;
         });
 
         const tbody = $('#mainTbody').empty();
@@ -320,24 +315,15 @@
             const isMe = String(row.phone) === String(MY_PHONE);
             const hasMatch = row.MATCH_STATUS.includes("MATCH");
             
-            let dClass = "lvl-low";
-            if(row.DEMAND_STATUS.includes("HIGH")) dClass = "lvl-high";
-            else if(row.DEMAND_STATUS.includes("Moderate")) dClass = "lvl-mod";
-
-            let sMarkup = `<span class="badge-status s-pending">Pending</span>`;
-            if(row.MATCH_STATUS.includes("3-WAY")) sMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
-            else if(hasMatch) sMarkup = `<span class="badge-status s-match">Matched</span>`;
-
             tbody.append(`
                 <tr class="${isMe ? 'row-identity' : ''}">
-                    <td><div class="font-weight-bold">${row['Your Designation']}</div>${isMe ? '<small class="text-primary font-weight-bold">YOUR POST</small>':''}</td>
+                    <td><div class="font-weight-bold text-dark">${row['Your Designation']}</div>${isMe ? '<span class="badge badge-primary">You</span>':''}</td>
                     <td>${row['Working District']}</td>
                     <td>${row['Willing District']}</td>
-                    <td class="desktop-only"><div class="demand-pill ${dClass}">${row.DEMAND_STATUS}</div></td>
-                    <td>${sMarkup}</td>
+                    <td class="desktop-only text-center"><span class="badge badge-light border py-2 px-3 rounded-pill">${row.MATCH_STATUS || 'Pending'}</span></td>
                     <td class="text-center">
-                        <button class="btn btn-unlock shadow-sm" onclick="unlockRow(${row.id}, ${hasMatch})">
-                            ${hasMatch ? '<i class="fas fa-lock-open"></i>' : '<i class="fas fa-lock text-white-50"></i>'}
+                        <button class="btn btn-unlock" onclick="unlockRow(${row.id}, ${hasMatch})">
+                            <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock'}"></i>
                         </button>
                     </td>
                 </tr>
@@ -345,32 +331,20 @@
         });
     }
 
-    async function unlockRow(id, active) {
-        if(!active) return;
-        $("#globalLoader").show();
-        try {
-            const res = await fetch(API, { method: "POST", body: JSON.stringify({ rowId: id, userPhone: MY_PHONE }) });
-            const data = await res.json();
-            $("#globalLoader").fadeOut();
-            if(data.error) alert(data.error);
-            else {
-                $('#resName').text(data.name); $('#resPhone').text(data.contact);
-                $('#callLink').attr("href", "tel:" + data.contact);
-                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-                $('#modalContact').modal('show');
-            }
-        } catch(e) { $("#globalLoader").fadeOut(); }
-    }
-
-    function resetUI() {
-        $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
-        FILTER_MATCHES = false; $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
+    function toggleMatches() {
+        FILTER_MATCHES = !FILTER_MATCHES;
+        $('#btnMatches').toggleClass('btn-primary btn-outline-primary text-white');
         renderTable();
     }
 
     function clearIdentity() {
         localStorage.removeItem("userPhone");
         location.reload();
+    }
+
+    function resetUI() {
+        $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
+        FILTER_MATCHES = false; renderTable();
     }
 </script>
 </body>
