@@ -3,132 +3,269 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mutual Transfer | Registration</title>
+<title>Mutual Transfer | Secure Registration</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
-  .input { border: 1.5px solid #e2e8f0; border-radius: 1rem; padding: 1rem; width: 100%; transition: 0.2s; }
-  .input:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
-  .segment { border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.75rem; flex: 1; font-weight: 600; text-align: center; cursor: pointer; }
-  .segment.active { background: #1e293b; color: white; border-color: #1e293b; }
-  .mandatory::after { content: " *"; color: #ef4444; }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
+    color: #0f172a;
+  }
+  .input { 
+    border: 1.5px solid #e2e8f0; 
+    transition: all 0.2s ease;
+  }
+  .input:focus { 
+    border-color: #2563eb; 
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.1); 
+    outline: none;
+    background-color: #fff;
+  }
+  .segment {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+  }
+  .segment.active { 
+    background: #1e293b; 
+    color: #fff; 
+    border-color: #1e293b;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
+  
+  .fade-in { animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-<body class="p-4 flex items-center justify-center min-h-screen">
 
-<div id="loader" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-2xl shadow-xl text-center">
-    <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-    <p class="mt-4 font-bold">Registering Profile...</p>
+<body class="min-h-screen flex items-center justify-center p-4 py-12">
+
+<div id="loader" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl text-center shadow-2xl fade-in">
+    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="mt-4 font-bold text-slate-800" id="loaderText">Processing...</p>
+    <p class="text-xs text-slate-500 mt-1">Please do not refresh</p>
   </div>
 </div>
 
-<div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-xl p-8 border border-slate-100">
-  <header class="mb-8">
-    <h1 class="text-3xl font-extrabold text-slate-900">Create Account</h1>
-    <p class="text-slate-500">Join the mutual transfer network instantly.</p>
+<div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
+
+  <header class="mb-10">
+    <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full mb-4">
+      <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Instant Enrollment</span>
+    </div>
+    <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
+    <p class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
   </header>
 
-  <form id="regForm" class="space-y-6" onsubmit="event.preventDefault(); submitForm();">
-    <div class="grid md:grid-cols-2 gap-6">
+  <form id="regForm" class="space-y-8" onsubmit="event.preventDefault(); submitForm();">
+
+    <div class="grid md:grid-cols-2 gap-8">
       <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">Full Name</label>
-        <input id="name" type="text" required class="input mt-2" placeholder="Your Name">
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
+        <input id="name" type="text" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800" placeholder="Enter Full Name">
       </div>
       <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">Joining Date</label>
-        <input id="doj" type="date" required class="input mt-2">
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Joining Date</label>
+        <input id="doj" type="date" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800">
       </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid md:grid-cols-2 gap-8">
       <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">Designation</label>
-        <select id="designation" required class="input mt-2 appearance-none">
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Designation</label>
+        <select id="designation" required onchange="handleRoleChange(this.value)" class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
           <option value="">Select Role</option>
-          <option>Assistant</option><option>Junior Assistant</option><option>Typist</option>
-          <option>Steno Typist</option><option>Office Assistant</option>
+          <option>Assistant</option>
+          <option>Junior Assistant</option>
+          <option>Typist</option>
+          <option>Steno Typist</option>
+          <option>WATCHMAN</option>
+          <option>CLEANLINESS WORKER</option>
+          <option>MASALCHI</option>
+          <option>NIGHT WATCHMAN – CUM – MASALCHI</option>
+          <option>MASALCHI CUM – NIGHT WATCHMAN</option>
+          <option>OFFICE ASSISTANT</option>
+          <option>COPYIST ATTENDER</option>
+          <option>RECORD CLERK</option>
+          <option>XEROX MACHINE OPERATOR (Adhoc Rules)</option>
+          <option>JUNIOR BAILIFF</option>
+          <option>DRIVER</option>
+          <option>SENIOR BAILIFF</option>
+          <option>BENCH CLERKS GRADE - III</option>
+          <option>BENCH CLERKS GRADE - II</option>
+          <option value="OTHER">OTHER (Specify below)</option>
+        </select>
+        <div id="otherRoleBox" class="hidden mt-3 fade-in">
+            <input id="otherDesignation" type="text" class="input w-full rounded-xl px-4 py-3 border-blue-200 text-sm font-semibold text-slate-800" placeholder="Enter your designation">
+        </div>
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
+        <input id="phone" maxlength="10" inputmode="numeric" required
+               class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800"
+               placeholder="10-digit mobile" oninput="livePhoneCheck(this)">
+        <p id="phoneStatus" class="text-[10px] font-bold mt-2 ml-1 hidden"></p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Probation Declared?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','No',this)">No</button>
+        </div>
+        <input type="hidden" id="probation" value="No">
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">COA Completed?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','No',this)">No</button>
+        </div>
+        <input type="hidden" id="coa" value="No">
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Working District</label>
+        <select id="workingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
         </select>
       </div>
       <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">WhatsApp Number</label>
-        <input id="phone" maxlength="10" required class="input mt-2" placeholder="10-digit mobile" oninput="livePhoneCheck(this)">
-        <p id="phoneStatus" class="text-[10px] font-bold mt-1 hidden"></p>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Willing District</label>
+        <select id="willingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
+        </select>
       </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
-      <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">Working District</label>
-        <select id="workingDistrict" required class="input mt-2"><option>Loading...</option></select>
-      </div>
-      <div>
-        <label class="mandatory text-xs font-bold uppercase text-slate-400">Willing District</label>
-        <select id="willingDistrict" required class="input mt-2"><option>Loading...</option></select>
-      </div>
-    </div>
+    <hr class="border-slate-100 my-4">
 
     <div>
-      <label class="mandatory text-xs font-bold uppercase text-slate-400">Official Email</label>
-      <input id="email" type="email" required class="input mt-2" placeholder="email@example.com">
+      <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Official Email</label>
+      <input id="email" type="email" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800" placeholder="name@email.com">
     </div>
 
-    <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-blue-100 transition-all">
-      Register Now
-    </button>
+    <div class="pt-4">
+      <button type="submit" id="submitBtn" 
+        class="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200">
+        Complete Registration
+      </button>
+    </div>
+
   </form>
 </div>
 
 <script>
-const SCRIPT_URL="YOUR_SCRIPT_URL_HERE";
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
 let isMobileUnique = false;
 
+function toggle(field,val,btn){
+  document.getElementById(field).value=val;
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function handleRoleChange(val) {
+    const box = document.getElementById('otherRoleBox');
+    if(val === "OTHER") box.classList.remove('hidden');
+    else { box.classList.add('hidden'); document.getElementById('otherDesignation').value = ""; }
+}
+
+// LIVE MOBILE UNIQUE CHECK (Stays Active)
 function livePhoneCheck(input) {
   input.value = input.value.replace(/[^0-9]/g, '');
-  if(input.value.length === 10) {
-    document.getElementById('phoneStatus').classList.remove('hidden');
-    document.getElementById('phoneStatus').innerText = "Checking...";
-    fetch(`${SCRIPT_URL}?action=checkPhone&phone=${input.value}`)
-    .then(r => r.json()).then(res => {
-      isMobileUnique = !res.exists;
-      document.getElementById('phoneStatus').innerText = isMobileUnique ? "✅ Available" : "❌ Already Registered";
-      document.getElementById('phoneStatus').className = isMobileUnique ? "text-[10px] font-bold mt-1 text-green-600" : "text-[10px] font-bold mt-1 text-red-500";
+  const phone = input.value;
+  const statusEl = document.getElementById('phoneStatus');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if(phone.length === 10) {
+    statusEl.classList.remove('hidden');
+    statusEl.innerText = "Verifying number...";
+    statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-blue-500";
+    
+    fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`)
+    .then(r => r.json())
+    .then(res => {
+      if(res.exists) {
+        statusEl.innerText = "❌ Mobile number already present!";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-red-500";
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = false;
+      } else {
+        statusEl.innerText = "✅ Mobile number available";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-green-600";
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = true;
+      }
     });
+  } else {
+    statusEl.classList.add('hidden');
+    isMobileUnique = false;
   }
 }
 
 window.onload=()=>{
-  fetch(`${SCRIPT_URL}?action=getDistricts`).then(r=>r.json()).then(d=>{
-    const opt = d.map(x=>`<option value="${x}">${x}</option>`).join('');
-    document.getElementById('workingDistrict').innerHTML=opt;
-    document.getElementById('willingDistrict').innerHTML=opt;
+  fetch(`${SCRIPT_URL}?action=getDistricts`)
+  .then(r=>r.json())
+  .then(d=>{
+    const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
+    document.getElementById('workingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+    document.getElementById('willingDistrict').innerHTML='<option value="">Select District</option>'+opt;
   });
 };
 
 function submitForm() {
-  if(!isMobileUnique) return alert("Phone number already registered.");
-  document.getElementById('loader').classList.remove("hidden");
-  
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "register",
-      userData: {
-        name: document.getElementById('name').value,
-        doj: document.getElementById('doj').value,
-        designation: document.getElementById('designation').value,
-        phone: document.getElementById('phone').value,
-        workingDistrict: document.getElementById('workingDistrict').value,
-        willingDistrict: document.getElementById('willingDistrict').value,
-        email: document.getElementById('email').value,
-        probation: "No", coa: "No" // Default values
-      }
+    if(!isMobileUnique) return alert("Please enter a valid unique mobile number.");
+
+    const mainRole = document.getElementById('designation').value;
+    const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
+    
+    if(!finalRole) return alert("Designation is required");
+
+    document.getElementById('loader').classList.remove("hidden");
+    document.getElementById('loaderText').innerText = "Registering...";
+
+    fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            action: "register",
+            userData: {
+                name: document.getElementById('name').value,
+                doj: document.getElementById('doj').value,
+                designation: finalRole,
+                phone: document.getElementById('phone').value,
+                probation: document.getElementById('probation').value,
+                coa: document.getElementById('coa').value,
+                workingDistrict: document.getElementById('workingDistrict').value,
+                willingDistrict: document.getElementById('willingDistrict').value,
+                email: document.getElementById('email').value
+            }
+        })
     })
-  }).then(() => {
-    alert("✅ Registration Successful!");
-    location.reload();
-  });
+    .then(res => res.json())
+    .then(res => {
+        document.getElementById('loader').classList.add("hidden");
+        if (res.status === "SUCCESS") { 
+            alert("✅ Registered Successfully!"); 
+            location.reload(); 
+        }
+        else alert(res.message);
+    })
+    .catch(err => {
+        document.getElementById('loader').classList.add("hidden");
+        alert("Registration failed. Please check your connection.");
+    });
 }
 </script>
 </body>
