@@ -1,270 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Mutual Hub | Analytics Pro</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mutual Transfer | Secure Registration</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f4f7fa;
-            --surface: #ffffff;
-            --border: #e2e8f0;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --match-2way: #2563eb;
-            --match-3way: #7c3aed;
-        }
-
-        body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-main); }
-
-        /* --- Global Loader --- */
-        #globalLoader {
-            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98);
-            z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column;
-        }
-
-        /* --- Stats Row --- */
-        .stat-container {
-            background: white; border-radius: 24px; border: 1px solid var(--border);
-            padding: 25px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-        }
-        .stat-box { text-align: center; border-right: 1px solid var(--border); }
-        .stat-box:last-child { border-right: none; }
-        .stat-label { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-        .stat-value { font-size: 1.8rem; font-weight: 800; display: block; line-height: 1.2; }
-
-        /* --- Login Overlay --- */
-        #loginOverlay {
-            position: fixed; inset: 0; background: var(--bg); z-index: 2000;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .login-card {
-            background: #fff; padding: 40px; border-radius: 32px; width: 100%; max-width: 420px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); border: 1px solid var(--border);
-        }
-
-        .glass-header {
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px);
-            border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 1060;
-        }
-
-        .table-wrapper { background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
-        .row-identity { background-color: #f0f7ff !important; border-left: 5px solid var(--primary) !important; }
-        .badge-status { padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.65rem; text-transform: uppercase; color: white; }
-        .s-match { background: var(--match-2way); }
-        .s-3way { background: var(--match-3way); }
-        .s-pending { background: #f1f5f9; color: var(--text-muted); }
-
-        .filter-control { height: 52px; border-radius: 14px; border: 1px solid var(--border); font-weight: 600; }
-        .btn-unlock { background: var(--primary); color: white !important; border-radius: 12px; padding: 8px 16px; border: none; font-weight: 700; }
-
-        @media (max-width: 768px) { .stat-box { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 0; } }
-    </style>
+<style>
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
+    color: #0f172a;
+  }
+  .input { 
+    border: 1.5px solid #e2e8f0; 
+    transition: all 0.2s ease;
+  }
+  .input:focus { 
+    border-color: #2563eb; 
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.1); 
+    outline: none;
+    background-color: #fff;
+  }
+  .segment {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+  }
+  .segment.active { 
+    background: #1e293b; 
+    color: #fff; 
+    border-color: #1e293b;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
+  
+  .fade-in { animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 </head>
 
-<body>
+<body class="min-h-screen flex items-center justify-center p-4 py-12">
 
-<div id="globalLoader">
-    <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem;"></div>
-    <h6 class="mt-4 font-weight-bold">Analyzing Global Requests...</h6>
+<div id="loader" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl text-center shadow-2xl fade-in">
+    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="mt-4 font-bold text-slate-800" id="loaderText">Processing...</p>
+    <p class="text-xs text-slate-500 mt-1">Please do not refresh</p>
+  </div>
 </div>
 
-<div id="loginOverlay" style="display:none;">
-    <div class="login-card text-center">
-        <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-4 shadow-lg"><i class="fas fa-lock fa-2x"></i></div>
-        <h3 class="font-weight-bold">Member Access</h3>
-        <p class="text-muted small mb-4">Verification required to view contact details.</p>
-        <input id="loginPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:64px; font-size:1.8rem; border-radius:18px;" placeholder="10 Digit Number">
-        <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">Number not registered.</div>
-        <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-18" onclick="handleLogin()">Unlock Dashboard</button>
-        
-        <div id="regSection" class="mt-4 border-top pt-3" style="display:none;">
-            <p class="text-muted small mb-3">Join the hub to find your match.</p>
-            <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-18">
-                <i class="fas fa-user-plus mr-2"></i>Register Now
-            </a>
-        </div>
+<div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
+
+  <header class="mb-10">
+    <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full mb-4">
+      <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Secure Enrollment</span>
     </div>
-</div>
+    <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
+    <p class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
+  </header>
 
-<div id="dashboardUI">
-    <header class="glass-header">
-        <div class="container d-flex justify-content-between align-items-center">
-            <h5 class="font-weight-bold mb-0"><i class="fas fa-sync-alt text-primary mr-2"></i>Mutual Hub</h5>
-            <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
-                <small class="font-weight-bold mr-3" id="lblUserPhone">---</small>
-                <i class="fas fa-power-off text-danger cursor-pointer" onclick="clearIdentity()"></i>
-            </div>
-        </div>
-    </header>
+  <form id="regForm" class="space-y-8">
 
-    <div class="container mt-4 pb-5">
-        <div class="stat-container">
-            <div class="row">
-                <div class="col-md-4 stat-box"><span class="stat-label">Total Requests</span><span class="stat-value" id="statTotal">0</span></div>
-                <div class="col-md-4 stat-box"><span class="stat-label">Matches Found</span><span class="stat-value text-primary" id="statMatched">0</span></div>
-                <div class="col-md-4 stat-box"><span class="stat-label">Success Rate</span><span class="stat-value text-success" id="statRate">0%</span></div>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
-            <div class="row">
-                <div class="col-lg-3 col-md-6 mb-3"><label class="small font-weight-bold text-muted">DESIGNATION</label><input id="inpSearch" class="form-control filter-control" placeholder="Search..." oninput="renderTable()"></div>
-                <div class="col-lg-3 col-md-6 mb-3"><label class="small font-weight-bold text-muted">FROM DISTRICT</label><select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All</option></select></div>
-                <div class="col-lg-3 col-md-6 mb-3"><label class="small font-weight-bold text-muted">TO DISTRICT</label><select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All</option></select></div>
-                <div class="col-lg-3 col-md-6 mb-3 d-flex align-items-end"><button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px" onclick="toggleMatches()">Potential Matches</button></div>
-            </div>
-        </div>
-
-        <div class="table-wrapper">
-            <div class="table-responsive">
-                <table class="table m-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>Listing</th>
-                            <th>Current</th>
-                            <th>Target</th>
-                            <th>Status</th>
-                            <th class="text-center">Connect</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mainTbody"></tbody>
-                </table>
-            </div>
-        </div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
+        <input id="name" type="text" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800" placeholder="Enter Full Name">
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Joining Date</label>
+        <input id="doj" type="date" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800">
+      </div>
     </div>
-</div>
 
-<div class="modal fade" id="modalContact" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg text-center">
-            <h2 id="resName" class="font-weight-bold">---</h2>
-            <div class="bg-light p-4 rounded-24 my-3 border"><h1 class="text-dark font-weight-bold mb-0" id="resPhone">---</h1></div>
-            <div class="row">
-                <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a></div>
-            </div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Designation</label>
+        <select id="designation" required onchange="handleRoleChange(this.value)" class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Select Role</option>
+          <option>Assistant</option>
+          <option>Junior Assistant</option>
+          <option>Typist</option>
+          <option>Steno Typist</option>
+          <option>WATCHMAN</option>
+          <option>CLEANLINESS WORKER</option>
+          <option>MASALCHI</option>
+          <option>NIGHT WATCHMAN – CUM – MASALCHI</option>
+          <option>MASALCHI CUM – NIGHT WATCHMAN</option>
+          <option>OFFICE ASSISTANT</option>
+          <option>COPYIST ATTENDER</option>
+          <option>RECORD CLERK</option>
+          <option>XEROX MACHINE OPERATOR (Adhoc Rules)</option>
+          <option>JUNIOR BAILIFF</option>
+          <option>DRIVER</option>
+          <option>SENIOR BAILIFF</option>
+          <option>BENCH CLERKS GRADE - III</option>
+          <option>BENCH CLERKS GRADE - II</option>
+          <option value="OTHER">OTHER (Specify below)</option>
+        </select>
+        <div id="otherRoleBox" class="hidden mt-3 fade-in">
+            <input id="otherDesignation" type="text" class="input w-full rounded-xl px-4 py-3 border-blue-200 text-sm font-semibold text-slate-800" placeholder="Enter your designation">
         </div>
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
+        <input id="phone" maxlength="10" inputmode="numeric" required
+               class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800"
+               placeholder="10-digit mobile" oninput="livePhoneCheck(this)">
+        <p id="phoneStatus" class="text-[10px] font-bold mt-2 ml-1 hidden"></p>
+      </div>
     </div>
-</div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Probation Declared?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','No',this)">No</button>
+        </div>
+        <input type="hidden" id="probation" value="No">
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">COA Completed?</label>
+        <div class="flex gap-3 mt-2">
+          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','Yes',this)">Yes</button>
+          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','No',this)">No</button>
+        </div>
+        <input type="hidden" id="coa" value="No">
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Working District</label>
+        <select id="workingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
+        </select>
+      </div>
+      <div>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Willing District</label>
+        <select id="willingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
+          <option value="">Syncing Districts...</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="border-slate-100 my-4">
+
+    <div>
+      <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Official Email</label>
+      <div class="flex flex-col md:flex-row gap-4 mt-2">
+        <input id="email" type="email" required class="input flex-1 rounded-2xl px-5 py-4 font-semibold text-slate-800" placeholder="name@email.com">
+        <button type="button" id="otpBtn" onclick="sendOTP()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-200">
+          Get Secure OTP
+        </button>
+      </div>
+      <p id="otpTimer" class="text-xs font-bold text-blue-600 mt-3 hidden"></p>
+    </div>
+
+    <div id="otpBox" class="hidden space-y-4 pt-4 fade-in">
+      <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-center">
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-widest block mb-4">Enter 4-Digit Code</label>
+        <input id="otp" maxlength="4" inputmode="numeric"
+          class="input w-full max-w-[240px] text-center text-4xl font-bold tracking-[0.75em] rounded-2xl px-4 py-5 bg-white shadow-inner"
+          placeholder="0000" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        <button type="button" onclick="submitForm()"
+          class="mt-8 w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl">
+          Complete Registration
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
 
 <script>
-    const API = "https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
-    let MASTER_DATA = [], FILTER_MATCHES = false;
-    let MY_PHONE = localStorage.getItem("userPhone");
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwEDsxnfueDEQROnUckRjcPX3E5ph47xe0WqHTA5uc_2bIRz-oJl__SmuDpLBTFBv9ZVw/exec";
+let otpCooldown=0;
+let isMobileUnique = false;
 
-    $(document).ready(() => loadData());
+function toggle(field,val,btn){
+  document.getElementById(field).value=val;
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
 
-    function loadData() {
-        $("#globalLoader").show();
-        fetch(`${API}?action=getDashboardData`)
-        .then(r => r.json())
-        .then(data => {
-            MASTER_DATA = data || [];
-            updateStats(MASTER_DATA);
-            buildFilters();
-            
-            if(MY_PHONE) {
-                const user = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
-                if(user) enterDashboard(MY_PHONE);
-                else { localStorage.removeItem("userPhone"); $('#loginOverlay').fadeIn(); }
-            } else {
-                $('#loginOverlay').fadeIn();
+function handleRoleChange(val) {
+    const box = document.getElementById('otherRoleBox');
+    if(val === "OTHER") box.classList.remove('hidden');
+    else { box.classList.add('hidden'); document.getElementById('otherDesignation').value = ""; }
+}
+
+// LIVE MOBILE UNIQUE CHECK
+function livePhoneCheck(input) {
+  input.value = input.value.replace(/[^0-9]/g, '');
+  const phone = input.value;
+  const statusEl = document.getElementById('phoneStatus');
+  const otpBtn = document.getElementById('otpBtn');
+
+  if(phone.length === 10) {
+    statusEl.classList.remove('hidden');
+    statusEl.innerText = "Verifying number...";
+    statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-blue-500";
+    
+    fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`)
+    .then(r => r.json())
+    .then(res => {
+      if(res.exists) {
+        statusEl.innerText = "❌ Mobile number already present!";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-red-500";
+        otpBtn.disabled = true;
+        otpBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = false;
+      } else {
+        statusEl.innerText = "✅ Mobile number available";
+        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-green-600";
+        otpBtn.disabled = false;
+        otpBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        isMobileUnique = true;
+      }
+    });
+  } else {
+    statusEl.classList.add('hidden');
+    isMobileUnique = false;
+  }
+}
+
+window.onload=()=>{
+  fetch(`${SCRIPT_URL}?action=getDistricts`)
+  .then(r=>r.json())
+  .then(d=>{
+    const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
+    document.getElementById('workingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+    document.getElementById('willingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+  });
+};
+
+function sendOTP(){
+  if(!isMobileUnique) return alert("Mobile number already present or invalid.");
+  if(otpCooldown > 0) return;
+  
+  const emailVal = document.getElementById('email').value;
+  if(!emailVal.includes("@")) return alert("Please enter a valid email.");
+
+  document.getElementById('loader').classList.remove("hidden");
+  document.getElementById('loaderText').innerText = "Sending Secure OTP...";
+  
+  fetch(`${SCRIPT_URL}?action=sendOTP&email=${encodeURIComponent(emailVal)}`)
+  .then(r=>r.json())
+  .then(res=>{
+    document.getElementById('loader').classList.add("hidden");
+    if(res.status!=="SENT") return alert(res.message);
+    document.getElementById('otpBox').classList.remove("hidden");
+    startCooldown();
+  });
+}
+
+function startCooldown(){
+  otpCooldown=60;
+  const btn = document.getElementById('otpBtn');
+  const t = document.getElementById("otpTimer");
+  btn.disabled = true;
+  t.classList.remove("hidden");
+  const timer = setInterval(()=>{
+    t.innerHTML = `Resend in ${otpCooldown}s`;
+    otpCooldown--;
+    if(otpCooldown < 0){ clearInterval(timer); btn.disabled = false; t.classList.add("hidden"); }
+  }, 1000);
+}
+
+function submitForm() {
+    const mainRole = document.getElementById('designation').value;
+    const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
+    
+    if(!finalRole) return alert("Designation is required");
+
+    document.getElementById('loader').classList.remove("hidden");
+    document.getElementById('loaderText').innerText = "Registering...";
+
+    fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            action: "register",
+            otp: document.getElementById('otp').value,
+            userData: {
+                name: document.getElementById('name').value,
+                doj: document.getElementById('doj').value,
+                designation: finalRole,
+                phone: document.getElementById('phone').value,
+                probation: document.getElementById('probation').value,
+                coa: document.getElementById('coa').value,
+                workingDistrict: document.getElementById('workingDistrict').value,
+                willingDistrict: document.getElementById('willingDistrict').value,
+                email: document.getElementById('email').value
             }
-            
-            renderTable();
-            $("#globalLoader").fadeOut();
-        });
-    }
-
-    function handleLogin() {
-        const val = $('#loginPhone').val();
-        const user = MASTER_DATA.find(x => String(x.phone) === String(val));
-        if(user) {
-            localStorage.setItem("userPhone", val);
-            MY_PHONE = val;
-            enterDashboard(val);
-        } else {
-            $('#loginError, #regSection').fadeIn();
-        }
-    }
-
-    function enterDashboard(phone) {
-        $('#loginOverlay').fadeOut();
-        $('#lblUserPhone').text(phone.slice(0,2) + '****' + phone.slice(8));
-        renderTable();
-    }
-
-    function updateStats(data) {
-        const total = data.length;
-        const matched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
-        $('#statTotal').text(total);
-        $('#statMatched').text(matched);
-        $('#statRate').text(total > 0 ? Math.round((matched/total)*100)+'%' : '0%');
-    }
-
-    function buildFilters() {
-        const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
-        const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-        fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
-        toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
-    }
-
-    function renderTable() {
-        const query = $('#inpSearch').val().toLowerCase();
-        const from = $('#selFrom').val();
-        const to = $('#selTo').val();
-        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
-
-        const filtered = MASTER_DATA.filter(r => {
-            const basic = r['Your Designation'].toLowerCase().includes(query) && (from === 'all' || r['Working District'] === from) && (to === 'all' || r['Willing District'] === to);
-            if (FILTER_MATCHES && me) {
-                return basic && ((r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) || (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District'])) || (String(r.phone) === String(MY_PHONE)));
-            }
-            return basic;
-        });
-
-        const tbody = $('#mainTbody').empty();
-        filtered.forEach(row => {
-            const isMe = String(row.phone) === String(MY_PHONE);
-            const hasMatch = row.MATCH_STATUS.toUpperCase().includes("MATCH");
-            let sClass = "s-pending", sLabel = "Pending";
-            if(row.MATCH_STATUS.includes("3-WAY")) { sClass="s-3way"; sLabel="3-Way Match"; }
-            else if(hasMatch) { sClass="s-match"; sLabel="2-Way Match"; }
-
-            tbody.append(`<tr class="${isMe ? 'row-identity' : ''}">
-                <td><div class="font-weight-bold">${row['Your Designation']}</div></td>
-                <td>${row['Working District']}</td>
-                <td>${row['Willing District']}</td>
-                <td><span class="badge-status ${sClass}">${sLabel}</span></td>
-                <td class="text-center"><button class="btn btn-unlock" ${!hasMatch ? 'disabled' : ''} onclick="unlockRow(${row.id}, ${hasMatch})"><i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock'}"></i></button></td>
-            </tr>`);
-        });
-    }
-
-    async function unlockRow(id, active) {
-        if(!active) return;
-        $("#globalLoader").fadeIn();
-        try {
-            const res = await fetch(API, { method: "POST", body: JSON.stringify({ rowId: id, userPhone: MY_PHONE }) });
-            const data = await res.json();
-            $("#globalLoader").fadeOut();
-            if(data.error) alert(data.error);
-            else { $('#resName').text(data.name); $('#resPhone').text(data.contact); $('#callLink').attr("href", "tel:" + data.contact); $('#waLink').attr("href", "https://wa.me/91" + data.contact); $('#modalContact').modal('show'); }
-        } catch(e) { $("#globalLoader").fadeOut(); }
-    }
-
-    function toggleMatches() { FILTER_MATCHES = !FILTER_MATCHES; $('#btnMatches').toggleClass('btn-primary text-white'); renderTable(); }
-    function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        document.getElementById('loader').classList.add("hidden");
+        if (res.status === "SUCCESS") { alert("✅ Registered Successfully!"); location.reload(); }
+        else alert(res.message);
+    });
+}
 </script>
 </body>
 </html>
