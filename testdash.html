@@ -61,6 +61,20 @@
             z-index: 1060;
         }
 
+        /* --- Tabs --- */
+        .nav-pills-custom .nav-link {
+            border-radius: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+        .nav-pills-custom .nav-link.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
         .table-wrapper {
             background: var(--surface);
             border-radius: 24px;
@@ -132,6 +146,17 @@
             border: none;
         }
 
+        .history-card {
+            border-left: 4px solid var(--primary);
+            background: white;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 0 12px 12px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+
         .cursor-pointer { cursor: pointer; }
         .rounded-24 { border-radius: 24px; }
         .rounded-15 { border-radius: 15px; }
@@ -139,6 +164,7 @@
         @media (max-width: 768px) {
             .stat-box { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 0; }
             .stat-box:last-child { border-bottom: none; }
+            .desktop-only { display: none; }
         }
     </style>
 </head>
@@ -189,52 +215,84 @@
         </div>
     </div>
 
-    <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
-        <div class="row">
-            <div class="col-lg-4 col-md-12 mb-3">
-                <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
-                <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
-            </div>
-            <div class="col-lg-2 col-md-6 mb-3">
-                <label class="small text-muted font-weight-bold">FROM</label>
-                <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-            </div>
-            <div class="col-lg-2 col-md-6 mb-3">
-                <label class="small text-muted font-weight-bold">TO</label>
-                <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-            </div>
-            <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
-                <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
-                    <i class="fas fa-filter mr-2"></i>My Potential Matches
-                </button>
-            </div>
-            <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
-                <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
-                    <i class="fas fa-redo"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+    <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
+                <i class="fas fa-list-ul mr-2"></i>Live Listings
+            </a>
+        </li>
+        <li class="nav-item ml-2">
+            <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
+                <i class="fas fa-history mr-2"></i>My Activity
+            </a>
+        </li>
+    </ul>
 
-    <div class="table-wrapper">
-        <div class="table-responsive">
-            <table class="table m-0">
-                <thead>
-                    <tr>
-                        <th>Employee Listing</th>
-                        <th>Current Place</th>
-                        <th>Transfer To</th>
-                        <th class="desktop-only">Willing District Demand</th>
-                        <th>Status</th>
-                        <th class="text-center">Connect</th>
-                    </tr>
-                </thead>
-                <tbody id="mainTbody"></tbody>
-            </table>
+    <div class="tab-content" id="dashboardTabContent">
+        <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
+            <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+                <div class="row">
+                    <div class="col-lg-4 col-md-12 mb-3">
+                        <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
+                        <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-3">
+                        <label class="small text-muted font-weight-bold">FROM</label>
+                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-3">
+                        <label class="small text-muted font-weight-bold">TO</label>
+                        <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                    </div>
+                    <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
+                        <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
+                            <i class="fas fa-filter mr-2"></i>My Potential Matches
+                        </button>
+                    </div>
+                    <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
+                        <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <div class="table-responsive">
+                    <table class="table m-0">
+                        <thead>
+                            <tr>
+                                <th>Employee Listing</th>
+                                <th>Current Place</th>
+                                <th>Transfer To</th>
+                                <th class="desktop-only">Willing District Demand</th>
+                                <th>Status</th>
+                                <th class="text-center">Connect</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mainTbody"></tbody>
+                    </table>
+                </div>
+                <div id="noData" class="text-center p-5 d-none">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" class="mb-3 opacity-50">
+                    <h6 class="text-muted font-weight-bold">No results found for your criteria</h6>
+                </div>
+            </div>
         </div>
-        <div id="noData" class="text-center p-5 d-none">
-            <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" class="mb-3 opacity-50">
-            <h6 class="text-muted font-weight-bold">No results found for your criteria</h6>
+
+        <div class="tab-pane fade" id="paneActivity" role="tabpanel">
+            <div class="row">
+                <div class="col-md-7">
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
+                    <div id="notificationList">
+                        </div>
+                </div>
+                <div class="col-md-5">
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-user-clock mr-2"></i>Update History</h6>
+                    <div id="auditLog" class="small">
+                        </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -248,13 +306,9 @@
                 </div>
                 <h4 class="font-weight-bold">Member Login</h4>
                 <p class="text-muted small">Access verified contact details by entering your registered number.</p>
-                
                 <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="Enter 10-digit mobile number">
-                
                 <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div>
-                
                 <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button>
-                
                 <div id="regSection" style="display:none;" class="border-top pt-3">
                     <p class="text-muted small mb-2">Not a member yet?</p>
                     <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15">
@@ -276,23 +330,19 @@
                 <h4 class="font-weight-bold">Update Profile</h4>
                 <p class="text-muted small">Update your preferences to improve match accuracy.</p>
             </div>
-            
             <div class="form-group">
                 <label class="small font-weight-bold text-muted text-uppercase">Willing Districts</label>
                 <input id="editWilling" class="form-control filter-control" placeholder="e.g. Chennai, Madurai">
                 <small class="text-primary font-weight-bold">Tip: Separate multiple districts with a comma.</small>
             </div>
-
             <div class="form-group">
                 <label class="small font-weight-bold text-muted text-uppercase">Email Address</label>
                 <input id="editEmail" type="email" class="form-control filter-control" placeholder="yourname@email.com">
                 <small class="text-muted">Used for match alerts.</small>
             </div>
-
             <div class="alert alert-warning rounded-15 small mb-3">
                 <i class="fas fa-info-circle mr-1"></i> Changing these details will reset your match status to "Pending" while our engine recalculates.
             </div>
-
             <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Changes</button>
             <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
@@ -373,26 +423,69 @@
         $('#statRate').text(rate + '%');
     }
 
-    // --- NEW FEATURE: Profile Edit Support ---
-    function openEditModal() {
-        // Find my profile in the database
-        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+    // --- Activity & Notification Logic ---
+    function loadActivityLog() {
+        const container = $('#notificationList').empty();
+        const audit = $('#auditLog').empty();
+
+        const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
         
+        if (myEntries.length === 0) {
+            container.append('<div class="text-center p-4 border rounded-24 bg-white text-muted">Register to see notifications</div>');
+            return;
+        }
+
+        // Notification: Simulation of match discovery
+        const matches = MASTER_DATA.filter(r => {
+            return myEntries.some(me => 
+                (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) && 
+                String(r.phone) !== String(MY_PHONE)
+            );
+        });
+
+        if (matches.length > 0) {
+            matches.forEach(m => {
+                container.append(`
+                    <div class="history-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge badge-success mb-2">MATCH FOUND</span>
+                                <p class="mb-1 font-weight-bold">${m['Your Designation']} available from ${m['Working District']}</p>
+                                <small class="text-muted">Direct match with your current preference.</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">View</button>
+                        </div>
+                    </div>
+                `);
+            });
+        } else {
+            container.append('<div class="history-card" style="border-left-color: #cbd5e1;"><p class="mb-0 text-muted">Searching for matches... we will notify you here.</p></div>');
+        }
+
+        // Audit Trail: Static representation (Can be dynamic if backend supports timestamps)
+        audit.append(`
+            <div class="p-3 bg-white border rounded-15 mb-2">
+                <div class="text-primary font-weight-bold">Profile Verified</div>
+                <div class="text-muted small">Access granted to Mutual Hub Database.</div>
+            </div>
+            <div class="p-3 bg-white border rounded-15">
+                <div class="text-success font-weight-bold">Registration Active</div>
+                <div class="text-muted small">Listing is visible to other employees.</div>
+            </div>
+        `);
+    }
+
+    // --- Profile Edit Support ---
+    function openEditModal() {
+        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
         if (me) {
-            // Because one user can have multiple rows (for each willing district), 
-            // we gather all their willing districts back into a single string.
             const myWillingList = MASTER_DATA
                 .filter(x => String(x.phone) === String(MY_PHONE))
                 .map(x => x['Willing District'])
                 .join(', ');
             
             $('#editWilling').val(myWillingList);
-            
-            // If email was provided in Public Data, we pre-fill it
-            if(me['Email Address']) {
-                $('#editEmail').val(me['Email Address']);
-            }
-
+            if(me['Email Address']) $('#editEmail').val(me['Email Address']);
             $('#modalEdit').modal('show');
         } else {
             alert("Could not locate your profile data.");
@@ -405,10 +498,7 @@
             email: $('#editEmail').val().trim()
         };
 
-        if (!newData.willingDistrict) {
-            alert("Please enter at least one Willing District.");
-            return;
-        }
+        if (!newData.willingDistrict) { alert("Please enter at least one Willing District."); return; }
 
         $("#globalLoader").fadeIn();
         $('#modalEdit').modal('hide');
@@ -416,19 +506,11 @@
         try {
             const res = await fetch(API, {
                 method: "POST",
-                body: JSON.stringify({ 
-                    action: "updateProfile", 
-                    userPhone: MY_PHONE, 
-                    newData: newData 
-                })
+                body: JSON.stringify({ action: "updateProfile", userPhone: MY_PHONE, newData: newData })
             });
-            
             const data = await res.json();
-            
-            if (data.status === "SUCCESS") {
-                // Refresh to re-run matching logic and see updated table
-                location.reload();
-            } else {
+            if (data.status === "SUCCESS") location.reload();
+            else {
                 alert(data.error || "Update failed.");
                 $("#globalLoader").fadeOut();
             }
@@ -438,7 +520,7 @@
         }
     }
 
-    // --- Original Logic: Delete, Unlock, Search ---
+    // --- Delete, Unlock, Search ---
     async function deleteMyEntry() {
         const reason = prompt("Please tell us why you are deleting your entry:\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other reason");
         if (!reason) return;
@@ -451,9 +533,8 @@
                     body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: reason })
                 });
                 const data = await res.json();
-                if (data.status === "SUCCESS") {
-                    clearIdentity();
-                } else {
+                if (data.status === "SUCCESS") clearIdentity();
+                else {
                     alert(data.error);
                     $("#globalLoader").fadeOut();
                 }
@@ -480,10 +561,8 @@
     function buildFilters() {
         const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-        
         $('#selFrom').html('<option value="all">All Districts</option>');
         $('#selTo').html('<option value="all">All Districts</option>');
-        
         fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
     }
