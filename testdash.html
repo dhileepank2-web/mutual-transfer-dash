@@ -269,17 +269,32 @@
 <div class="modal fade" id="modalEdit" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-            <h4 class="font-weight-bold mb-3 text-center">Update Profile</h4>
+            <div class="text-center mb-4">
+                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
+                    <i class="fas fa-user-edit text-primary fa-lg"></i>
+                </div>
+                <h4 class="font-weight-bold">Update Profile</h4>
+                <p class="text-muted small">Update your preferences to improve match accuracy.</p>
+            </div>
+            
             <div class="form-group">
-                <label class="small font-weight-bold text-muted uppercase">Willing Districts</label>
+                <label class="small font-weight-bold text-muted text-uppercase">Willing Districts</label>
                 <input id="editWilling" class="form-control filter-control" placeholder="e.g. Chennai, Madurai">
-                <small class="text-muted">Separate multiple districts with a comma.</small>
+                <small class="text-primary font-weight-bold">Tip: Separate multiple districts with a comma.</small>
             </div>
+
             <div class="form-group">
-                <label class="small font-weight-bold text-muted uppercase">Email Address</label>
-                <input id="editEmail" type="email" class="form-control filter-control">
+                <label class="small font-weight-bold text-muted text-uppercase">Email Address</label>
+                <input id="editEmail" type="email" class="form-control filter-control" placeholder="yourname@email.com">
+                <small class="text-muted">Used for match alerts.</small>
             </div>
-            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mt-2" onclick="submitEdit()">Save Changes</button>
+
+            <div class="alert alert-warning rounded-15 small mb-3">
+                <i class="fas fa-info-circle mr-1"></i> Changing these details will reset your match status to "Pending" while our engine recalculates.
+            </div>
+
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Changes</button>
+            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
     </div>
 </div>
@@ -346,7 +361,7 @@
     }
 
     function updateStats(data, archived) {
-        const liveTotal = [...new Set(data.map(x => x.phone))].length; // Unique profile count
+        const liveTotal = [...new Set(data.map(x => x.phone))].length;
         const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
         
         const systemMatchesTotal = liveMatched + archived;
@@ -358,31 +373,40 @@
         $('#statRate').text(rate + '%');
     }
 
-    // NEW FEATURE: Open Edit Modal with existing data
+    // --- NEW FEATURE: Profile Edit Support ---
     function openEditModal() {
+        // Find my profile in the database
         const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+        
         if (me) {
-            // Get all unique willing districts for this user (since records are expanded)
+            // Because one user can have multiple rows (for each willing district), 
+            // we gather all their willing districts back into a single string.
             const myWillingList = MASTER_DATA
                 .filter(x => String(x.phone) === String(MY_PHONE))
                 .map(x => x['Willing District'])
                 .join(', ');
             
             $('#editWilling').val(myWillingList);
-            // Email is not currently in PublicData for security, but we keep it empty for update or you can include it if needed.
+            
+            // If email was provided in Public Data, we pre-fill it
+            if(me['Email Address']) {
+                $('#editEmail').val(me['Email Address']);
+            }
+
             $('#modalEdit').modal('show');
+        } else {
+            alert("Could not locate your profile data.");
         }
     }
 
-    // NEW FEATURE: Submit Edit Logic
     async function submitEdit() {
         const newData = {
-            willingDistrict: $('#editWilling').val(),
-            email: $('#editEmail').val()
+            willingDistrict: $('#editWilling').val().trim(),
+            email: $('#editEmail').val().trim()
         };
 
         if (!newData.willingDistrict) {
-            alert("Willing district is required.");
+            alert("Please enter at least one Willing District.");
             return;
         }
 
@@ -398,19 +422,23 @@
                     newData: newData 
                 })
             });
+            
             const data = await res.json();
+            
             if (data.status === "SUCCESS") {
+                // Refresh to re-run matching logic and see updated table
                 location.reload();
             } else {
-                alert(data.error);
+                alert(data.error || "Update failed.");
                 $("#globalLoader").fadeOut();
             }
         } catch(e) {
             $("#globalLoader").fadeOut();
-            alert("Update failed.");
+            alert("Connection error. Profile not updated.");
         }
     }
 
+    // --- Original Logic: Delete, Unlock, Search ---
     async function deleteMyEntry() {
         const reason = prompt("Please tell us why you are deleting your entry:\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other reason");
         if (!reason) return;
