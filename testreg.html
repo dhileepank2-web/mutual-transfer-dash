@@ -166,7 +166,6 @@
 
 <script>
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
-let isMobileUnique = false;
 
 function toggle(field,val,btn){
   document.getElementById(field).value=val;
@@ -180,39 +179,9 @@ function handleRoleChange(val) {
     else { box.classList.add('hidden'); document.getElementById('otherDesignation').value = ""; }
 }
 
-// LIVE MOBILE UNIQUE CHECK (Stays Active)
+// UNIQUE CHECK REMOVED: Now only cleans input
 function livePhoneCheck(input) {
   input.value = input.value.replace(/[^0-9]/g, '');
-  const phone = input.value;
-  const statusEl = document.getElementById('phoneStatus');
-  const submitBtn = document.getElementById('submitBtn');
-
-  if(phone.length === 10) {
-    statusEl.classList.remove('hidden');
-    statusEl.innerText = "Verifying number...";
-    statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-blue-500";
-    
-    fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`)
-    .then(r => r.json())
-    .then(res => {
-      if(res.exists) {
-        statusEl.innerText = "❌ Mobile number already present!";
-        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-red-500";
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        isMobileUnique = false;
-      } else {
-        statusEl.innerText = "✅ Mobile number available";
-        statusEl.className = "text-[10px] font-bold mt-2 ml-1 text-green-600";
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        isMobileUnique = true;
-      }
-    });
-  } else {
-    statusEl.classList.add('hidden');
-    isMobileUnique = false;
-  }
 }
 
 window.onload=()=>{
@@ -226,7 +195,8 @@ window.onload=()=>{
 };
 
 function submitForm() {
-    if(!isMobileUnique) return alert("Please enter a valid unique mobile number.");
+    const phone = document.getElementById('phone').value;
+    if(phone.length !== 10) return alert("Please enter a valid 10-digit mobile number.");
 
     const mainRole = document.getElementById('designation').value;
     const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
@@ -244,7 +214,7 @@ function submitForm() {
                 name: document.getElementById('name').value,
                 doj: document.getElementById('doj').value,
                 designation: finalRole,
-                phone: document.getElementById('phone').value,
+                phone: phone,
                 probation: document.getElementById('probation').value,
                 coa: document.getElementById('coa').value,
                 workingDistrict: document.getElementById('workingDistrict').value,
@@ -260,7 +230,7 @@ function submitForm() {
             alert("✅ Registered Successfully!"); 
             location.reload(); 
         }
-        else alert(res.message);
+        else alert(res.message || "Registration failed.");
     })
     .catch(err => {
         document.getElementById('loader').classList.add("hidden");
