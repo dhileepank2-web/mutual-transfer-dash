@@ -132,6 +132,7 @@
             border: none;
         }
 
+        .cursor-pointer { cursor: pointer; }
         .rounded-24 { border-radius: 24px; }
         .rounded-15 { border-radius: 15px; }
 
@@ -161,7 +162,8 @@
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                 <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                 <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                <i class="fas fa-power-off text-danger cursor-pointer" onclick="clearIdentity()"></i>
+                <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
+                <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
             </div>
         </div>
     </div>
@@ -176,7 +178,7 @@
                 <span class="stat-value" id="statTotal">0</span>
             </div>
             <div class="col-md-4 stat-box">
-                <span class="stat-label">System Matches</span>
+                <span class="stat-label">Total Successful Matches</span>
                 <span class="stat-value text-primary" id="statMatched">0</span>
             </div>
             <div class="col-md-4 stat-box">
@@ -287,23 +289,25 @@
 
 <script>
     const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
-    let MASTER_DATA = [], FILTER_MATCHES = false;
+    let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
     let MY_PHONE = localStorage.getItem("userPhone");
 
     $(document).ready(() => {
         loadData();
     });
 
+    // UPDATED: Handle new return object {records, archivedCount}
     function loadData() {
         $("#globalLoader").show();
         fetch(`${API}?action=getDashboardData`)
         .then(r => r.json())
-        .then(data => {
-            MASTER_DATA = data || [];
-            updateStats(MASTER_DATA);
+        .then(response => {
+            MASTER_DATA = response.records || [];
+            ARCHIVE_COUNT = response.archivedCount || 0;
+            
+            updateStats(MASTER_DATA, ARCHIVE_COUNT);
             buildFilters();
 
-            // If phone exists in local storage, verify it's still in the DB
             if(MY_PHONE) {
                 const userExists = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
                 if(userExists) {
@@ -323,14 +327,45 @@
         });
     }
 
-    function updateStats(data) {
-        const total = data.length;
-        const matched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
-        const rate = total > 0 ? Math.round((matched / total) * 100) : 0;
+    // UPDATED: Success Counter includes Archive
+    function updateStats(data, archived) {
+        const liveTotal = data.length;
+        const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
         
-        $('#statTotal').text(total);
-        $('#statMatched').text(matched);
+        // Final Matches = Current Matches + Successfully Deleted Matches
+        const systemMatchesTotal = liveMatched + archived;
+        const totalHistoricalProfiles = liveTotal + archived;
+        const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
+        
+        $('#statTotal').text(liveTotal);
+        $('#statMatched').text(systemMatchesTotal);
         $('#statRate').text(rate + '%');
+    }
+
+    // NEW FEATURE: Delete Entry Logic
+    async function deleteMyEntry() {
+        const reason = prompt("Please tell us why you are deleting your entry:\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other reason");
+        if (!reason) return;
+
+        if (confirm("Are you sure? This will remove your listing and log you out.")) {
+            $("#globalLoader").fadeIn();
+            try {
+                const res = await fetch(API, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: reason })
+                });
+                const data = await res.json();
+                if (data.status === "SUCCESS") {
+                    clearIdentity();
+                } else {
+                    alert(data.error);
+                    $("#globalLoader").fadeOut();
+                }
+            } catch(e) { 
+                $("#globalLoader").fadeOut(); 
+                alert("Failed to reach server."); 
+            }
+        }
     }
 
     function saveVerify() {
@@ -349,6 +384,11 @@
     function buildFilters() {
         const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
+        
+        // Reset and rebuild to avoid duplicates on refresh
+        $('#selFrom').html('<option value="all">All Districts</option>');
+        $('#selTo').html('<option value="all">All Districts</option>');
+        
         fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
     }
