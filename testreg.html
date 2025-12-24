@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mutual Transfer | Secure Registration</title>
+<title>Mutual Transfer | Secure Portal</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -36,7 +36,6 @@
   }
   .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
   
-  /* FLASHING ANIMATION */
   @keyframes flash-bg {
     0%, 100% { background-color: #fef2f2; border-color: #fecaca; }
     50% { background-color: #fee2e2; border-color: #ef4444; }
@@ -48,7 +47,6 @@
   .fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* MULTI-SELECT TAGS */
   .district-tag {
     background: #2563eb;
     color: white;
@@ -76,7 +74,7 @@
 
 <div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
 
-  <div class="flash-update border-2 rounded-2xl p-4 mb-8 flex items-center space-x-4">
+  <div id="updateBanner" class="flash-update border-2 rounded-2xl p-4 mb-8 flex items-center space-x-4">
     <div class="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded animate-pulse">ATTENTION</div>
     <p class="text-sm font-bold text-red-700">New Update: Multiple registrations & Multiple Willing Districts are now enabled!</p>
   </div>
@@ -84,10 +82,10 @@
   <header class="mb-10">
     <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full mb-4">
       <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Instant Enrollment</span>
+      <span id="badgeText" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Instant Enrollment</span>
     </div>
-    <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
-    <p class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
+    <h1 id="mainTitle" class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
+    <p id="subTitle" class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
   </header>
 
   <form id="regForm" class="space-y-8" onsubmit="event.preventDefault(); submitForm();">
@@ -144,17 +142,17 @@
     <div class="grid md:grid-cols-2 gap-8">
       <div>
         <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Probation Declared?</label>
-        <div class="flex gap-3 mt-2">
-          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','Yes',this)">Yes</button>
-          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','No',this)">No</button>
+        <div class="flex gap-3 mt-2" id="probationGroup">
+          <button type="button" id="probation_Yes" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','Yes',this)">Yes</button>
+          <button type="button" id="probation_No" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('probation','No',this)">No</button>
         </div>
         <input type="hidden" id="probation" value="No">
       </div>
       <div>
         <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">COA Completed?</label>
-        <div class="flex gap-3 mt-2">
-          <button type="button" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','Yes',this)">Yes</button>
-          <button type="button" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','No',this)">No</button>
+        <div class="flex gap-3 mt-2" id="coaGroup">
+          <button type="button" id="coa_Yes" class="segment flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','Yes',this)">Yes</button>
+          <button type="button" id="coa_No" class="segment active flex-1 border border-slate-200 rounded-2xl py-3 font-bold text-sm" onclick="toggle('coa','No',this)">No</button>
         </div>
         <input type="hidden" id="coa" value="No">
       </div>
@@ -188,6 +186,9 @@
         class="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200">
         Complete Registration
       </button>
+      <button type="button" id="cancelBtn" onclick="location.reload()" class="hidden w-full mt-4 text-slate-400 font-bold text-sm hover:text-slate-600">
+        Cancel Editing
+      </button>
     </div>
 
   </form>
@@ -196,6 +197,7 @@
 <script>
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
 let selectedWillingDistricts = [];
+let IS_EDIT_MODE = false;
 
 function toggle(field,val,btn){
   document.getElementById(field).value=val;
@@ -213,7 +215,6 @@ function livePhoneCheck(input) {
   input.value = input.value.replace(/[^0-9]/g, '');
 }
 
-// MULTI-SELECT LOGIC
 function addDistrictTag(val) {
   if(!val || selectedWillingDistricts.includes(val)) return;
   selectedWillingDistricts.push(val);
@@ -241,58 +242,127 @@ function renderDistrictTags() {
 }
 
 window.onload=()=>{
+  const urlParams = new URLSearchParams(window.location.search);
+  const editPhone = urlParams.get('edit');
+
   fetch(`${SCRIPT_URL}?action=getDistricts`)
   .then(r=>r.json())
   .then(d=>{
     const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
     document.getElementById('workingDistrict').innerHTML='<option value="">Select Working District</option>'+opt;
     document.getElementById('willingDistrictPicker').innerHTML='<option value="">Add a Willing District...</option>'+opt;
+    
+    // If edit mode, fetch user data after districts are loaded
+    if(editPhone) prepareEditMode(editPhone);
   });
 };
+
+async function prepareEditMode(phone) {
+    document.getElementById('loader').classList.remove("hidden");
+    document.getElementById('loaderText').innerText = "Fetching Profile...";
+    
+    try {
+        const res = await fetch(`${SCRIPT_URL}?action=getDashboardData`);
+        const data = await res.json();
+        const user = data.records.find(r => String(r.phone) === String(phone));
+
+        if(user) {
+            IS_EDIT_MODE = true;
+            document.getElementById('mainTitle').innerText = "Update Profile";
+            document.getElementById('subTitle').innerText = "Modify your transfer preferences";
+            document.getElementById('submitBtn').innerText = "Save Changes";
+            document.getElementById('badgeText').innerText = "Verified Edit Mode";
+            document.getElementById('cancelBtn').classList.remove('hidden');
+            document.getElementById('phone').readOnly = true;
+            document.getElementById('phoneStatus').innerText = "✓ Phone number locked during edit";
+
+            // Fill basic info
+            document.getElementById('name').value = user['Full Name'] || '';
+            document.getElementById('phone').value = user['phone'];
+            document.getElementById('email').value = user['Email Address'] || '';
+            
+            // Handle Date (Format YYYY-MM-DD for input)
+            if(user['Joining Date']) {
+                const date = new Date(user['Joining Date']);
+                document.getElementById('doj').value = date.toISOString().split('T')[0];
+            }
+
+            // Handle Designation
+            const desigSelect = document.getElementById('designation');
+            const roleExists = [...desigSelect.options].some(opt => opt.value === user['Your Designation']);
+            if(roleExists) {
+                desigSelect.value = user['Your Designation'];
+            } else {
+                desigSelect.value = "OTHER";
+                document.getElementById('otherRoleBox').classList.remove('hidden');
+                document.getElementById('otherDesignation').value = user['Your Designation'];
+            }
+
+            // Handle Toggles
+            toggle('probation', user['Probation Declared?'], document.getElementById(`probation_${user['Probation Declared?']}`));
+            toggle('coa', user['COA Completed?'], document.getElementById(`coa_${user['COA Completed?']}`));
+
+            // Handle Districts
+            document.getElementById('workingDistrict').value = user['Working District'];
+            
+            // Handle Willing Districts (Comma to Array)
+            const willingStr = user['Willing District'] || "";
+            selectedWillingDistricts = willingStr.split(',').map(s => s.trim()).filter(s => s !== "");
+            renderDistrictTags();
+
+        }
+    } catch (e) {
+        console.error("Edit mode error", e);
+    } finally {
+        document.getElementById('loader').classList.add("hidden");
+    }
+}
 
 function submitForm() {
     const phone = document.getElementById('phone').value;
     if(phone.length !== 10) return alert("Please enter a valid 10-digit mobile number.");
-    
     if(selectedWillingDistricts.length === 0) return alert("Please select at least one Willing District.");
 
     const mainRole = document.getElementById('designation').value;
     const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
-    
     if(!finalRole) return alert("Designation is required");
 
     document.getElementById('loader').classList.remove("hidden");
-    document.getElementById('loaderText').innerText = "Registering...";
+    document.getElementById('loaderText').innerText = IS_EDIT_MODE ? "Updating..." : "Registering...";
+
+    const payload = {
+        action: IS_EDIT_MODE ? "updateProfile" : "register",
+        userPhone: phone, // for update action identification
+        userData: {
+            name: document.getElementById('name').value,
+            doj: document.getElementById('doj').value,
+            designation: finalRole,
+            phone: phone,
+            probation: document.getElementById('probation').value,
+            coa: document.getElementById('coa').value,
+            workingDistrict: document.getElementById('workingDistrict').value,
+            willingDistrict: selectedWillingDistricts.join(", "),
+            email: document.getElementById('email').value
+        }
+    };
 
     fetch(SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify({
-            action: "register",
-            userData: {
-                name: document.getElementById('name').value,
-                doj: document.getElementById('doj').value,
-                designation: finalRole,
-                phone: phone,
-                probation: document.getElementById('probation').value,
-                coa: document.getElementById('coa').value,
-                workingDistrict: document.getElementById('workingDistrict').value,
-                willingDistrict: selectedWillingDistricts.join(", "), // Sends grouped string to database
-                email: document.getElementById('email').value
-            }
-        })
+        body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(res => {
         document.getElementById('loader').classList.add("hidden");
         if (res.status === "SUCCESS") { 
-            alert("✅ Registered Successfully!"); 
-            location.reload(); 
+            alert(IS_EDIT_MODE ? "✅ Profile Updated Successfully!" : "✅ Registered Successfully!"); 
+            // Redirect back to dashboard if possible, else reload
+            window.location.href = "index.html"; 
         }
-        else alert(res.message || "Registration failed.");
+        else alert(res.message || res.error || "Operation failed.");
     })
     .catch(err => {
         document.getElementById('loader').classList.add("hidden");
-        alert("Registration failed. Please check your connection.");
+        alert("Operation failed. Please check your connection.");
     });
 }
 </script>
