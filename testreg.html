@@ -36,7 +36,7 @@
   }
   .mandatory::after { content: " *"; color: #ef4444; font-weight: bold; }
   
-  /* FLASHING ANIMATION FOR ATTENTION */
+  /* FLASHING ANIMATION */
   @keyframes flash-bg {
     0%, 100% { background-color: #fef2f2; border-color: #fecaca; }
     50% { background-color: #fee2e2; border-color: #ef4444; }
@@ -47,6 +47,20 @@
 
   .fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* MULTI-SELECT TAGS */
+  .district-tag {
+    background: #2563eb;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: fadeIn 0.2s ease-out;
+  }
 </style>
 </head>
 
@@ -64,7 +78,7 @@
 
   <div class="flash-update border-2 rounded-2xl p-4 mb-8 flex items-center space-x-4">
     <div class="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded animate-pulse">ATTENTION</div>
-    <p class="text-sm font-bold text-red-700">New Update: Multiple registrations using a single mobile number are now enabled!</p>
+    <p class="text-sm font-bold text-red-700">New Update: Multiple registrations & Multiple Willing Districts are now enabled!</p>
   </div>
 
   <header class="mb-10">
@@ -154,10 +168,11 @@
         </select>
       </div>
       <div>
-        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Willing District</label>
-        <select id="willingDistrict" required class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none">
-          <option value="">Syncing Districts...</option>
+        <label class="mandatory text-[11px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Willing Districts (Multi-Select)</label>
+        <select id="willingDistrictPicker" class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800 appearance-none" onchange="addDistrictTag(this.value)">
+          <option value="">Select Districts...</option>
         </select>
+        <div id="selectedDistrictsContainer" class="flex flex-wrap gap-2 mt-3 ml-1"></div>
       </div>
     </div>
 
@@ -180,6 +195,7 @@
 
 <script>
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
+let selectedWillingDistricts = [];
 
 function toggle(field,val,btn){
   document.getElementById(field).value=val;
@@ -197,19 +213,48 @@ function livePhoneCheck(input) {
   input.value = input.value.replace(/[^0-9]/g, '');
 }
 
+// MULTI-SELECT LOGIC
+function addDistrictTag(val) {
+  if(!val || selectedWillingDistricts.includes(val)) return;
+  selectedWillingDistricts.push(val);
+  renderDistrictTags();
+  document.getElementById('willingDistrictPicker').value = "";
+}
+
+function removeDistrictTag(val) {
+  selectedWillingDistricts = selectedWillingDistricts.filter(d => d !== val);
+  renderDistrictTags();
+}
+
+function renderDistrictTags() {
+  const container = document.getElementById('selectedDistrictsContainer');
+  container.innerHTML = selectedWillingDistricts.map(d => `
+    <div class="district-tag">
+      ${d}
+      <button type="button" onclick="removeDistrictTag('${d}')" class="hover:text-red-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  `).join('');
+}
+
 window.onload=()=>{
   fetch(`${SCRIPT_URL}?action=getDistricts`)
   .then(r=>r.json())
   .then(d=>{
     const opt=d.map(x=>`<option value="${x}">${x}</option>`).join('');
-    document.getElementById('workingDistrict').innerHTML='<option value="">Select District</option>'+opt;
-    document.getElementById('willingDistrict').innerHTML='<option value="">Select District</option>'+opt;
+    document.getElementById('workingDistrict').innerHTML='<option value="">Select Working District</option>'+opt;
+    document.getElementById('willingDistrictPicker').innerHTML='<option value="">Add a Willing District...</option>'+opt;
   });
 };
 
 function submitForm() {
     const phone = document.getElementById('phone').value;
     if(phone.length !== 10) return alert("Please enter a valid 10-digit mobile number.");
+    
+    if(selectedWillingDistricts.length === 0) return alert("Please select at least one Willing District.");
 
     const mainRole = document.getElementById('designation').value;
     const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
@@ -231,7 +276,7 @@ function submitForm() {
                 probation: document.getElementById('probation').value,
                 coa: document.getElementById('coa').value,
                 workingDistrict: document.getElementById('workingDistrict').value,
-                willingDistrict: document.getElementById('willingDistrict').value,
+                willingDistrict: selectedWillingDistricts.join(", "), // Sends grouped string to database
                 email: document.getElementById('email').value
             }
         })
