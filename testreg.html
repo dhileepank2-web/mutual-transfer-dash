@@ -54,10 +54,16 @@
 <div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
 
   <header class="mb-10">
-    <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full mb-4">
-      <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Instant Enrollment</span>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <div class="inline-flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+        <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Instant Enrollment</span>
+      </div>
+      <div class="inline-flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+        <span class="text-[10px] font-bold text-green-600 uppercase tracking-widest">✨ NEW: Multiple Entries per Mobile Enabled</span>
+      </div>
     </div>
+    
     <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Registration</h1>
     <p class="text-slate-500 mt-2 font-medium">Join the Mutual Transfer Network Portal</p>
   </header>
@@ -109,7 +115,7 @@
         <input id="phone" maxlength="10" inputmode="numeric" required
                class="input w-full rounded-2xl px-5 py-4 mt-2 font-semibold text-slate-800"
                placeholder="10-digit mobile" oninput="livePhoneCheck(this)">
-        <p id="phoneStatus" class="text-[10px] font-bold mt-2 ml-1 hidden"></p>
+        <p id="phoneStatus" class="text-[9px] font-bold mt-2 ml-1 text-slate-400 italic">One number can now be used for multiple registrations.</p>
       </div>
     </div>
 
@@ -179,7 +185,6 @@ function handleRoleChange(val) {
     else { box.classList.add('hidden'); document.getElementById('otherDesignation').value = ""; }
 }
 
-// UNIQUE CHECK REMOVED: Now only cleans input
 function livePhoneCheck(input) {
   input.value = input.value.replace(/[^0-9]/g, '');
 }
