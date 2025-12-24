@@ -162,6 +162,7 @@
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                 <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                 <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
+                <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="openEditModal()"></i>
                 <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
                 <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
             </div>
@@ -265,6 +266,24 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEdit" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <h4 class="font-weight-bold mb-3 text-center">Update Profile</h4>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted uppercase">Willing Districts</label>
+                <input id="editWilling" class="form-control filter-control" placeholder="e.g. Chennai, Madurai">
+                <small class="text-muted">Separate multiple districts with a comma.</small>
+            </div>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted uppercase">Email Address</label>
+                <input id="editEmail" type="email" class="form-control filter-control">
+            </div>
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mt-2" onclick="submitEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalContact" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
@@ -296,7 +315,6 @@
         loadData();
     });
 
-    // UPDATED: Handle new return object {records, archivedCount}
     function loadData() {
         $("#globalLoader").show();
         fetch(`${API}?action=getDashboardData`)
@@ -327,12 +345,10 @@
         });
     }
 
-    // UPDATED: Success Counter includes Archive
     function updateStats(data, archived) {
-        const liveTotal = data.length;
+        const liveTotal = [...new Set(data.map(x => x.phone))].length; // Unique profile count
         const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
         
-        // Final Matches = Current Matches + Successfully Deleted Matches
         const systemMatchesTotal = liveMatched + archived;
         const totalHistoricalProfiles = liveTotal + archived;
         const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
@@ -342,7 +358,59 @@
         $('#statRate').text(rate + '%');
     }
 
-    // NEW FEATURE: Delete Entry Logic
+    // NEW FEATURE: Open Edit Modal with existing data
+    function openEditModal() {
+        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+        if (me) {
+            // Get all unique willing districts for this user (since records are expanded)
+            const myWillingList = MASTER_DATA
+                .filter(x => String(x.phone) === String(MY_PHONE))
+                .map(x => x['Willing District'])
+                .join(', ');
+            
+            $('#editWilling').val(myWillingList);
+            // Email is not currently in PublicData for security, but we keep it empty for update or you can include it if needed.
+            $('#modalEdit').modal('show');
+        }
+    }
+
+    // NEW FEATURE: Submit Edit Logic
+    async function submitEdit() {
+        const newData = {
+            willingDistrict: $('#editWilling').val(),
+            email: $('#editEmail').val()
+        };
+
+        if (!newData.willingDistrict) {
+            alert("Willing district is required.");
+            return;
+        }
+
+        $("#globalLoader").fadeIn();
+        $('#modalEdit').modal('hide');
+
+        try {
+            const res = await fetch(API, {
+                method: "POST",
+                body: JSON.stringify({ 
+                    action: "updateProfile", 
+                    userPhone: MY_PHONE, 
+                    newData: newData 
+                })
+            });
+            const data = await res.json();
+            if (data.status === "SUCCESS") {
+                location.reload();
+            } else {
+                alert(data.error);
+                $("#globalLoader").fadeOut();
+            }
+        } catch(e) {
+            $("#globalLoader").fadeOut();
+            alert("Update failed.");
+        }
+    }
+
     async function deleteMyEntry() {
         const reason = prompt("Please tell us why you are deleting your entry:\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other reason");
         if (!reason) return;
@@ -385,7 +453,6 @@
         const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
         const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
         
-        // Reset and rebuild to avoid duplicates on refresh
         $('#selFrom').html('<option value="all">All Districts</option>');
         $('#selTo').html('<option value="all">All Districts</option>');
         
@@ -397,18 +464,20 @@
         const query = $('#inpSearch').val().toLowerCase();
         const from = $('#selFrom').val();
         const to = $('#selTo').val();
-        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+        const meRecords = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
 
         const filtered = MASTER_DATA.filter(r => {
             const matchesSearch = r['Your Designation'].toLowerCase().includes(query);
             const matchesFrom = from === 'all' || r['Working District'] === from;
             const matchesTo = to === 'all' || r['Willing District'] === to;
 
-            if (FILTER_MATCHES && me) {
-                const isDirect = (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']);
-                const is3Way = r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District']);
+            if (FILTER_MATCHES && meRecords.length > 0) {
+                const isMatchCandidate = meRecords.some(me => 
+                    (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) ||
+                    (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District']))
+                );
                 const isOwn = String(r.phone) === String(MY_PHONE);
-                return matchesSearch && matchesFrom && matchesTo && (isDirect || is3Way || isOwn);
+                return matchesSearch && matchesFrom && matchesTo && (isMatchCandidate || isOwn);
             }
             return matchesSearch && matchesFrom && matchesTo;
         });
