@@ -157,19 +157,6 @@
             border-right: 1px solid var(--border);
         }
 
-        /* --- NEW: Share Feature CSS --- */
-        .btn-share {
-            background: #e0e7ff;
-            color: var(--primary);
-            border: none;
-            border-radius: 10px;
-            padding: 5px 10px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            transition: 0.2s;
-        }
-        .btn-share:hover { background: var(--primary); color: white; }
-
         .cursor-pointer { cursor: pointer; }
         .rounded-24 { border-radius: 24px; }
         .rounded-15 { border-radius: 15px; }
@@ -302,13 +289,6 @@
                 <div class="col-md-5">
                     <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-user-clock mr-2"></i>Update History</h6>
                     <div id="auditLog" class="small"></div>
-                    
-                    <div class="mt-4 p-4 rounded-24 border bg-white shadow-sm">
-                        <h6 class="font-weight-bold text-muted small text-uppercase mb-3">District Hot-Zones</h6>
-                        <div id="demandSummary">
-                             <small class="text-muted">Analyzing market demand...</small>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -346,7 +326,12 @@
                     <i class="fas fa-user-edit text-primary fa-lg"></i>
                 </div>
                 <h4 class="font-weight-bold">Update Profile</h4>
-                <p class="text-muted small">Update your preferences to improve match accuracy.</p>
+                <p class="text-muted small">Need to change your core details (Name/Place/Phone)?</p>
+                <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-outline-success btn-sm font-weight-bold px-4 rounded-pill mb-4">
+                    <i class="fas fa-external-link-alt mr-2"></i>Go to Full Registration
+                </a>
+                <hr>
+                <p class="text-muted small mt-2">Or quickly update your transfer preferences below:</p>
             </div>
             <div class="form-group">
                 <label class="small font-weight-bold text-muted text-uppercase">Willing Districts</label>
@@ -359,9 +344,9 @@
                 <small class="text-muted">Used for match alerts.</small>
             </div>
             <div class="alert alert-warning rounded-15 small mb-3">
-                <i class="fas fa-info-circle mr-1"></i> Changing these details will reset your match status to "Pending" while our engine recalculates.
+                <i class="fas fa-info-circle mr-1"></i> Quick changes will reset match status to "Pending" during recalculation.
             </div>
-            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Changes</button>
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Quick Changes</button>
             <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
     </div>
@@ -408,7 +393,6 @@
             
             updateStats(MASTER_DATA, ARCHIVE_COUNT);
             buildFilters();
-            generateDemandSummary();
 
             if(MY_PHONE) {
                 const userExists = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
@@ -440,43 +424,6 @@
         $('#statTotal').text(liveTotal);
         $('#statMatched').text(systemMatchesTotal);
         $('#statRate').text(rate + '%');
-    }
-
-    // --- NEW: Generate Demand Summary ---
-    function generateDemandSummary() {
-        const districtCounts = {};
-        MASTER_DATA.forEach(r => {
-            const d = r['Willing District'];
-            districtCounts[d] = (districtCounts[d] || 0) + 1;
-        });
-
-        const sorted = Object.entries(districtCounts)
-            .sort((a,b) => b[1] - a[1])
-            .slice(0, 5);
-
-        const container = $('#demandSummary').empty();
-        sorted.forEach(([name, count]) => {
-            container.append(`
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="small font-weight-bold text-dark">${name}</span>
-                    <span class="badge badge-light border rounded-pill px-3">${count} Seekers</span>
-                </div>
-            `);
-        });
-    }
-
-    // --- NEW: Share Listing to WhatsApp ---
-    function shareListing(id) {
-        const item = MASTER_DATA.find(x => x.id === id);
-        if(!item) return;
-        const text = encodeURIComponent(
-            `*Mutual Transfer Alert*\n\n` +
-            `🔹 Designation: ${item['Your Designation']}\n` +
-            `📍 From: ${item['Working District']}\n` +
-            `🎯 Looking For: ${item['Willing District']}\n\n` +
-            `Check matches on Mutual Hub Dashboard!`
-        );
-        window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 
     function loadActivityLog() {
@@ -539,6 +486,8 @@
             $('#editWilling').val(myWillingList);
             if(me['Email Address']) $('#editEmail').val(me['Email Address']);
             $('#modalEdit').modal('show');
+        } else {
+            alert("Profile not found in live database.");
         }
     }
 
@@ -547,6 +496,7 @@
             willingDistrict: $('#editWilling').val().trim(),
             email: $('#editEmail').val().trim()
         };
+
         if (!newData.willingDistrict) { alert("Please enter at least one Willing District."); return; }
 
         $("#globalLoader").fadeIn();
@@ -565,15 +515,15 @@
             }
         } catch(e) {
             $("#globalLoader").fadeOut();
-            alert("Connection error.");
+            alert("Connection error. Profile not updated.");
         }
     }
 
     async function deleteMyEntry() {
-        const reason = prompt("Reason for deletion:\n1. Found Match here\n2. Found Match elsewhere\n3. Other");
+        const reason = prompt("Why are you deleting your entry?\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other");
         if (!reason) return;
 
-        if (confirm("Delete your listing and logout?")) {
+        if (confirm("Are you sure? This will remove your listing and logout.")) {
             $("#globalLoader").fadeIn();
             try {
                 const res = await fetch(API, {
@@ -582,14 +532,21 @@
                 });
                 const data = await res.json();
                 if (data.status === "SUCCESS") clearIdentity();
-                else { alert(data.error); $("#globalLoader").fadeOut(); }
-            } catch(e) { $("#globalLoader").fadeOut(); alert("Server error."); }
+                else {
+                    alert(data.error);
+                    $("#globalLoader").fadeOut();
+                }
+            } catch(e) { 
+                $("#globalLoader").fadeOut(); 
+                alert("Failed to reach server."); 
+            }
         }
     }
 
     function saveVerify() {
         const val = $('#verifyPhone').val();
         if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
+
         const user = MASTER_DATA.find(x => String(x.phone) === String(val));
         if(user) {
             localStorage.setItem("userPhone", val);
@@ -624,7 +581,8 @@
                     (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) ||
                     (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District']))
                 );
-                return matchesSearch && matchesFrom && matchesTo && (isMatchCandidate || String(r.phone) === String(MY_PHONE));
+                const isOwn = String(r.phone) === String(MY_PHONE);
+                return matchesSearch && matchesFrom && matchesTo && (isMatchCandidate || isOwn);
             }
             return matchesSearch && matchesFrom && matchesTo;
         });
@@ -648,16 +606,13 @@
                 <tr class="${isMe ? 'row-identity' : ''}">
                     <td>
                         <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                        <div class="mt-1">
-                             <button class="btn-share" onclick="shareListing(${row.id})"><i class="fab fa-whatsapp mr-1"></i>Share</button>
-                             ${isMe ? '<span class="ml-2 text-primary font-weight-bold" style="font-size:0.65rem">YOU</span>' : ''}
-                        </div>
+                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem">YOU</div>' : ''}
                     </td>
                     <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
                     <td><i class="fas fa-paper-plane text-muted mr-1"></i> ${row['Willing District']}</td>
                     <td class="desktop-only">
                         <div class="demand-pill ${demandClass}">
-                            <span style="background:${demandDot}; height:8px; width:8px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
+                            <span class="demand-dot" style="background:${demandDot}; height:8px; width:8px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
                             ${row.DEMAND_STATUS}
                         </div>
                     </td>
@@ -675,6 +630,7 @@
     async function unlockRow(id, active) {
         if(!active) return;
         if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+
         $("#globalLoader").fadeIn();
         try {
             const res = await fetch(API, {
@@ -683,6 +639,7 @@
             });
             const data = await res.json();
             $("#globalLoader").fadeOut();
+            
             if(data.error) alert(data.error);
             else {
                 $('#resName').text(data.name);
@@ -702,7 +659,9 @@
     }
 
     function resetUI() {
-        $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
+        $('#inpSearch').val('');
+        $('#selFrom').val('all');
+        $('#selTo').val('all');
         FILTER_MATCHES = false;
         $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
         renderTable();
