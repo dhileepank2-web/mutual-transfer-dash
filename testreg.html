@@ -186,7 +186,7 @@
         class="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200">
         Complete Registration
       </button>
-      <button type="button" id="cancelBtn" onclick="location.reload()" class="hidden w-full mt-4 text-slate-400 font-bold text-sm hover:text-slate-600">
+      <button type="button" id="cancelBtn" onclick="window.location.href='index.html'" class="hidden w-full mt-4 text-slate-400 font-bold text-sm hover:text-slate-600">
         Cancel Editing
       </button>
     </div>
@@ -201,8 +201,10 @@ let IS_EDIT_MODE = false;
 
 function toggle(field,val,btn){
   document.getElementById(field).value=val;
-  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn){
+    btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 }
 
 function handleRoleChange(val) {
@@ -243,7 +245,7 @@ function renderDistrictTags() {
 
 window.onload=()=>{
   const urlParams = new URLSearchParams(window.location.search);
-  const editPhone = urlParams.get('edit');
+  const editPhone = urlParams.get('editPhone');
 
   fetch(`${SCRIPT_URL}?action=getDistricts`)
   .then(r=>r.json())
@@ -252,7 +254,7 @@ window.onload=()=>{
     document.getElementById('workingDistrict').innerHTML='<option value="">Select Working District</option>'+opt;
     document.getElementById('willingDistrictPicker').innerHTML='<option value="">Add a Willing District...</option>'+opt;
     
-    // If edit mode, fetch user data after districts are loaded
+    // If edit mode requested, start profile fetch
     if(editPhone) prepareEditMode(editPhone);
   });
 };
@@ -273,43 +275,42 @@ async function prepareEditMode(phone) {
             document.getElementById('submitBtn').innerText = "Save Changes";
             document.getElementById('badgeText').innerText = "Verified Edit Mode";
             document.getElementById('cancelBtn').classList.remove('hidden');
-            document.getElementById('phone').readOnly = true;
-            document.getElementById('phoneStatus').innerText = "✓ Phone number locked during edit";
-
-            // Fill basic info
+            
+            // Fill Fields
             document.getElementById('name').value = user['Full Name'] || '';
             document.getElementById('phone').value = user['phone'];
+            document.getElementById('phone').readOnly = true;
+            document.getElementById('phone').style.opacity = "0.6";
+            document.getElementById('phoneStatus').innerText = "✓ Phone locked during edit";
             document.getElementById('email').value = user['Email Address'] || '';
             
-            // Handle Date (Format YYYY-MM-DD for input)
             if(user['Joining Date']) {
                 const date = new Date(user['Joining Date']);
                 document.getElementById('doj').value = date.toISOString().split('T')[0];
             }
 
-            // Handle Designation
+            // Designation
             const desigSelect = document.getElementById('designation');
-            const roleExists = [...desigSelect.options].some(opt => opt.value === user['Your Designation']);
-            if(roleExists) {
-                desigSelect.value = user['Your Designation'];
-            } else {
+            const role = user['Your Designation'];
+            const exists = [...desigSelect.options].some(opt => opt.value === role);
+            if(exists) desigSelect.value = role;
+            else {
                 desigSelect.value = "OTHER";
                 document.getElementById('otherRoleBox').classList.remove('hidden');
-                document.getElementById('otherDesignation').value = user['Your Designation'];
+                document.getElementById('otherDesignation').value = role;
             }
 
-            // Handle Toggles
-            toggle('probation', user['Probation Declared?'], document.getElementById(`probation_${user['Probation Declared?']}`));
-            toggle('coa', user['COA Completed?'], document.getElementById(`coa_${user['COA Completed?']}`));
+            // Toggles
+            const probVal = user['Probation Declared?'];
+            const coaVal = user['COA Completed?'];
+            toggle('probation', probVal, document.getElementById(`probation_${probVal}`));
+            toggle('coa', coaVal, document.getElementById(`coa_${coaVal}`));
 
-            // Handle Districts
+            // Districts
             document.getElementById('workingDistrict').value = user['Working District'];
-            
-            // Handle Willing Districts (Comma to Array)
             const willingStr = user['Willing District'] || "";
             selectedWillingDistricts = willingStr.split(',').map(s => s.trim()).filter(s => s !== "");
             renderDistrictTags();
-
         }
     } catch (e) {
         console.error("Edit mode error", e);
@@ -332,7 +333,7 @@ function submitForm() {
 
     const payload = {
         action: IS_EDIT_MODE ? "updateProfile" : "register",
-        userPhone: phone, // for update action identification
+        userPhone: phone,
         userData: {
             name: document.getElementById('name').value,
             doj: document.getElementById('doj').value,
@@ -355,7 +356,6 @@ function submitForm() {
         document.getElementById('loader').classList.add("hidden");
         if (res.status === "SUCCESS") { 
             alert(IS_EDIT_MODE ? "✅ Profile Updated Successfully!" : "✅ Registered Successfully!"); 
-            // Redirect back to dashboard if possible, else reload
             window.location.href = "index.html"; 
         }
         else alert(res.message || res.error || "Operation failed.");
