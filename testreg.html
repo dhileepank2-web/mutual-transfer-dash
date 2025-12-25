@@ -266,54 +266,62 @@ async function prepareEditMode(phone) {
     try {
         const res = await fetch(`${SCRIPT_URL}?action=getDashboardData`);
         const data = await res.json();
+        
+        // Find the specific user record
         const user = data.records.find(r => String(r.phone) === String(phone));
 
         if(user) {
             IS_EDIT_MODE = true;
             document.getElementById('mainTitle').innerText = "Update Profile";
-            document.getElementById('subTitle').innerText = "Modify your transfer preferences";
             document.getElementById('submitBtn').innerText = "Save Changes";
-            document.getElementById('badgeText').innerText = "Verified Edit Mode";
             document.getElementById('cancelBtn').classList.remove('hidden');
             
-            // Fill Fields
-            document.getElementById('name').value = user['Full Name'] || '';
+            // 1. Fill Text Fields (Mapped to your Script keys)
+            document.getElementById('name').value = user['Your Name'] || ''; 
             document.getElementById('phone').value = user['phone'];
-            document.getElementById('phone').readOnly = true;
-            document.getElementById('phone').style.opacity = "0.6";
-            document.getElementById('phoneStatus').innerText = "✓ Phone locked during edit";
             document.getElementById('email').value = user['Email Address'] || '';
             
-            if(user['Joining Date']) {
-                const date = new Date(user['Joining Date']);
-                document.getElementById('doj').value = date.toISOString().split('T')[0];
+            // 2. Fill Date (Handles dd-mm-yyyy conversion to yyyy-mm-dd for input)
+            if(user['Date of Joining (DD-MM-YYYY)']) {
+                const parts = user['Date of Joining (DD-MM-YYYY)'].split('-');
+                if(parts.length === 3) {
+                    const isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    document.getElementById('doj').value = isoDate;
+                }
             }
 
-            // Designation
+            // 3. Designation Logic
             const desigSelect = document.getElementById('designation');
             const role = user['Your Designation'];
             const exists = [...desigSelect.options].some(opt => opt.value === role);
-            if(exists) desigSelect.value = role;
-            else {
+            if(exists) {
+                desigSelect.value = role;
+            } else {
                 desigSelect.value = "OTHER";
                 document.getElementById('otherRoleBox').classList.remove('hidden');
                 document.getElementById('otherDesignation').value = role;
             }
 
-            // Toggles
-            const probVal = user['Probation Declared?'];
-            const coaVal = user['COA Completed?'];
+            // 4. Toggle States
+            const probVal = user['Probation'] || "No";
+            const coaVal = user['COA'] || "No";
             toggle('probation', probVal, document.getElementById(`probation_${probVal}`));
             toggle('coa', coaVal, document.getElementById(`coa_${coaVal}`));
 
-            // Districts
+            // 5. Districts (Working)
             document.getElementById('workingDistrict').value = user['Working District'];
-            const willingStr = user['Willing District'] || "";
-            selectedWillingDistricts = willingStr.split(',').map(s => s.trim()).filter(s => s !== "");
+            
+            // 6. Multi-District Logic (Fetch raw string from DB and split)
+            // We need to fetch the original record to get the full comma string
+            const fullWillingStr = user['Willing District Full'] || user['Willing District']; 
+            selectedWillingDistricts = fullWillingStr.split(',').map(s => s.trim()).filter(s => s !== "");
             renderDistrictTags();
+
+        } else {
+            alert("Profile not found for this number.");
         }
     } catch (e) {
-        console.error("Edit mode error", e);
+        console.error("Edit fetch error", e);
     } finally {
         document.getElementById('loader').classList.add("hidden");
     }
