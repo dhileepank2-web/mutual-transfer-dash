@@ -327,49 +327,60 @@ async function prepareEditMode(phone) {
     }
 }
 
-function submitForm() {
-    const phone = document.getElementById('phone').value;
-    if(phone.length !== 10) return alert("Please enter a valid 10-digit mobile number.");
-    if(selectedWillingDistricts.length === 0) return alert("Please select at least one Willing District.");
-
-    const mainRole = document.getElementById('designation').value;
-    const finalRole = (mainRole === "OTHER") ? document.getElementById('otherDesignation').value : mainRole;
-    if(!finalRole) return alert("Designation is required");
-
+async function submitForm() {
+    // 1. Show Loader
     document.getElementById('loader').classList.remove("hidden");
-    document.getElementById('loaderText').innerText = IS_EDIT_MODE ? "Updating..." : "Registering...";
+    
+    // 2. Prepare Data
+    const newPhone = document.getElementById('phone').value.trim();
+    // oldPhone is the number the user logged in with (stored in localStorage)
+    const oldPhone = localStorage.getItem("userPhone"); 
 
     const payload = {
-        action: IS_EDIT_MODE ? "updateProfile" : "register",
-        userPhone: phone,
+        action: "register",
+        // Send oldPhone ONLY if we are in Edit Mode
+        oldPhone: IS_EDIT_MODE ? oldPhone : null, 
         userData: {
-            name: document.getElementById('name').value,
-            doj: document.getElementById('doj').value,
-            designation: finalRole,
-            phone: phone,
-            probation: document.getElementById('probation').value,
-            coa: document.getElementById('coa').value,
+            name: document.getElementById('name').value.trim(),
+            designation: document.getElementById('designation').value === "OTHER" 
+                ? document.getElementById('otherDesignation').value 
+                : document.getElementById('designation').value,
+            doj: document.getElementById('doj').value, // yyyy-mm-dd from input
             workingDistrict: document.getElementById('workingDistrict').value,
-            willingDistrict: selectedWillingDistricts.join(", "),
-            email: document.getElementById('email').value
+            willingDistrict: selectedWillingDistricts, // The array of tags
+            probation: document.querySelector('input[name="probation"]:checked')?.value || "No",
+            coa: document.querySelector('input[name="coa"]:checked')?.value || "No",
+            phone: newPhone,
+            email: document.getElementById('email').value.trim()
         }
     };
 
-    fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(res => {
-        document.getElementById('loader').classList.add("hidden");
-        if (res.status === "SUCCESS") { 
-            // Save the new phone number to LocalStorage so the Dashboard opens it automatically
-            localStorage.setItem("userPhone", phone); 
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+
+        if (result.status === "SUCCESS") {
+            // 3. AUTO-LOGIN SYNC
+            // Overwrite the local storage with the new phone number
+            localStorage.setItem("userPhone", result.newPhone);
             
-            alert(IS_EDIT_MODE ? "✅ Profile Updated!" : "✅ Registered!"); 
-            window.location.href = "https://dhileepank2-web.github.io/mutual-transfer-dash/testdash.html"; 
+            alert(IS_EDIT_MODE ? "✅ Profile updated successfully!" : "✅ Registered successfully!");
+            
+            // Redirect to Dashboard
+            window.location.href = "Dashboard.html";
+        } else {
+            alert("❌ Error: " + result.error);
         }
-    });
+    } catch (error) {
+        console.error("Submission failed:", error);
+        alert("❌ Failed to connect to server.");
+    } finally {
+        document.getElementById('loader').classList.add("hidden");
+    }
 }
 </script>
 </body>
