@@ -188,7 +188,7 @@
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                 <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                 <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="openEditModal()"></i>
+               <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="redirectToRegistration()"></i>
                 <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
                 <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
             </div>
@@ -475,22 +475,20 @@
         `);
     }
 
-    function openEditModal() {
-        const me = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
-        if (me) {
-            const myWillingList = MASTER_DATA
-                .filter(x => String(x.phone) === String(MY_PHONE))
-                .map(x => x['Willing District'])
-                .join(', ');
-            
-            $('#editWilling').val(myWillingList);
-            if(me['Email Address']) $('#editEmail').val(me['Email Address']);
-            $('#modalEdit').modal('show');
+function redirectToRegistration() {
+        // Get the phone number from localStorage
+        const userPhone = localStorage.getItem("userPhone");
+        
+        // Define your Registration Page URL
+        const registrationUrl = "https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html";
+        
+        // Redirect: If phone exists, pass it as a URL parameter so the form can auto-fill
+        if (userPhone) {
+            window.location.href = `${registrationUrl}?editPhone=${userPhone}`;
         } else {
-            alert("Profile not found in live database.");
+            window.location.href = registrationUrl;
         }
     }
-
     async function submitEdit() {
         const newData = {
             willingDistrict: $('#editWilling').val().trim(),
