@@ -363,14 +363,12 @@ function submitForm() {
     .then(res => {
         document.getElementById('loader').classList.add("hidden");
         if (res.status === "SUCCESS") { 
-            alert(IS_EDIT_MODE ? "✅ Profile Updated Successfully!" : "✅ Registered Successfully!"); 
-            window.location.href = "index.html"; 
+            // Save the new phone number to LocalStorage so the Dashboard opens it automatically
+            localStorage.setItem("userPhone", phone); 
+            
+            alert(IS_EDIT_MODE ? "✅ Profile Updated!" : "✅ Registered!"); 
+            window.location.href = "https://dhileepank2-web.github.io/mutual-transfer-dash/testdash.html"; 
         }
-        else alert(res.message || res.error || "Operation failed.");
-    })
-    .catch(err => {
-        document.getElementById('loader').classList.add("hidden");
-        alert("Operation failed. Please check your connection.");
     });
 }
 </script>
