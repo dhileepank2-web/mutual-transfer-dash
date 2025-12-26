@@ -170,7 +170,41 @@
 </head>
 
 <body>
+<div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
+                    <i class="fas fa-trash-alt text-danger fa-lg"></i>
+                </div>
+                <h4 class="font-weight-bold">Delete Entry?</h4>
+                <p class="text-muted small">This will permanently remove your listing from the database.</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted text-uppercase">Reason for Deletion</label>
+                <select id="deleteReasonDropdown" class="form-control filter-control" onchange="toggleOtherReason()">
+                    <option value="Found Match through this site">Found Match through this site</option>
+                    <option value="Found Match elsewhere">Found Match elsewhere</option>
+                    <option value="Personal Reasons">Personal Reasons</option>
+                    <option value="OTHER">Other (Please specify)</option>
+                </select>
+            </div>
 
+            <div id="otherReasonWrapper" class="form-group d-none">
+                <label class="small font-weight-bold text-muted text-uppercase">Describe Reason</label>
+                <textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px;" placeholder="Enter details..."></textarea>
+            </div>
+
+            <div class="alert alert-danger rounded-15 small mb-3">
+                <i class="fas fa-exclamation-triangle mr-1"></i> You will be logged out automatically.
+            </div>
+
+            <button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="executeDeletion()">Confirm Delete</button>
+            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
+        </div>
+    </div>
+</div>
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
     <h6 class="mt-4 font-weight-bold text-dark">Syncing Live Database...</h6>
@@ -517,63 +551,60 @@ function redirectToRegistration() {
         }
     }
 
-   async function deleteMyEntry() {
-    // 1. Define Options
-    const options = [
-        "Found Match through this site",
-        "Found Match elsewhere",
-        "Personal Reasons",
-        "Other"
-    ];
+  // Function to show the modal
+function deleteMyEntry() {
+    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+    $('#modalDeleteConfirm').modal('show');
+}
 
-    // 2. Create a prompt-like selection
-    let message = "Why are you deleting your entry?\n\n" + 
-                  options.map((opt, i) => (i + 1) + ". " + opt).join("\n");
-    
-    let choice = prompt(message, "1");
-
-    // If user clicks cancel
-    if (choice === null) return;
-
-    let selectedReason = "";
-    let index = parseInt(choice) - 1;
-
-    if (options[index]) {
-        selectedReason = options[index];
-        // 3. If "Other" is selected, ask for description
-        if (selectedReason === "Other") {
-            selectedReason = prompt("Please describe your reason for deleting:");
-            if (!selectedReason) return; // Cancel if they don't provide a reason
-        }
+// Function to show/hide the "Other" text box
+function toggleOtherReason() {
+    const val = $('#deleteReasonDropdown').val();
+    if (val === "OTHER") {
+        $('#otherReasonWrapper').removeClass('d-none');
     } else {
-        alert("Invalid selection. Please try again.");
-        return;
+        $('#otherReasonWrapper').addClass('d-none');
+    }
+}
+
+// The actual deletion logic
+async function executeDeletion() {
+    let finalReason = $('#deleteReasonDropdown').val();
+    
+    // If "Other" is selected, get the text from the textarea
+    if (finalReason === "OTHER") {
+        finalReason = $('#deleteReasonOther').val().trim();
+        if (!finalReason) {
+            alert("Please describe your reason for deleting.");
+            return;
+        }
     }
 
-    // 4. Final Confirmation & Execution
-    if (confirm(`Are you sure? This will permanently remove your listing for: "${selectedReason}"`)) {
-        $("#globalLoader").fadeIn();
-        try {
-            const res = await fetch(API, {
-                method: "POST",
-                body: JSON.stringify({ 
-                    action: "deleteEntry", 
-                    userPhone: MY_PHONE, 
-                    reason: selectedReason 
-                })
-            });
-            const data = await res.json();
-            if (data.status === "SUCCESS") {
-                alert("Listing deleted successfully.");
-                clearIdentity();
-            } else {
-                alert(data.error);
-                $("#globalLoader").fadeOut();
-            }
-        } catch(e) { 
-            $("#globalLoader").fadeOut(); 
-            alert("Failed to reach server."); 
+    // Close modal and show global loader
+    $('#modalDeleteConfirm').modal('hide');
+    $("#globalLoader").fadeIn();
+
+    try {
+        const res = await fetch(API, {
+            method: "POST",
+            body: JSON.stringify({ 
+                action: "deleteEntry", 
+                userPhone: MY_PHONE, 
+                reason: finalReason 
+            })
+        });
+        const data = await res.json();
+        
+        if (data.status === "SUCCESS") {
+            alert("Your entry has been removed.");
+            clearIdentity(); // Log the user out
+        } else {
+            alert(data.error || "Failed to delete.");
+            $("#globalLoader").fadeOut();
         }
+    } catch(e) {
+        $("#globalLoader").fadeOut();
+        alert("Connection error. Entry not deleted.");
     }
 }
 
