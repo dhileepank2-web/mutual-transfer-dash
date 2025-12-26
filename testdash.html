@@ -517,29 +517,65 @@ function redirectToRegistration() {
         }
     }
 
-    async function deleteMyEntry() {
-        const reason = prompt("Why are you deleting your entry?\n1. Found Match through this site\n2. Found Match elsewhere\n3. Other");
-        if (!reason) return;
+   async function deleteMyEntry() {
+    // 1. Define Options
+    const options = [
+        "Found Match through this site",
+        "Found Match elsewhere",
+        "Personal Reasons",
+        "Other"
+    ];
 
-        if (confirm("Are you sure? This will remove your listing and logout.")) {
-            $("#globalLoader").fadeIn();
-            try {
-                const res = await fetch(API, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: reason })
-                });
-                const data = await res.json();
-                if (data.status === "SUCCESS") clearIdentity();
-                else {
-                    alert(data.error);
-                    $("#globalLoader").fadeOut();
-                }
-            } catch(e) { 
-                $("#globalLoader").fadeOut(); 
-                alert("Failed to reach server."); 
+    // 2. Create a prompt-like selection
+    let message = "Why are you deleting your entry?\n\n" + 
+                  options.map((opt, i) => (i + 1) + ". " + opt).join("\n");
+    
+    let choice = prompt(message, "1");
+
+    // If user clicks cancel
+    if (choice === null) return;
+
+    let selectedReason = "";
+    let index = parseInt(choice) - 1;
+
+    if (options[index]) {
+        selectedReason = options[index];
+        // 3. If "Other" is selected, ask for description
+        if (selectedReason === "Other") {
+            selectedReason = prompt("Please describe your reason for deleting:");
+            if (!selectedReason) return; // Cancel if they don't provide a reason
+        }
+    } else {
+        alert("Invalid selection. Please try again.");
+        return;
+    }
+
+    // 4. Final Confirmation & Execution
+    if (confirm(`Are you sure? This will permanently remove your listing for: "${selectedReason}"`)) {
+        $("#globalLoader").fadeIn();
+        try {
+            const res = await fetch(API, {
+                method: "POST",
+                body: JSON.stringify({ 
+                    action: "deleteEntry", 
+                    userPhone: MY_PHONE, 
+                    reason: selectedReason 
+                })
+            });
+            const data = await res.json();
+            if (data.status === "SUCCESS") {
+                alert("Listing deleted successfully.");
+                clearIdentity();
+            } else {
+                alert(data.error);
+                $("#globalLoader").fadeOut();
             }
+        } catch(e) { 
+            $("#globalLoader").fadeOut(); 
+            alert("Failed to reach server."); 
         }
     }
+}
 
     function saveVerify() {
         const val = $('#verifyPhone').val();
