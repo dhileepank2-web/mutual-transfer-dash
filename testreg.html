@@ -264,35 +264,31 @@ async function prepareEditMode(phone) {
     document.getElementById('loaderText').innerText = "Fetching Profile...";
     
     try {
-        const res = await fetch(`${SCRIPT_URL}?action=getDashboardData`);
+        // Use the specific checkPhone action to get the clean, un-flattened user data
+        const res = await fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`);
         const data = await res.json();
-        
-        // Find the specific user record
-        const user = data.records.find(r => String(r.phone) === String(phone));
 
-        if(user) {
+        if(data.exists) {
+            const user = data.userData;
             IS_EDIT_MODE = true;
             document.getElementById('mainTitle').innerText = "Update Profile";
             document.getElementById('submitBtn').innerText = "Save Changes";
             document.getElementById('cancelBtn').classList.remove('hidden');
             
-            // 1. Fill Text Fields (Mapped to your Script keys)
-            document.getElementById('name').value = user['Your Name'] || ''; 
-            document.getElementById('phone').value = user['phone'];
-            document.getElementById('email').value = user['Email Address'] || '';
+            // 1. Map Text Fields
+            document.getElementById('name').value = user.name || ''; 
+            document.getElementById('phone').value = phone;
+            document.getElementById('email').value = user.email || '';
             
-            // 2. Fill Date (Handles dd-mm-yyyy conversion to yyyy-mm-dd for input)
-            if(user['Date of Joining (DD-MM-YYYY)']) {
-                const parts = user['Date of Joining (DD-MM-YYYY)'].split('-');
-                if(parts.length === 3) {
-                    const isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    document.getElementById('doj').value = isoDate;
-                }
+            // 2. FIX: Date of Joining
+            // The Apps Script helper 'formatDateForInput' sends yyyy-mm-dd
+            if(user.doj) {
+                document.getElementById('doj').value = user.doj;
             }
 
             // 3. Designation Logic
             const desigSelect = document.getElementById('designation');
-            const role = user['Your Designation'];
+            const role = user.designation;
             const exists = [...desigSelect.options].some(opt => opt.value === role);
             if(exists) {
                 desigSelect.value = role;
@@ -302,26 +298,28 @@ async function prepareEditMode(phone) {
                 document.getElementById('otherDesignation').value = role;
             }
 
-            // 4. Toggle States
-            const probVal = user['Probation'] || "No";
-            const coaVal = user['COA'] || "No";
+            // 4. FIX: Toggle States (Probation & COA)
+            const probVal = user.probation || "No";
+            const coaVal = user.coa || "No";
             toggle('probation', probVal, document.getElementById(`probation_${probVal}`));
             toggle('coa', coaVal, document.getElementById(`coa_${coaVal}`));
 
             // 5. Districts (Working)
-            document.getElementById('workingDistrict').value = user['Working District'];
+            document.getElementById('workingDistrict').value = user.workingDistrict;
             
-            // 6. Multi-District Logic (Fetch raw string from DB and split)
-            // We need to fetch the original record to get the full comma string
-            const fullWillingStr = user['Willing District Full'] || user['Willing District']; 
-            selectedWillingDistricts = fullWillingStr.split(',').map(s => s.trim()).filter(s => s !== "");
-            renderDistrictTags();
+            // 6. FIX: Multi-District Logic
+            // The Apps Script sends "District1, District2"
+            if (user.willingDistrict) {
+                selectedWillingDistricts = user.willingDistrict.split(',').map(s => s.trim()).filter(s => s !== "");
+                renderDistrictTags();
+            }
 
         } else {
             alert("Profile not found for this number.");
         }
     } catch (e) {
         console.error("Edit fetch error", e);
+        alert("System error while fetching profile.");
     } finally {
         document.getElementById('loader').classList.add("hidden");
     }
@@ -340,16 +338,17 @@ async function submitForm() {
         action: "register",
         // Send oldPhone ONLY if we are in Edit Mode
         oldPhone: IS_EDIT_MODE ? oldPhone : null, 
-        userData: {
+       userData: {
             name: document.getElementById('name').value.trim(),
             designation: document.getElementById('designation').value === "OTHER" 
                 ? document.getElementById('otherDesignation').value 
                 : document.getElementById('designation').value,
-            doj: document.getElementById('doj').value, // yyyy-mm-dd from input
+            doj: document.getElementById('doj').value, 
             workingDistrict: document.getElementById('workingDistrict').value,
-            willingDistrict: selectedWillingDistricts, // The array of tags
-            probation: document.querySelector('input[name="probation"]:checked')?.value || "No",
-            coa: document.querySelector('input[name="coa"]:checked')?.value || "No",
+            willingDistrict: selectedWillingDistricts, 
+            // FIX: Pull from hidden inputs updated by the toggle function
+            probation: document.getElementById('probation').value,
+            coa: document.getElementById('coa').value,
             phone: newPhone,
             email: document.getElementById('email').value.trim()
         }
