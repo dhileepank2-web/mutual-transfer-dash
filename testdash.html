@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
+        #btnMatches .badge {
+    font-size: 0.75rem;
+    vertical-align: middle;
+    margin-top: -2px;
+}
         :root {
             --primary: #2563eb;
             --bg: #f4f7fa;
@@ -699,21 +705,43 @@ async function executeDeletion() {
         const from = $('#selFrom').val();
         const to = $('#selTo').val();
         
-        // Identify the user's own records to enable the "My Potential Matches" filter
         const meRecords = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
 
+        // 1. Calculate how many matches exist in total for the user
+        const totalMatchesCount = MASTER_DATA.filter(r => {
+            if (String(r.phone) === String(MY_PHONE)) return false;
+            return meRecords.some(me => {
+                const myWilling = String(me['Willing District']).trim().toUpperCase();
+                const myWorking = String(me['Working District']).trim().toUpperCase();
+                const theirWorking = String(r['Working District']).trim().toUpperCase();
+                const theirWilling = String(r['Willing District']).trim().toUpperCase();
+                return (theirWorking === myWilling && theirWilling === myWorking) || 
+                       (r.MATCH_STATUS.toUpperCase().includes("MATCH") && theirWorking === myWilling);
+            });
+        }).length;
+
+        // Update the button text with the count
+        if (totalMatchesCount > 0) {
+            $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches <span class="badge badge-light ml-1">${totalMatchesCount}</span>`);
+        } else {
+            $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches`);
+        }
+
         const filtered = MASTER_DATA.filter(r => {
-            const matchesSearch = r['Your Designation'].toLowerCase().includes(query);
+            const matchesSearch = r['Your Designation']?.toLowerCase().includes(query) || false;
             const matchesFrom = from === 'all' || r['Working District'] === from;
             const matchesTo = to === 'all' || r['Willing District'] === to;
 
             if (FILTER_MATCHES && meRecords.length > 0) {
-                // Logic: Show rows where the other person's working district is my willing district
-                // AND my working district is their willing district
-                const isMatchCandidate = meRecords.some(me => 
-                    (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) ||
-                    (r.MATCH_STATUS.includes("MATCH") && (r['Working District'] === me['Willing District']))
-                );
+                const isMatchCandidate = meRecords.some(me => {
+                    const myWorking = String(me['Working District']).trim().toUpperCase();
+                    const myWilling = String(me['Willing District']).trim().toUpperCase();
+                    const theirWorking = String(r['Working District']).trim().toUpperCase();
+                    const theirWilling = String(r['Willing District']).trim().toUpperCase();
+
+                    return (theirWorking === myWilling && theirWilling === myWorking) ||
+                           (r.MATCH_STATUS.toUpperCase().includes("MATCH") && theirWorking === myWilling);
+                });
                 const isOwn = String(r.phone) === String(MY_PHONE);
                 return matchesSearch && matchesFrom && matchesTo && (isMatchCandidate || isOwn);
             }
@@ -725,8 +753,6 @@ async function executeDeletion() {
 
         filtered.forEach(row => {
             const isMe = String(row.phone) === String(MY_PHONE);
-            
-            // --- MATCH STATUS COLORS ---
             let statusMarkup = `<span class="badge-status s-pending">Pending</span>`;
             const hasMatch = row.MATCH_STATUS.toUpperCase().includes("MATCH");
             
@@ -736,7 +762,6 @@ async function executeDeletion() {
                 statusMarkup = `<span class="badge-status s-match">Matched</span>`;
             }
 
-            // --- DEMAND PILL COLORS ---
             let demandClass = "lvl-low", demandDot = "#10b981";
             if (row.DEMAND_STATUS.toUpperCase().includes("HIGH")) { 
                 demandClass = "lvl-high"; demandDot = "#ef4444"; 
@@ -761,8 +786,7 @@ async function executeDeletion() {
                     <td>${statusMarkup}</td>
                     <td class="text-center">
                         <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
-                                onclick="unlockRow(${row.id}, ${hasMatch})" 
-                                ${!hasMatch ? 'title="No match yet"' : ''}>
+                                onclick="unlockRow(${row.id}, ${hasMatch})">
                             <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                         </button>
                     </td>
