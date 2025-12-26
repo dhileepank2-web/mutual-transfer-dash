@@ -593,16 +593,29 @@ async function executeDeletion() {
     let selectedOption = $('input[name="delReason"]:checked').val();
     let finalReason = selectedOption;
 
+    // 1. Validate "Other" input
     if (selectedOption === "OTHER") {
         finalReason = $('#deleteReasonOther').val().trim();
         if (!finalReason) {
-            alert("Please provide a reason for 'Other'.");
+            alert("⚠️ Please provide a reason for 'Other' before proceeding.");
             return;
         }
     }
 
+    // 2. FINAL CONFIRMATION MESSAGE
+    const userConfirmed = confirm(
+        "FINAL CONFIRMATION:\n\n" +
+        "• Your profile will be permanently removed.\n" +
+        "• You will no longer be visible to potential matches.\n" +
+        "• Reason: " + (selectedOption === "OTHER" ? finalReason : selectedOption) + "\n\n" +
+        "Are you absolutely sure you want to proceed?"
+    );
+
+    if (!userConfirmed) return;
+
+    // 3. Execution
     $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").fadeIn();
+    $("#globalLoader").show(); // Ensure loader is visible
 
     try {
         const res = await fetch(API, {
@@ -616,15 +629,18 @@ async function executeDeletion() {
         const data = await res.json();
         
         if (data.status === "SUCCESS") {
-            alert("Success: Your entry has been removed from the live database.");
+            // SUCCESS MESSAGE
+            alert("✅ Entry Successfully Deleted.\n\nYou have been logged out and your data has been archived. Thank you for using Mutual Hub!");
             clearIdentity();
         } else {
-            alert(data.error || "Delete failed.");
+            // SERVER ERROR MESSAGE
+            alert("❌ Deletion Failed: " + (data.error || "Unknown server error."));
             $("#globalLoader").fadeOut();
         }
     } catch(e) {
+        // NETWORK ERROR MESSAGE
         $("#globalLoader").fadeOut();
-        alert("Connection error.");
+        alert("🌐 Connection Error: Could not reach the server. Please check your internet and try again.");
     }
 }
     function saveVerify() {
