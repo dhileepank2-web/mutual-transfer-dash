@@ -472,47 +472,76 @@
         const container = $('#notificationList').empty();
         const audit = $('#auditLog').empty();
 
+        // 1. Get all entries belonging to the logged-in user
         const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
         
         if (myEntries.length === 0) {
-            container.append('<div class="text-center p-4 border rounded-24 bg-white text-muted">Register to see notifications</div>');
+            container.append(`
+                <div class="text-center p-5 border rounded-24 bg-white">
+                    <i class="fas fa-user-plus fa-2x text-light mb-3"></i>
+                    <p class="text-muted mb-0">No active registration found for this number.</p>
+                </div>
+            `);
             return;
         }
 
-        const matches = MASTER_DATA.filter(r => {
-            return myEntries.some(me => 
-                (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) && 
-                String(r.phone) !== String(MY_PHONE)
-            );
-        });
+        // 2. Identify specific successful matches for the user
+        // Since the data is flattened, we check each row individually
+        const successfulMatches = myEntries.filter(e => e.MATCH_STATUS.toUpperCase().includes("MATCH"));
 
-        if (matches.length > 0) {
-            matches.forEach(m => {
+        if (successfulMatches.length > 0) {
+            successfulMatches.forEach(m => {
+                const is3Way = m.MATCH_STATUS.toUpperCase().includes("3-WAY");
                 container.append(`
-                    <div class="history-card">
+                    <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <span class="badge badge-success mb-2">MATCH FOUND</span>
-                                <p class="mb-1 font-weight-bold">${m['Your Designation']} available from ${m['Working District']}</p>
-                                <small class="text-muted">Direct match with your current preference.</small>
+                                <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">
+                                    <i class="fas fa-check-circle mr-1"></i> ${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}
+                                </span>
+                                <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
+                                <p class="small text-muted mb-0">A mutual match has been found for your request from ${m['Working District']}.</p>
                             </div>
-                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">View</button>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">
+                                View Contact
+                            </button>
                         </div>
                     </div>
                 `);
             });
-        } else {
-            container.append('<div class="history-card" style="border-left-color: #cbd5e1;"><p class="mb-0 text-muted">Searching for matches... we will notify you here.</p></div>');
         }
 
+        // 3. Show "Pending" notifications for districts without matches
+        const pendingEntries = myEntries.filter(e => !e.MATCH_STATUS.toUpperCase().includes("MATCH"));
+        pendingEntries.forEach(p => {
+            container.append(`
+                <div class="history-card" style="border-left-color: #cbd5e1;">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div>
+                        <div>
+                            <p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p>
+                            <small class="text-muted">We are scanning for employees coming from ${p['Willing District']}.</small>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+
+        // 4. Update Audit History
         audit.append(`
-            <div class="p-3 bg-white border rounded-15 mb-2">
-                <div class="text-primary font-weight-bold">Profile Verified</div>
-                <div class="text-muted small">Access granted to Mutual Hub Database.</div>
+            <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-shield-alt text-success mr-2"></i>
+                    <div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div>
             </div>
-            <div class="p-3 bg-white border rounded-15">
-                <div class="text-success font-weight-bold">Registration Active</div>
-                <div class="text-muted small">Listing is visible to other employees.</div>
+            <div class="p-3 bg-white border rounded-15 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-database text-primary mr-2"></i>
+                    <div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location preference(s)</div>
             </div>
         `);
     }
@@ -669,6 +698,8 @@ async function executeDeletion() {
         const query = $('#inpSearch').val().toLowerCase();
         const from = $('#selFrom').val();
         const to = $('#selTo').val();
+        
+        // Identify the user's own records to enable the "My Potential Matches" filter
         const meRecords = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
 
         const filtered = MASTER_DATA.filter(r => {
@@ -677,9 +708,11 @@ async function executeDeletion() {
             const matchesTo = to === 'all' || r['Willing District'] === to;
 
             if (FILTER_MATCHES && meRecords.length > 0) {
+                // Logic: Show rows where the other person's working district is my willing district
+                // AND my working district is their willing district
                 const isMatchCandidate = meRecords.some(me => 
                     (r['Working District'] === me['Willing District'] && r['Willing District'] === me['Working District']) ||
-                    (r.MATCH_STATUS.includes("3-WAY") && (r['Working District'] === me['Willing District'] || r['Willing District'] === me['Working District']))
+                    (r.MATCH_STATUS.includes("MATCH") && (r['Working District'] === me['Willing District']))
                 );
                 const isOwn = String(r.phone) === String(MY_PHONE);
                 return matchesSearch && matchesFrom && matchesTo && (isMatchCandidate || isOwn);
@@ -692,34 +725,45 @@ async function executeDeletion() {
 
         filtered.forEach(row => {
             const isMe = String(row.phone) === String(MY_PHONE);
-            const hasMatch = row.MATCH_STATUS.includes("MATCH");
             
-            let demandClass = "lvl-low", demandDot = "#10b981";
-            if(row.DEMAND_STATUS.includes("HIGH")) { demandClass = "lvl-high"; demandDot = "#ef4444"; }
-            else if(row.DEMAND_STATUS.includes("Moderate")) { demandClass = "lvl-mod"; demandDot = "#f59e0b"; }
-
+            // --- MATCH STATUS COLORS ---
             let statusMarkup = `<span class="badge-status s-pending">Pending</span>`;
-            if(row.MATCH_STATUS.includes("3-WAY")) statusMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
-            else if(hasMatch) statusMarkup = `<span class="badge-status s-match">Matched</span>`;
+            const hasMatch = row.MATCH_STATUS.toUpperCase().includes("MATCH");
+            
+            if (row.MATCH_STATUS.toUpperCase().includes("3-WAY")) {
+                statusMarkup = `<span class="badge-status s-3way">3-Way Match</span>`;
+            } else if (hasMatch) {
+                statusMarkup = `<span class="badge-status s-match">Matched</span>`;
+            }
+
+            // --- DEMAND PILL COLORS ---
+            let demandClass = "lvl-low", demandDot = "#10b981";
+            if (row.DEMAND_STATUS.toUpperCase().includes("HIGH")) { 
+                demandClass = "lvl-high"; demandDot = "#ef4444"; 
+            } else if (row.DEMAND_STATUS.toUpperCase().includes("MOD")) { 
+                demandClass = "lvl-mod"; demandDot = "#f59e0b"; 
+            }
 
             tbody.append(`
                 <tr class="${isMe ? 'row-identity' : ''}">
                     <td>
                         <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem">YOU</div>' : ''}
+                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem; letter-spacing:1px;">MY ENTRY</div>' : ''}
                     </td>
                     <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                    <td><i class="fas fa-paper-plane text-muted mr-1"></i> ${row['Willing District']}</td>
+                    <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
                     <td class="desktop-only">
                         <div class="demand-pill ${demandClass}">
-                            <span class="demand-dot" style="background:${demandDot}; height:8px; width:8px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
+                            <span style="background:${demandDot}; height:7px; width:7px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
                             ${row.DEMAND_STATUS}
                         </div>
                     </td>
                     <td>${statusMarkup}</td>
                     <td class="text-center">
-                        <button class="btn btn-unlock shadow-sm" onclick="unlockRow(${row.id}, ${hasMatch})">
-                            ${hasMatch ? '<i class="fas fa-lock-open"></i>' : '<i class="fas fa-lock text-white-50"></i>'}
+                        <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
+                                onclick="unlockRow(${row.id}, ${hasMatch})" 
+                                ${!hasMatch ? 'title="No match yet"' : ''}>
+                            <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                         </button>
                     </td>
                 </tr>
@@ -727,28 +771,36 @@ async function executeDeletion() {
         });
     }
 
+    // This ensures that when a user unlocks a row, the details are specific to the matched person
     async function unlockRow(id, active) {
-        if(!active) return;
+        if(!active) {
+            alert("This entry is currently 'Pending'. Contact details are only visible once a mutual match is found.");
+            return;
+        }
         if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
 
         $("#globalLoader").fadeIn();
         try {
             const res = await fetch(API, {
                 method: "POST",
-                body: JSON.stringify({ rowId: id, userPhone: MY_PHONE })
+                body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
             });
             const data = await res.json();
             $("#globalLoader").fadeOut();
             
-            if(data.error) alert(data.error);
-            else {
+            if(data.error) {
+                alert(data.error);
+            } else {
                 $('#resName').text(data.name);
                 $('#resPhone').text(data.contact);
                 $('#callLink').attr("href", "tel:" + data.contact);
                 $('#waLink').attr("href", "https://wa.me/91" + data.contact);
                 $('#modalContact').modal('show');
             }
-        } catch(e) { $("#globalLoader").fadeOut(); alert("Connection failed."); }
+        } catch(e) { 
+            $("#globalLoader").fadeOut(); 
+            alert("Connection error. Please try again."); 
+        }
     }
 
     function toggleMatches() {
