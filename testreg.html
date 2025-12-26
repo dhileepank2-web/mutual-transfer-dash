@@ -282,30 +282,21 @@ async function prepareEditMode(phone) {
             
             // 2. FIX: Date of Joining
             // The Apps Script helper 'formatDateForInput' sends yyyy-mm-dd
-           // 2. FIX: Date of Joining
-if (user.doj) {
-    let finalDate = "";
-    
-    // Check if it's already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(user.doj)) {
-        finalDate = user.doj;
-    } 
-    // If it's an ISO string (2025-12-27T00:00:00.000Z), extract just the date
-    else if (user.doj.includes('T')) {
-        finalDate = user.doj.split('T')[0];
-    }
-    // If it's a timestamp or other format, try to parse it
-    else {
-        try {
-            const d = new Date(user.doj);
-            if (!isNaN(d.getTime())) {
-                finalDate = d.toISOString().split('T')[0];
+            if(user.doj) {
+                document.getElementById('doj').value = user.doj;
             }
-        } catch(e) { console.error("Date parse error", e); }
-    }
 
-    document.getElementById('doj').value = finalDate;
-}
+            // 3. Designation Logic
+            const desigSelect = document.getElementById('designation');
+            const role = user.designation;
+            const exists = [...desigSelect.options].some(opt => opt.value === role);
+            if(exists) {
+                desigSelect.value = role;
+            } else {
+                desigSelect.value = "OTHER";
+                document.getElementById('otherRoleBox').classList.remove('hidden');
+                document.getElementById('otherDesignation').value = role;
+            }
 
             // 4. FIX: Toggle States (Probation & COA)
             const probVal = user.probation || "No";
