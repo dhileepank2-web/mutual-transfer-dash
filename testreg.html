@@ -282,10 +282,12 @@ async function prepareEditMode(phone) {
             
             // 2. FIX: Date of Joining
             // The Apps Script helper 'formatDateForInput' sends yyyy-mm-dd
-            if(user.doj) {
-                document.getElementById('doj').value = user.doj;
-            }
-
+        // 2. FIX: Date of Joining
+if (user.doj) {
+    // If it comes as "2024-12-27T10:00:00Z", we only take the part before the "T"
+    const cleanDate = user.doj.split('T')[0];
+    document.getElementById('doj').value = cleanDate;
+}
             // 3. Designation Logic
             const desigSelect = document.getElementById('designation');
             const role = user.designation;
