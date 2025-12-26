@@ -254,7 +254,6 @@ window.onload=()=>{
     document.getElementById('workingDistrict').innerHTML='<option value="">Select Working District</option>'+opt;
     document.getElementById('willingDistrictPicker').innerHTML='<option value="">Add a Willing District...</option>'+opt;
     
-    // If edit mode requested, start profile fetch
     if(editPhone) prepareEditMode(editPhone);
   });
 };
@@ -264,7 +263,6 @@ async function prepareEditMode(phone) {
     document.getElementById('loaderText').innerText = "Fetching Profile...";
     
     try {
-        // Use the specific checkPhone action to get the clean, un-flattened user data
         const res = await fetch(`${SCRIPT_URL}?action=checkPhone&phone=${phone}`);
         const data = await res.json();
 
@@ -275,19 +273,17 @@ async function prepareEditMode(phone) {
             document.getElementById('submitBtn').innerText = "Save Changes";
             document.getElementById('cancelBtn').classList.remove('hidden');
             
-            // 1. Map Text Fields
             document.getElementById('name').value = user.name || ''; 
             document.getElementById('phone').value = phone;
             document.getElementById('email').value = user.email || '';
             
-            // 2. FIX: Date of Joining
-            // The Apps Script helper 'formatDateForInput' sends yyyy-mm-dd
-        // 2. FIX: Date of Joining
-if (user.doj) {
-    // If it comes as "2024-12-27T10:00:00Z", we only take the part before the "T"
-    const cleanDate = user.doj.split('T')[0];
-    document.getElementById('doj').value = cleanDate;
-}
+            // 2. FIXED DOJ FETCH
+            if (user.doj) {
+                // Takes either YYYY-MM-DD or extracts it from ISO format
+                const cleanDate = user.doj.split('T')[0];
+                document.getElementById('doj').value = cleanDate;
+            }
+
             // 3. Designation Logic
             const desigSelect = document.getElementById('designation');
             const role = user.designation;
@@ -300,47 +296,40 @@ if (user.doj) {
                 document.getElementById('otherDesignation').value = role;
             }
 
-            // 4. FIX: Toggle States (Probation & COA)
+            // 4. Toggle States
             const probVal = user.probation || "No";
             const coaVal = user.coa || "No";
             toggle('probation', probVal, document.getElementById(`probation_${probVal}`));
             toggle('coa', coaVal, document.getElementById(`coa_${coaVal}`));
 
-            // 5. Districts (Working)
+            // 5. Districts
             document.getElementById('workingDistrict').value = user.workingDistrict;
             
-            // 6. FIX: Multi-District Logic
-            // The Apps Script sends "District1, District2"
             if (user.willingDistrict) {
                 selectedWillingDistricts = user.willingDistrict.split(',').map(s => s.trim()).filter(s => s !== "");
                 renderDistrictTags();
             }
 
         } else {
-            alert("Profile not found for this number.");
+            alert("Profile not found.");
         }
     } catch (e) {
         console.error("Edit fetch error", e);
-        alert("System error while fetching profile.");
     } finally {
         document.getElementById('loader').classList.add("hidden");
     }
 }
 
 async function submitForm() {
-    // 1. Show Loader
     document.getElementById('loader').classList.remove("hidden");
     
-    // 2. Prepare Data
     const newPhone = document.getElementById('phone').value.trim();
-    // oldPhone is the number the user logged in with (stored in localStorage)
     const oldPhone = localStorage.getItem("userPhone"); 
 
     const payload = {
         action: "register",
-        // Send oldPhone ONLY if we are in Edit Mode
         oldPhone: IS_EDIT_MODE ? oldPhone : null, 
-       userData: {
+        userData: {
             name: document.getElementById('name').value.trim(),
             designation: document.getElementById('designation').value === "OTHER" 
                 ? document.getElementById('otherDesignation').value 
@@ -348,7 +337,6 @@ async function submitForm() {
             doj: document.getElementById('doj').value, 
             workingDistrict: document.getElementById('workingDistrict').value,
             willingDistrict: selectedWillingDistricts, 
-            // FIX: Pull from hidden inputs updated by the toggle function
             probation: document.getElementById('probation').value,
             coa: document.getElementById('coa').value,
             phone: newPhone,
@@ -365,20 +353,14 @@ async function submitForm() {
         const result = await response.json();
 
         if (result.status === "SUCCESS") {
-            // 3. AUTO-LOGIN SYNC
-            // Overwrite the local storage with the new phone number
             localStorage.setItem("userPhone", result.newPhone);
-            
             alert(IS_EDIT_MODE ? "✅ Profile updated successfully!" : "✅ Registered successfully!");
-            
-            // Redirect to Dashboard
             window.location.href = "testdash.html";
         } else {
             alert("❌ Error: " + result.error);
         }
     } catch (error) {
-        console.error("Submission failed:", error);
-        alert("❌ Failed to connect to server.");
+        alert("❌ Connection failed.");
     } finally {
         document.getElementById('loader').classList.add("hidden");
     }
