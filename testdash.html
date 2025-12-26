@@ -178,33 +178,41 @@
                     <i class="fas fa-trash-alt text-danger fa-lg"></i>
                 </div>
                 <h4 class="font-weight-bold">Delete Entry?</h4>
-                <p class="text-muted small">This will permanently remove your listing from the database.</p>
+                <p class="text-muted small">Select the reason for removing your listing.</p>
             </div>
             
             <div class="form-group">
-                <label class="small font-weight-bold text-muted text-uppercase">Reason for Deletion</label>
-                <select id="deleteReasonDropdown" class="form-control filter-control" onchange="toggleOtherReason()">
-                    <option value="Found Match through this site">Found Match through this site</option>
-                    <option value="Found Match elsewhere">Found Match elsewhere</option>
-                    <option value="Personal Reasons">Personal Reasons</option>
-                    <option value="OTHER">Other (Please specify)</option>
-                </select>
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r1')">
+                    <input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site" checked>
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r1">Found Match through this site</label>
+                </div>
+
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r2')">
+                    <input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere">
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r2">Found Match elsewhere</label>
+                </div>
+
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r3')">
+                    <input type="radio" id="r3" name="delReason" class="custom-control-input" value="OTHER">
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r3">Other Reasons</label>
+                </div>
             </div>
 
             <div id="otherReasonWrapper" class="form-group d-none">
-                <label class="small font-weight-bold text-muted text-uppercase">Describe Reason</label>
-                <textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px;" placeholder="Enter details..."></textarea>
+                <textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px; border-radius: 12px;" placeholder="Please describe your reason..."></textarea>
             </div>
 
-            <div class="alert alert-danger rounded-15 small mb-3">
-                <i class="fas fa-exclamation-triangle mr-1"></i> You will be logged out automatically.
-            </div>
-
-            <button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="executeDeletion()">Confirm Delete</button>
+            <button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="executeDeletion()">Confirm Permanent Delete</button>
             <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
     </div>
 </div>
+
+<style>
+    .clickable-option { transition: all 0.2s; cursor: pointer; }
+    .clickable-option:hover { border-color: var(--primary) !important; background: #f0f7ff !important; }
+    .custom-control-label { cursor: pointer; display: block; width: 100%; }
+</style>
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
     <h6 class="mt-4 font-weight-bold text-dark">Syncing Live Database...</h6>
@@ -551,36 +559,48 @@ function redirectToRegistration() {
         }
     }
 
-  // Function to show the modal
+// Function to show the modal
 function deleteMyEntry() {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+    // Reset modal state
+    $('#r1').prop('checked', true);
+    $('#otherReasonWrapper').addClass('d-none');
+    $('#deleteReasonOther').val('');
     $('#modalDeleteConfirm').modal('show');
 }
 
-// Function to show/hide the "Other" text box
-function toggleOtherReason() {
-    const val = $('#deleteReasonDropdown').val();
-    if (val === "OTHER") {
+// Helper to make the whole card clickable and toggle textarea
+function selectRadio(id) {
+    $(`#${id}`).prop('checked', true);
+    if ($(`#${id}`).val() === "OTHER") {
         $('#otherReasonWrapper').removeClass('d-none');
     } else {
         $('#otherReasonWrapper').addClass('d-none');
     }
 }
 
-// The actual deletion logic
+// Ensure manual radio clicks also toggle the textarea
+$(document).on('change', 'input[name="delReason"]', function() {
+    if ($(this).val() === "OTHER") {
+        $('#otherReasonWrapper').removeClass('d-none');
+    } else {
+        $('#otherReasonWrapper').addClass('d-none');
+    }
+});
+
+// Final execution
 async function executeDeletion() {
-    let finalReason = $('#deleteReasonDropdown').val();
-    
-    // If "Other" is selected, get the text from the textarea
-    if (finalReason === "OTHER") {
+    let selectedOption = $('input[name="delReason"]:checked').val();
+    let finalReason = selectedOption;
+
+    if (selectedOption === "OTHER") {
         finalReason = $('#deleteReasonOther').val().trim();
         if (!finalReason) {
-            alert("Please describe your reason for deleting.");
+            alert("Please provide a reason for 'Other'.");
             return;
         }
     }
 
-    // Close modal and show global loader
     $('#modalDeleteConfirm').modal('hide');
     $("#globalLoader").fadeIn();
 
@@ -596,18 +616,17 @@ async function executeDeletion() {
         const data = await res.json();
         
         if (data.status === "SUCCESS") {
-            alert("Your entry has been removed.");
-            clearIdentity(); // Log the user out
+            alert("Success: Your entry has been removed from the live database.");
+            clearIdentity();
         } else {
-            alert(data.error || "Failed to delete.");
+            alert(data.error || "Delete failed.");
             $("#globalLoader").fadeOut();
         }
     } catch(e) {
         $("#globalLoader").fadeOut();
-        alert("Connection error. Entry not deleted.");
+        alert("Connection error.");
     }
 }
-
     function saveVerify() {
         const val = $('#verifyPhone').val();
         if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
