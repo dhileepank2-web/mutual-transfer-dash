@@ -12,14 +12,48 @@
 </head>
 <body>
 
+<div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
+                    <i class="fas fa-trash-alt text-danger fa-lg"></i>
+                </div>
+                <h4 class="font-weight-bold">Delete Entry?</h4>
+                <p class="text-muted small">Select the reason for removing your listing.</p>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r1')">
+                    <input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site" checked>
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r1">Found Match through this site</label>
+                </div>
+
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r2')">
+                    <input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere">
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r2">Found Match elsewhere</label>
+                </div>
+
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r3')">
+                    <input type="radio" id="r3" name="delReason" class="custom-control-input" value="OTHER">
+                    <label class="custom-control-label font-weight-bold cursor-pointer" for="r3">Other Reasons</label>
+                </div>
+            </div>
+
+            <div id="otherReasonWrapper" class="form-group d-none">
+                <textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px; border-radius: 12px;" placeholder="Please describe your reason..."></textarea>
+            </div>
+
+            <button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="executeDeletion()">Confirm Permanent Delete</button>
+            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
     <h6 class="mt-4 font-weight-bold text-dark">Syncing Live Database...</h6>
 </div>
-
-<a href="javascript:void(0)" class="fab-edit d-md-none" onclick="redirectToRegistration()">
-    <i class="fas fa-pen fa-lg"></i>
-</a>
 
 <header class="glass-header">
     <div class="container d-flex justify-content-between align-items-center">
@@ -56,7 +90,7 @@
                 <span class="stat-value" id="statTotal">0</span>
             </div>
             <div class="col-md-4 stat-box">
-                <span class="stat-label">Matches Found</span>
+                <span class="stat-label">Total Successful Matches</span>
                 <span class="stat-value text-primary" id="statMatched">0</span>
             </div>
             <div class="col-md-4 stat-box">
@@ -68,37 +102,45 @@
 
     <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
         <li class="nav-item">
-            <a class="nav-link active" data-toggle="pill" href="#paneListings" role="tab"><i class="fas fa-list-ul mr-2"></i>Live Listings</a>
+            <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
+                <i class="fas fa-list-ul mr-2"></i>Live Listings
+            </a>
         </li>
         <li class="nav-item ml-2">
-            <a class="nav-link" data-toggle="pill" href="#paneHub" role="tab"><i class="fas fa-broadcast-tower mr-2"></i>Hub Activity</a>
+            <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
+                <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
+            </a>
         </li>
         <li class="nav-item ml-2">
-            <a class="nav-link" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()"><i class="fas fa-user-shield mr-2"></i>My Activity</a>
+            <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
+                <i class="fas fa-user-shield mr-2"></i>My Activity
+            </a>
         </li>
     </ul>
 
-    <div class="tab-content">
+    <div class="tab-content" id="dashboardTabContent">
         <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
             <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
                 <div class="row">
-                    <div class="col-lg-4 mb-3">
+                    <div class="col-lg-4 col-md-12 mb-3">
                         <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
                         <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
                     </div>
-                    <div class="col-lg-2 mb-3">
+                    <div class="col-lg-2 col-md-6 mb-3">
                         <label class="small text-muted font-weight-bold">FROM</label>
-                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()"></select>
+                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
                     </div>
-                    <div class="col-lg-2 mb-3">
+                    <div class="col-lg-2 col-md-6 mb-3">
                         <label class="small text-muted font-weight-bold">TO</label>
-                        <select id="selTo" class="form-control filter-control" onchange="renderTable()"></select>
+                        <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
                     </div>
-                    <div class="col-lg-4 mb-3 d-flex align-items-end">
+                    <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
                         <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
                             <i class="fas fa-filter mr-2"></i>My Potential Matches
                         </button>
-                        <button class="btn btn-light border rounded-14 ml-2" style="height:52px; width:60px" onclick="resetUI()">
+                    </div>
+                    <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
+                        <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
                             <i class="fas fa-redo"></i>
                         </button>
                     </div>
@@ -113,7 +155,7 @@
                                 <th>Employee Listing</th>
                                 <th>Current Place</th>
                                 <th>Transfer To</th>
-                                <th class="desktop-only">Market Demand</th>
+                                <th class="desktop-only">Willing District Demand</th>
                                 <th>Status</th>
                                 <th class="text-center">Connect</th>
                             </tr>
@@ -122,16 +164,20 @@
                     </table>
                 </div>
                 <div id="noData" class="text-center p-5 d-none">
-                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="60" class="mb-3 opacity-50">
-                    <h6 class="text-muted font-weight-bold">No results found</h6>
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" class="mb-3 opacity-50">
+                    <h6 class="text-muted font-weight-bold">No results found for your criteria</h6>
                 </div>
             </div>
         </div>
 
         <div class="tab-pane fade" id="paneHub" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="font-weight-bold text-uppercase text-muted mb-0">Community Live Feed</h6>
-                <span class="live-indicator"><span class="pulse-dot"></span>Live</span>
+                <h6 class="font-weight-bold text-uppercase text-muted mb-0">
+                    <i class="fas fa-users-rays mr-2"></i>Community Live Feed
+                </h6>
+                <span class="live-indicator">
+                    <span class="pulse-dot" style="width:6px; height:6px;"></span>Live
+                </span>
             </div>
             <div id="hubActivityList"></div>
         </div>
@@ -139,39 +185,14 @@
         <div class="tab-pane fade" id="paneActivity" role="tabpanel">
             <div class="row">
                 <div class="col-md-7">
-                    <h6 class="font-weight-bold text-uppercase text-muted mb-3">Notifications & Matches</h6>
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
                     <div id="notificationList"></div>
                 </div>
                 <div class="col-md-5">
-                    <h6 class="font-weight-bold text-uppercase text-muted mb-3">Update History</h6>
-                    <div id="auditLog"></div>
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-user-clock mr-2"></i>Update History</h6>
+                    <div id="auditLog" class="small"></div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-            <div class="text-center mb-4">
-                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
-                    <i class="fas fa-trash-alt text-danger fa-lg"></i>
-                </div>
-                <h4 class="font-weight-bold">Delete Entry?</h4>
-            </div>
-            <div class="form-group">
-                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option">
-                    <input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site" checked>
-                    <label class="custom-control-label font-weight-bold" for="r1">Found Match through this site</label>
-                </div>
-                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option">
-                    <input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere">
-                    <label class="custom-control-label font-weight-bold" for="r2">Found Match elsewhere</label>
-                </div>
-            </div>
-            <button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="executeDeletion()">Confirm Permanent Delete</button>
-            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
     </div>
 </div>
@@ -184,29 +205,69 @@
                     <i class="fas fa-user-lock fa-2x"></i>
                 </div>
                 <h4 class="font-weight-bold">Member Login</h4>
-                <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="10-digit number">
-                <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">Number not registered.</div>
+                <p class="text-muted small">Access verified contact details by entering your registered number.</p>
+                <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="Enter 10-digit mobile number">
+                <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div>
                 <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button>
                 <div id="regSection" style="display:none;" class="border-top pt-3">
-                    <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15">Register Now</a>
+                    <p class="text-muted small mb-2">Not a member yet?</p>
+                    <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15">
+                        <i class="fas fa-user-plus mr-2"></i>Register Now
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="modalEdit" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
+                    <i class="fas fa-user-edit text-primary fa-lg"></i>
+                </div>
+                <h4 class="font-weight-bold">Update Profile</h4>
+                <p class="text-muted small">Need to change your core details (Name/Place/Phone)?</p>
+                <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-outline-success btn-sm font-weight-bold px-4 rounded-pill mb-4">
+                    <i class="fas fa-external-link-alt mr-2"></i>Go to Full Registration
+                </a>
+                <hr>
+                <p class="text-muted small mt-2">Or quickly update your transfer preferences below:</p>
+            </div>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted text-uppercase">Willing Districts</label>
+                <input id="editWilling" class="form-control filter-control" placeholder="e.g. Chennai, Madurai">
+                <small class="text-primary font-weight-bold">Tip: Separate multiple districts with a comma.</small>
+            </div>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted text-uppercase">Email Address</label>
+                <input id="editEmail" type="email" class="form-control filter-control" placeholder="yourname@email.com">
+                <small class="text-muted">Used for match alerts.</small>
+            </div>
+            <div class="alert alert-warning rounded-15 small mb-3">
+                <i class="fas fa-info-circle mr-1"></i> Quick changes will reset match status to "Pending" during recalculation.
+            </div>
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Quick Changes</button>
+            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalContact" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg text-center">
-            <div class="small font-weight-bold text-primary mb-2 uppercase">Verified Match Found</div>
-            <h2 id="resName" class="font-weight-bold">---</h2>
-            <div class="bg-light p-4 rounded-24 my-4 border">
-                <span class="text-muted small font-weight-bold">MOBILE NUMBER</span>
-                <h1 class="text-dark font-weight-bold mb-0 mt-1" id="resPhone">---</h1>
-            </div>
-            <div class="row">
-                <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fab fa-whatsapp mr-2"></i>Chat</a></div>
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center">
+                <div class="small font-weight-bold text-primary mb-2 uppercase">Verified Match Found</div>
+                <h2 id="resName" class="font-weight-bold">---</h2>
+                <div class="bg-light p-4 rounded-24 my-4 border">
+                    <span class="text-muted small font-weight-bold">MOBILE NUMBER</span>
+                    <h1 class="text-dark font-weight-bold mb-0 mt-1" id="resPhone">---</h1>
+                </div>
+                <div class="row">
+                    <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fas fa-phone mr-2"></i>Call</a></div>
+                    <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fab fa-whatsapp mr-2"></i>Chat</a></div>
+                </div>
             </div>
         </div>
     </div>
