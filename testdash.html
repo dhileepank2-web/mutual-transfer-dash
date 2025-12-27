@@ -10,6 +10,48 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
+            /* Live Feed Animation */
+#hubActivityList {
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-right: 5px;
+}
+
+.activity-item {
+    animation: slideInRight 0.5s ease-out forwards;
+    opacity: 0;
+    border-left: 4px solid var(--primary);
+    background: white;
+    margin-bottom: 12px;
+    padding: 15px;
+    border-radius: 0 16px 16px 0;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+}
+
+.activity-item:hover {
+    transform: translateX(5px);
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #fee2e2;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
         .pulse-dot {
     height: 8px;
     width: 8px;
@@ -283,47 +325,80 @@
         </div>
     </div>
 
-    <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
-                <i class="fas fa-list-ul mr-2"></i>Live Listings
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
-                <i class="fas fa-history mr-2"></i>My Activity
-            </a>
-        </li>
-    </ul>
+   <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
+            <i class="fas fa-list-ul mr-2"></i>Live Listings
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
+            <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
+            <i class="fas fa-user-shield mr-2"></i>My Activity
+        </a>
+    </li>
+</ul>
 
-    <div class="tab-content" id="dashboardTabContent">
-        <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
-            <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
-                <div class="row">
-                    <div class="col-lg-4 col-md-12 mb-3">
-                        <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
-                        <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
-                        <label class="small text-muted font-weight-bold">FROM</label>
-                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
-                        <label class="small text-muted font-weight-bold">TO</label>
-                        <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-                    </div>
-                    <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
-                        <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
-                            <i class="fas fa-filter mr-2"></i>My Potential Matches
-                        </button>
-                    </div>
-                    <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
-                        <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
-                            <i class="fas fa-redo"></i>
-                        </button>
-                    </div>
+<div class="tab-content" id="dashboardTabContent">
+    <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
+        <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+            <div class="row">
+                <div class="col-lg-4 col-md-12 mb-3">
+                    <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
+                    <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
+                </div>
+                <div class="col-lg-2 col-md-6 mb-3">
+                    <label class="small text-muted font-weight-bold">FROM</label>
+                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-3">
+                    <label class="small text-muted font-weight-bold">TO</label>
+                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                </div>
+                <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
+                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
+                        <i class="fas fa-filter mr-2"></i>My Potential Matches
+                    </button>
+                </div>
+                <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
+                    <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
+                        <i class="fas fa-redo"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+        </div>
+
+    <div class="tab-pane fade" id="paneHub" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="font-weight-bold text-uppercase text-muted mb-0">
+                <i class="fas fa-users-rays mr-2"></i>Community Live Feed
+            </h6>
+            <span class="live-indicator">
+                <span class="pulse-dot" style="width:6px; height:6px;"></span>Live
+            </span>
+        </div>
+        <div id="hubActivityList">
+            </div>
+    </div>
+
+    <div class="tab-pane fade" id="paneActivity" role="tabpanel">
+        <div class="row">
+            <div class="col-md-7">
+                <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
+                <div id="notificationList"></div>
+            </div>
+            <div class="col-md-5">
+                <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-history mr-2"></i>My Update History</h6>
+                <div id="auditLog" class="small"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="table-wrapper">
                 <div class="table-responsive">
@@ -441,7 +516,6 @@
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-
 <script>
     const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
     let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
@@ -449,6 +523,13 @@
 
     $(document).ready(() => {
         loadData();
+
+        // MODIFICATION: Auto-refresh Hub and Stats every 2 minutes without full reload
+        setInterval(() => {
+            if (document.visibilityState === 'visible' && !$('.modal.show').length) {
+                syncLiveFeed();
+            }
+        }, 120000);
     });
 
     /**
@@ -462,6 +543,11 @@
             MASTER_DATA = response.records || [];
             ARCHIVE_COUNT = response.archivedCount || 0;
             
+            // MODIFICATION: Render Hub Activity if data exists in response
+            if (response.publicHubActivity) {
+                renderHubActivity(response.publicHubActivity);
+            }
+
             const userLookup = MASTER_DATA.reduce((acc, user) => {
                 acc[String(user.phone)] = user;
                 return acc;
@@ -490,7 +576,7 @@
             updateStats(MASTER_DATA, ARCHIVE_COUNT);
             buildFilters();
             renderTable();
-            loadActivityLog(); // Ensure activity log is built on load
+            loadActivityLog(); 
 
             $("#globalLoader").fadeOut();
         })
@@ -499,6 +585,46 @@
             $("#globalLoader").hide();
             alert("Unable to load data. Please check your internet connection.");
         });
+    }
+
+    /**
+     * MODIFICATION: Render Public Hub Activity (The Live Feed)
+     */
+    function renderHubActivity(activities) {
+        const container = $('#hubActivityList').empty();
+        if (!activities.length) {
+            container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
+            return;
+        }
+
+        activities.forEach((act, i) => {
+            const delay = i * 0.1; 
+            container.append(`
+                <div class="activity-item shadow-sm" style="animation-delay: ${delay}s">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="live-indicator"><span class="pulse-dot mr-1" style="width:6px; height:6px;"></span>Live</span>
+                        <small class="text-muted" style="font-size:0.7rem;">${act.time}</small>
+                    </div>
+                    <div class="font-weight-bold text-dark" style="font-size:0.9rem;">${act.msg}</div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-primary font-weight-bold" style="font-size:0.7rem;">${act.type}</small>
+                        <small class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user-shield mr-1"></i>${act.user}</small>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    /**
+     * MODIFICATION: Silent Sync for Live Feed
+     */
+    async function syncLiveFeed() {
+        try {
+            const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
+            const res = await r.json();
+            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+            updateStats(res.records, res.archivedCount);
+        } catch (e) { console.warn("Background sync failed."); }
     }
 
     function updateStats(data, archived) {
@@ -619,13 +745,11 @@
             const matchStat = row.MATCH_STATUS.toUpperCase();
             const hasMatch = matchStat.includes("MATCH");
             
-            // Demand Logic (Missing in original)
             let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
             const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
             if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
             if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
 
-            // Status Badge Logic (Missing in original)
             let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
             if(matchStat.includes("3-WAY")) statusMarkup = `<span class="badge badge-pill badge-secondary">3-WAY MATCH</span>`;
             else if(hasMatch) statusMarkup = `<span class="badge badge-pill badge-success">DIRECT MATCH</span>`;
