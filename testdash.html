@@ -451,67 +451,59 @@
         loadData();
     });
 
+    /**
+     * Core Data Loading Logic
+     */
     function loadData() {
-    $("#globalLoader").show();
-    
-    // fetch includes cache-busting to ensure fresh data
-    fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
-    .then(r => r.json())
-    .then(response => {
-        // 1. Data Initialization
-        MASTER_DATA = response.records || [];
-        ARCHIVE_COUNT = response.archivedCount || 0;
-        
-        // 2. High-Speed Map (O(1) lookup vs O(n) search)
-        // This creates a dictionary of users for instant access elsewhere
-        const userLookup = MASTER_DATA.reduce((acc, user) => {
-            acc[String(user.phone)] = user;
-            return acc;
-        }, {});
-
-        // 3. Update Sync Timestamp
-        if (response.serverTime) {
-            $('#lastUpdated').text(response.serverTime);
-        } else {
-            $('#lastUpdated').text(new Date().toLocaleTimeString());
-        }
-
-        // 4. Identity & Verification Logic
-        if (MY_PHONE) {
-            const currentUser = userLookup[String(MY_PHONE)];
+        $("#globalLoader").show();
+        fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
+        .then(r => r.json())
+        .then(response => {
+            MASTER_DATA = response.records || [];
+            ARCHIVE_COUNT = response.archivedCount || 0;
             
-            if (currentUser) {
-                $('#idContainer').removeClass('d-none');
-                // Masking phone for privacy: 98****12
-                $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+            const userLookup = MASTER_DATA.reduce((acc, user) => {
+                acc[String(user.phone)] = user;
+                return acc;
+            }, {});
+
+            if (response.serverTime) {
+                $('#lastUpdated').text(response.serverTime);
             } else {
-                // If user was deleted from DB but exists in LocalStorage, logout
-                localStorage.removeItem("userPhone");
-                MY_PHONE = null;
+                $('#lastUpdated').text(new Date().toLocaleTimeString());
+            }
+
+            if (MY_PHONE) {
+                const currentUser = userLookup[String(MY_PHONE)];
+                if (currentUser) {
+                    $('#idContainer').removeClass('d-none');
+                    $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+                } else {
+                    localStorage.removeItem("userPhone");
+                    MY_PHONE = null;
+                    $('#modalVerify').modal('show');
+                }
+            } else {
                 $('#modalVerify').modal('show');
             }
-        } else {
-            $('#modalVerify').modal('show');
-        }
 
-        // 5. Refresh UI Components
-        updateStats(MASTER_DATA, ARCHIVE_COUNT);
-        buildFilters();
-        renderTable();
+            updateStats(MASTER_DATA, ARCHIVE_COUNT);
+            buildFilters();
+            renderTable();
+            loadActivityLog(); // Ensure activity log is built on load
 
-        $("#globalLoader").fadeOut();
-    })
-    .catch(err => {
-        console.error("Critical Load Error:", err);
-        $("#globalLoader").hide();
-        alert("Unable to load data. Please check your internet connection.");
-    });
-}
+            $("#globalLoader").fadeOut();
+        })
+        .catch(err => {
+            console.error("Critical Load Error:", err);
+            $("#globalLoader").hide();
+            alert("Unable to load data. Please check your internet connection.");
+        });
+    }
 
     function updateStats(data, archived) {
         const liveTotal = [...new Set(data.map(x => x.phone))].length;
         const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
-        
         const systemMatchesTotal = liveMatched + archived;
         const totalHistoricalProfiles = liveTotal + archived;
         const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
@@ -521,27 +513,20 @@
         $('#statRate').text(rate + '%');
     }
 
+    /**
+     * Activity & Match Notifications
+     */
     function loadActivityLog() {
         const container = $('#notificationList').empty();
         const audit = $('#auditLog').empty();
-
-        // 1. Get all entries belonging to the logged-in user
         const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
         
         if (myEntries.length === 0) {
-            container.append(`
-                <div class="text-center p-5 border rounded-24 bg-white">
-                    <i class="fas fa-user-plus fa-2x text-light mb-3"></i>
-                    <p class="text-muted mb-0">No active registration found for this number.</p>
-                </div>
-            `);
+            container.append(`<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>`);
             return;
         }
 
-        // 2. Identify specific successful matches for the user
-        // Since the data is flattened, we check each row individually
         const successfulMatches = myEntries.filter(e => e.MATCH_STATUS.toUpperCase().includes("MATCH"));
-
         if (successfulMatches.length > 0) {
             successfulMatches.forEach(m => {
                 const is3Way = m.MATCH_STATUS.toUpperCase().includes("3-WAY");
@@ -549,193 +534,190 @@
                     <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">
-                                    <i class="fas fa-check-circle mr-1"></i> ${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}
-                                </span>
+                                <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
                                 <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
-                                <p class="small text-muted mb-0">A mutual match has been found for your request from ${m['Working District']}.</p>
+                                <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
                             </div>
-                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">
-                                View Contact
-                            </button>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">View Contact</button>
                         </div>
-                    </div>
-                `);
+                    </div>`);
             });
         }
 
-        // 3. Show "Pending" notifications for districts without matches
-        const pendingEntries = myEntries.filter(e => !e.MATCH_STATUS.toUpperCase().includes("MATCH"));
-        pendingEntries.forEach(p => {
+        myEntries.filter(e => !e.MATCH_STATUS.toUpperCase().includes("MATCH")).forEach(p => {
             container.append(`
                 <div class="history-card" style="border-left-color: #cbd5e1;">
                     <div class="d-flex align-items-center">
                         <div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div>
                         <div>
                             <p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p>
-                            <small class="text-muted">We are scanning for employees coming from ${p['Willing District']}.</small>
                         </div>
                     </div>
-                </div>
-            `);
+                </div>`);
         });
 
-        // 4. Update Audit History
         audit.append(`
-            <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-shield-alt text-success mr-2"></i>
-                    <div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div>
-                </div>
-                <div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div>
-            </div>
-            <div class="p-3 bg-white border rounded-15 shadow-sm">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-database text-primary mr-2"></i>
-                    <div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div>
-                </div>
-                <div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location preference(s)</div>
-            </div>
-        `);
+            <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div>
+            <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
     }
 
-function redirectToRegistration() {
-        // Get the phone number from localStorage
-        const userPhone = localStorage.getItem("userPhone");
+    /**
+     * Table Logic & High-Speed Rendering
+     */
+    function renderTable() {
+        const query = $('#inpSearch').val().toLowerCase();
+        const from = $('#selFrom').val();
+        const to = $('#selTo').val();
         
-        // Define your Registration Page URL
-        const registrationUrl = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html";
-        
-        // Redirect: If phone exists, pass it as a URL parameter so the form can auto-fill
-        if (userPhone) {
-            window.location.href = `${registrationUrl}?editPhone=${userPhone}`;
-        } else {
-            window.location.href = registrationUrl;
-        }
+        const myCriteria = MASTER_DATA
+            .filter(x => String(x.phone) === String(MY_PHONE))
+            .map(me => ({
+                working: String(me['Working District']).trim().toUpperCase(),
+                willing: String(me['Willing District']).trim().toUpperCase()
+            }));
+
+        const potentialMatches = MASTER_DATA.filter(r => {
+            if (String(r.phone) === String(MY_PHONE)) return false;
+            const theirWorking = String(r['Working District']).trim().toUpperCase();
+            const theirWilling = String(r['Willing District']).trim().toUpperCase();
+            const systemMatch = r.MATCH_STATUS.toUpperCase().includes("MATCH");
+
+            return myCriteria.some(me => {
+                const isDirectMutual = (theirWorking === me.willing && theirWilling === me.working);
+                const isChainMatch = (systemMatch && theirWorking === me.willing);
+                return isDirectMutual || isChainMatch;
+            });
+        });
+
+        const count = potentialMatches.length;
+        $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches ${count > 0 ? `<span class="badge badge-light ml-1">${count}</span>` : ''}`);
+
+        const filtered = MASTER_DATA.filter(r => {
+            const isOwn = String(r.phone) === String(MY_PHONE);
+            const matchesSearch = !query || r['Your Designation']?.toLowerCase().includes(query);
+            const matchesFrom = from === 'all' || r['Working District'] === from;
+            const matchesTo = to === 'all' || r['Willing District'] === to;
+
+            if (FILTER_MATCHES) {
+                const isMatchForMe = potentialMatches.some(m => m.id === r.id);
+                return (isMatchForMe || isOwn) && matchesSearch && matchesFrom && matchesTo;
+            }
+            return matchesSearch && matchesFrom && matchesTo;
+        });
+
+        renderTableToDOM(filtered);
     }
-    async function submitEdit() {
-        const newData = {
-            willingDistrict: $('#editWilling').val().trim(),
-            email: $('#editEmail').val().trim()
-        };
 
-        if (!newData.willingDistrict) { alert("Please enter at least one Willing District."); return; }
+    function renderTableToDOM(data) {
+        const tbody = $('#mainTbody');
+        tbody.empty();
+        $('#noData').toggleClass('d-none', data.length > 0);
 
+        let rowsHtml = ""; 
+        data.forEach(row => {
+            const isMe = String(row.phone) === String(MY_PHONE);
+            const matchStat = row.MATCH_STATUS.toUpperCase();
+            const hasMatch = matchStat.includes("MATCH");
+            
+            // Demand Logic (Missing in original)
+            let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
+            const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
+            if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
+            if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+
+            // Status Badge Logic (Missing in original)
+            let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
+            if(matchStat.includes("3-WAY")) statusMarkup = `<span class="badge badge-pill badge-secondary">3-WAY MATCH</span>`;
+            else if(hasMatch) statusMarkup = `<span class="badge badge-pill badge-success">DIRECT MATCH</span>`;
+
+            rowsHtml += `
+                <tr class="${isMe ? 'row-identity' : ''}">
+                    <td>
+                        <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
+                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}
+                    </td>
+                    <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
+                    <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
+                    <td class="desktop-only">
+                        <div class="demand-pill ${demandCfg.c}">
+                            <span style="background:${demandCfg.d}; height:7px; width:7px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
+                            ${row.DEMAND_STATUS || 'Moderate'}
+                        </div>
+                    </td>
+                    <td>${statusMarkup}</td>
+                    <td class="text-center">
+                        <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
+                                onclick="unlockRow(${row.id}, ${hasMatch})">
+                            <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+        tbody.html(rowsHtml);
+    }
+
+    /**
+     * Actions & Utility
+     */
+    async function unlockRow(id, active) {
+        if(!active) { alert("Contact details visible only after a match is found."); return; }
+        if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
         $("#globalLoader").fadeIn();
-        $('#modalEdit').modal('hide');
-
         try {
             const res = await fetch(API, {
                 method: "POST",
-                body: JSON.stringify({ action: "updateProfile", userPhone: MY_PHONE, newData: newData })
+                body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
             });
             const data = await res.json();
-            if (data.status === "SUCCESS") location.reload();
+            $("#globalLoader").fadeOut();
+            if(data.error) alert(data.error);
             else {
-                alert(data.error || "Update failed.");
+                $('#resName').text(data.name);
+                $('#resPhone').text(data.contact);
+                $('#callLink').attr("href", "tel:" + data.contact);
+                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
+                $('#modalContact').modal('show');
+            }
+        } catch(e) { $("#globalLoader").fadeOut(); alert("Connection error."); }
+    }
+
+    function toggleMatches() {
+        if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+        FILTER_MATCHES = !FILTER_MATCHES;
+        const btn = $('#btnMatches');
+        FILTER_MATCHES ? btn.removeClass('btn-outline-primary').addClass('btn-primary text-white') : btn.addClass('btn-outline-primary').removeClass('btn-primary text-white');
+        renderTable();
+    }
+
+    function deleteMyEntry() {
+        if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+        $('#r1').prop('checked', true);
+        $('#otherReasonWrapper').addClass('d-none');
+        $('#modalDeleteConfirm').modal('show');
+    }
+
+    async function executeDeletion() {
+        let sel = $('input[name="delReason"]:checked').val();
+        let finalReason = sel === "OTHER" ? $('#deleteReasonOther').val().trim() : sel;
+        if (sel === "OTHER" && !finalReason) { alert("Please provide a reason."); return; }
+        if (!confirm("Are you sure? This will permanently remove your profile.")) return;
+        
+        $('#modalDeleteConfirm').modal('hide');
+        $("#globalLoader").show();
+        try {
+            const res = await fetch(API, {
+                method: "POST",
+                body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: finalReason })
+            });
+            const data = await res.json();
+            if (data.status === "SUCCESS") {
+                alert("Entry Successfully Deleted.");
+                clearIdentity();
+            } else {
+                alert("Error: " + data.error);
                 $("#globalLoader").fadeOut();
             }
-        } catch(e) {
-            $("#globalLoader").fadeOut();
-            alert("Connection error. Profile not updated.");
-        }
-    }
-
-// Function to show the modal
-function deleteMyEntry() {
-    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    // Reset modal state
-    $('#r1').prop('checked', true);
-    $('#otherReasonWrapper').addClass('d-none');
-    $('#deleteReasonOther').val('');
-    $('#modalDeleteConfirm').modal('show');
-}
-
-// Helper to make the whole card clickable and toggle textarea
-function selectRadio(id) {
-    $(`#${id}`).prop('checked', true);
-    if ($(`#${id}`).val() === "OTHER") {
-        $('#otherReasonWrapper').removeClass('d-none');
-    } else {
-        $('#otherReasonWrapper').addClass('d-none');
-    }
-}
-
-// Ensure manual radio clicks also toggle the textarea
-$(document).on('change', 'input[name="delReason"]', function() {
-    if ($(this).val() === "OTHER") {
-        $('#otherReasonWrapper').removeClass('d-none');
-    } else {
-        $('#otherReasonWrapper').addClass('d-none');
-    }
-});
-
-// Final execution
-async function executeDeletion() {
-    let selectedOption = $('input[name="delReason"]:checked').val();
-    let finalReason = selectedOption;
-
-    // 1. Validate "Other" input
-    if (selectedOption === "OTHER") {
-        finalReason = $('#deleteReasonOther').val().trim();
-        if (!finalReason) {
-            alert("⚠️ Please provide a reason for 'Other' before proceeding.");
-            return;
-        }
-    }
-
-    // 2. FINAL CONFIRMATION MESSAGE
-    const userConfirmed = confirm(
-        "FINAL CONFIRMATION:\n\n" +
-        "• Your profile will be permanently removed.\n" +
-        "• You will no longer be visible to potential matches.\n" +
-        "• Reason: " + (selectedOption === "OTHER" ? finalReason : selectedOption) + "\n\n" +
-        "Are you absolutely sure you want to proceed?"
-    );
-
-    if (!userConfirmed) return;
-
-    // 3. Execution
-    $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").show(); // Ensure loader is visible
-
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({ 
-                action: "deleteEntry", 
-                userPhone: MY_PHONE, 
-                reason: finalReason 
-            })
-        });
-        const data = await res.json();
-        
-        if (data.status === "SUCCESS") {
-            // SUCCESS MESSAGE
-            alert("✅ Entry Successfully Deleted.\n\nYou have been logged out and your data has been archived. Thank you for using Mutual Hub!");
-            clearIdentity();
-        } else {
-            // SERVER ERROR MESSAGE
-            alert("❌ Deletion Failed: " + (data.error || "Unknown server error."));
-            $("#globalLoader").fadeOut();
-        }
-    } catch(e) {
-        // NETWORK ERROR MESSAGE
-        $("#globalLoader").fadeOut();
-        alert("🌐 Connection Error: Could not reach the server. Please check your internet and try again.");
-    }
-}
-    function saveVerify() {
-        const val = $('#verifyPhone').val();
-        if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
-
-        const user = MASTER_DATA.find(x => String(x.phone) === String(val));
-        if(user) {
-            localStorage.setItem("userPhone", val);
-            location.reload();
-        } else {
-            $('#loginError, #regSection').fadeIn();
-        }
+        } catch(e) { $("#globalLoader").fadeOut(); alert("Connection Error."); }
     }
 
     function buildFilters() {
@@ -747,183 +729,28 @@ async function executeDeletion() {
         toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
     }
 
-    function renderTable() {
-    const query = $('#inpSearch').val().toLowerCase();
-    const from = $('#selFrom').val();
-    const to = $('#selTo').val();
-    
-    // 1. PRE-CALCULATE LOGGED-IN USER CRITERIA (Speed Optimization)
-    // We map these once so we don't repeat the logic thousands of times in the filter
-    const myCriteria = MASTER_DATA
-        .filter(x => String(x.phone) === String(MY_PHONE))
-        .map(me => ({
-            working: String(me['Working District']).trim().toUpperCase(),
-            willing: String(me['Willing District']).trim().toUpperCase()
-        }));
-
-    // 2. IDENTIFY MATCHES IN A SINGLE PASS
-    const potentialMatches = MASTER_DATA.filter(r => {
-        // Skip self
-        if (String(r.phone) === String(MY_PHONE)) return false;
-
-        const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWilling = String(r['Willing District']).trim().toUpperCase();
-        const systemMatch = r.MATCH_STATUS.toUpperCase().includes("MATCH");
-
-        // Check if they match ANY of my entries (if user has multiple)
-        return myCriteria.some(me => {
-            const isDirectMutual = (theirWorking === me.willing && theirWilling === me.working);
-            const isChainMatch = (systemMatch && theirWorking === me.willing);
-            return isDirectMutual || isChainMatch;
-        });
-    });
-
-    // Update Button UI with Badge
-    const count = potentialMatches.length;
-    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches ${count > 0 ? `<span class="badge badge-light ml-1">${count}</span>` : ''}`);
-
-    // 3. APPLY FINAL FILTERS
-    const filtered = MASTER_DATA.filter(r => {
-        const isOwn = String(r.phone) === String(MY_PHONE);
-        
-        // Basic UI filters
-        const matchesSearch = !query || r['Your Designation']?.toLowerCase().includes(query);
-        const matchesFrom = from === 'all' || r['Working District'] === from;
-        const matchesTo = to === 'all' || r['Willing District'] === to;
-
-        if (FILTER_MATCHES) {
-            // Strictly show ONLY my potential matches and my own profile
-            const isMatchForMe = potentialMatches.some(m => m.id === r.id);
-            return (isMatchForMe || isOwn) && matchesSearch && matchesFrom && matchesTo;
-        }
-
-        return matchesSearch && matchesFrom && matchesTo;
-    });
-
-    // 4. RENDER TO DOM
-    renderTableToDOM(filtered); // Extracted for cleaner code
-}
-
-// Separate helper for rendering to keep logic clean
-function renderTableToDOM(data) {
-    const tbody = $('#mainTbody');
-    tbody.empty();
-    $('#noData').toggleClass('d-none', data.length > 0);
-
-    let rowsHtml = ""; // High-speed string buffer
-
-    data.forEach(row => {
-        const isMe = String(row.phone) === String(MY_PHONE);
-        const hasMatch = row.MATCH_STATUS.toUpperCase().includes("MATCH");
-        
-        // ... [Your existing statusMarkup and demandCfg logic here] ...
-
-        rowsHtml += `
-            <tr class="${isMe ? 'row-identity' : ''}">
-                <td>
-                    <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}
-                </td>
-                <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
-                <td class="desktop-only">
-                    <div class="demand-pill ${demandCfg.c}">
-                        <span style="background:${demandCfg.d}; height:7px; width:7px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
-                        ${row.DEMAND_STATUS}
-                    </div>
-                </td>
-                <td>${statusMarkup}</td>
-                <td class="text-center">
-                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
-                            onclick="unlockRow(${row.id}, ${hasMatch})">
-                        <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-
-    tbody.html(rowsHtml); // Single DOM update for maximum speed
-}
-
-    // This ensures that when a user unlocks a row, the details are specific to the matched person
-    async function unlockRow(id, active) {
-        if(!active) {
-            alert("This entry is currently 'Pending'. Contact details are only visible once a mutual match is found.");
-            return;
-        }
-        if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-
-        $("#globalLoader").fadeIn();
-        try {
-            const res = await fetch(API, {
-                method: "POST",
-                body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
-            });
-            const data = await res.json();
-            $("#globalLoader").fadeOut();
-            
-            if(data.error) {
-                alert(data.error);
-            } else {
-                $('#resName').text(data.name);
-                $('#resPhone').text(data.contact);
-                $('#callLink').attr("href", "tel:" + data.contact);
-                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-                $('#modalContact').modal('show');
-            }
-        } catch(e) { 
-            $("#globalLoader").fadeOut(); 
-            alert("Connection error. Please try again."); 
-        }
-    }
-
-/**
- * Professional Toggle Logic
- * - Handles UI state switching
- * - Includes feedback for users with zero matches
- */
-function toggleMatches() {
-    // 1. Check Identity
-    if (!MY_PHONE) { 
-        $('#modalVerify').modal('show'); 
-        return; 
-    }
-
-    // 2. Toggle State
-    FILTER_MATCHES = !FILTER_MATCHES;
-
-    // 3. Professional UI Feedback
-    const btn = $('#btnMatches');
-    if (FILTER_MATCHES) {
-        btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
-    } else {
-        btn.addClass('btn-outline-primary').removeClass('btn-primary text-white');
-    }
-
-    // 4. Execute High-Speed Render
-    renderTable();
-
-    // 5. UX Enhancement: Notify if the match list is empty
-    // We check the table length after renderTable() finishes filtering
-    const visibleRows = $('#mainTbody tr:not(.row-identity)').length;
-    if (FILTER_MATCHES && visibleRows === 0) {
-        // Simple, non-intrusive toast or alert to explain the empty view
-        console.log("No potential matches found for your criteria yet.");
-    }
-}
     function resetUI() {
-        $('#inpSearch').val('');
-        $('#selFrom').val('all');
-        $('#selTo').val('all');
-        FILTER_MATCHES = false;
-        $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
-        renderTable();
+        $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
+        FILTER_MATCHES = false; renderTable();
     }
 
-    function clearIdentity() {
-        localStorage.removeItem("userPhone");
-        location.reload();
+    function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
+
+    function redirectToRegistration() {
+        const up = localStorage.getItem("userPhone");
+        const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html";
+        window.location.href = up ? `${url}?editPhone=${up}` : url;
+    }
+
+    function saveVerify() {
+        const val = $('#verifyPhone').val();
+        if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
+        if(MASTER_DATA.some(x => String(x.phone) === String(val))) {
+            localStorage.setItem("userPhone", val);
+            location.reload();
+        } else {
+            $('#loginError, #regSection').fadeIn();
+        }
     }
 </script>
 </body>
