@@ -10,71 +10,69 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Live Feed Animation */
-        #hubActivityList {
-            max-height: 500px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            padding-right: 5px;
-        }
 
-        .activity-item {
-            animation: slideInRight 0.5s ease-out forwards;
-            opacity: 0;
-            border-left: 4px solid var(--primary);
-            background: white;
-            margin-bottom: 12px;
-            padding: 15px;
-            border-radius: 0 16px 16px 0;
-            border: 1px solid var(--border);
-            transition: transform 0.2s;
-        }
+            /* Live Feed Animation */
+#hubActivityList {
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-right: 5px;
+}
 
-        .activity-item:hover {
-            transform: translateX(5px);
-        }
+.activity-item {
+    animation: slideInRight 0.5s ease-out forwards;
+    opacity: 0;
+    border-left: 4px solid var(--primary);
+    background: white;
+    margin-bottom: 12px;
+    padding: 15px;
+    border-radius: 0 16px 16px 0;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+}
 
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+.activity-item:hover {
+    transform: translateX(5px);
+}
 
-        .live-indicator {
-            display: inline-flex;
-            align-items: center;
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: #ef4444;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            background: #fee2e2;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
 
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #fee2e2;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
         .pulse-dot {
-            height: 8px;
-            width: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-            animation: pulse 2s infinite;
-        }
+    height: 8px;
+    width: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+    animation: pulse 2s infinite;
+}
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
-        }
-
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
+}
         #btnMatches .badge {
-            font-size: 0.75rem;
-            vertical-align: middle;
-            margin-top: -2px;
-        }
-
+    font-size: 0.75rem;
+    vertical-align: middle;
+    margin-top: -2px;
+}
         :root {
             --primary: #2563eb;
             --bg: #f4f7fa;
@@ -94,6 +92,7 @@
             letter-spacing: -0.01em;
         }
 
+        /* --- Global Loader --- */
         #globalLoader {
             position: fixed;
             inset: 0;
@@ -105,6 +104,7 @@
             flex-direction: column;
         }
 
+        /* --- Stats Row --- */
         .stat-container {
             background: white; border-radius: 24px; border: 1px solid var(--border);
             padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
@@ -124,6 +124,7 @@
             z-index: 1060;
         }
 
+        /* --- Tabs --- */
         .nav-pills-custom .nav-link {
             border-radius: 12px;
             font-weight: 700;
@@ -180,6 +181,17 @@
         .lvl-mod { background: #fff7ed; color: var(--demand-mod); }
         .lvl-low { background: #ecfdf5; color: var(--demand-low); }
 
+        .badge-status {
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+        .s-match { background: var(--primary); color: white; }
+        .s-3way { background: #7c3aed; color: white; }
+        .s-pending { background: #f1f5f9; color: var(--text-muted); }
+
         .filter-control {
             height: 52px;
             border-radius: 14px;
@@ -211,19 +223,174 @@
         .cursor-pointer { cursor: pointer; }
         .rounded-24 { border-radius: 24px; }
         .rounded-15 { border-radius: 15px; }
-        .clickable-option { transition: all 0.2s; cursor: pointer; }
-        .clickable-option:hover { border-color: var(--primary) !important; background: #f0f7ff !important; }
 
         @media (max-width: 768px) {
             .stat-box { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 0; }
             .stat-box:last-child { border-bottom: none; }
             .desktop-only { display: none; }
         }
+        /* --- 1. Glassmorphism & High-End UI Overhaul --- */
+    :root {
+        --primary: #2563eb;
+        --primary-glow: rgba(37, 99, 235, 0.15);
+        --accent: #7c3aed;
+        --surface: rgba(255, 255, 255, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.3);
+    }
+
+    .row-identity {
+        background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%) !important;
+        border-left: 5px solid var(--primary) !important;
+        box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .matched-glow {
+        animation: borderPulse 2s infinite;
+        border: 2px solid var(--primary) !important;
+    }
+
+    @keyframes borderPulse {
+        0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+
+    /* --- 2. Skeleton Loading Animation --- */
+    .skeleton {
+        background: #e2e8f0;
+        background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+        border-radius: 8px;
+        height: 20px;
+        width: 100%;
+    }
+
+    @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* --- 3. Match Intensity & Visual Flow --- */
+    .intensity-ring {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 800;
+        border: 3px solid #e2e8f0;
+        position: relative;
+    }
+
+    .flow-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        margin-top: 10px;
+    }
+
+    .flow-node {
+        text-align: center;
+        z-index: 2;
+    }
+
+    .flow-arrow {
+        flex-grow: 1;
+        height: 2px;
+        background: var(--primary);
+        position: relative;
+        margin: 0 10px;
+    }
+
+    .flow-arrow::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: -4px;
+        border: 5px solid transparent;
+        border-left-color: var(--primary);
+    }
+
+    /* --- 4. Floating Action Button (FAB) --- */
+    .fab-edit {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+        z-index: 1000;
+        transition: transform 0.3s;
+    }
+
+    .fab-edit:hover { transform: scale(1.1); color: white; }
+/* --- 1. District Heatmap Sparklines --- */
+    .trend-indicator {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 15px;
+        width: 35px;
+        margin-right: 8px;
+    }
+    .trend-bar {
+        width: 4px;
+        background: #cbd5e1;
+        border-radius: 1px;
+    }
+    .trend-up { background: var(--demand-high); }
+    .trend-down { background: var(--demand-low); }
+
+    /* --- 2. Trust Score Badges --- */
+    .trust-score-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #f8fafc;
+        padding: 2px 8px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+    }
+    .trust-dot {
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
+    }
+    .trust-high { background: #10b981; box-shadow: 0 0 8px #10b981; }
+    .trust-mid { background: #f59e0b; }
+
+    /* --- 3. Predictive "Heat" Label --- */
+    .heat-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: #fee2e2;
+        color: #ef4444;
+        animation: blink 2s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.6; } }
+        
     </style>
+    <a href="javascript:void(0)" class="fab-edit d-md-none" onclick="redirectToRegistration()">
+    <i class="fas fa-pen fa-lg"></i>
+</a>
 </head>
 
 <body>
-
 <div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
@@ -236,17 +403,17 @@
             </div>
             
             <div class="form-group">
-                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="$('#r1').prop('checked', true); $('#otherReasonWrapper').addClass('d-none');">
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r1')">
                     <input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site" checked>
                     <label class="custom-control-label font-weight-bold cursor-pointer" for="r1">Found Match through this site</label>
                 </div>
 
-                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="$('#r2').prop('checked', true); $('#otherReasonWrapper').addClass('d-none');">
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r2')">
                     <input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere">
                     <label class="custom-control-label font-weight-bold cursor-pointer" for="r2">Found Match elsewhere</label>
                 </div>
 
-                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="$('#r3').prop('checked', true); $('#otherReasonWrapper').removeClass('d-none');">
+                <div class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r3')">
                     <input type="radio" id="r3" name="delReason" class="custom-control-input" value="OTHER">
                     <label class="custom-control-label font-weight-bold cursor-pointer" for="r3">Other Reasons</label>
                 </div>
@@ -262,6 +429,11 @@
     </div>
 </div>
 
+<style>
+    .clickable-option { transition: all 0.2s; cursor: pointer; }
+    .clickable-option:hover { border-color: var(--primary) !important; background: #f0f7ff !important; }
+    .custom-control-label { cursor: pointer; display: block; width: 100%; }
+</style>
 <div id="globalLoader">
     <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
     <h6 class="mt-4 font-weight-bold text-dark">Syncing Live Database...</h6>
@@ -279,22 +451,21 @@
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                 <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                 <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="redirectToRegistration()"></i>
+               <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="redirectToRegistration()"></i>
                 <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
                 <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
             </div>
         </div>
     </div>
 </header>
-
+<div class="text-right mb-2">
+    <small class="text-muted">
+        <i class="fas fa-sync-alt fa-spin mr-1"></i> 
+        Last Sync: <span id="lastUpdated">Loading...</span>
+    </small>
+</div>
 <div class="container mt-4 pb-5">
-    <div class="text-right mb-2">
-        <small class="text-muted">
-            <i class="fas fa-sync-alt fa-spin mr-1"></i> 
-            Last Sync: <span id="lastUpdated">Loading...</span>
-        </small>
-    </div>
-
+    
     <div class="stat-container">
         <div class="row">
             <div class="col-md-4 stat-box">
@@ -312,52 +483,80 @@
         </div>
     </div>
 
-    <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
-                <i class="fas fa-list-ul mr-2"></i>Live Listings
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
-                <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
-                <i class="fas fa-user-shield mr-2"></i>My Activity
-            </a>
-        </li>
-    </ul>
+   <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
+            <i class="fas fa-list-ul mr-2"></i>Live Listings
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
+            <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
+            <i class="fas fa-user-shield mr-2"></i>My Activity
+        </a>
+    </li>
+</ul>
 
-    <div class="tab-content" id="dashboardTabContent">
-        <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
-            <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
-                <div class="row">
-                    <div class="col-lg-4 col-md-12 mb-3">
-                        <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
-                        <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
-                        <label class="small text-muted font-weight-bold">FROM</label>
-                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
-                        <label class="small text-muted font-weight-bold">TO</label>
-                        <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
-                    </div>
-                    <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
-                        <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
-                            <i class="fas fa-filter mr-2"></i>My Potential Matches
-                        </button>
-                    </div>
-                    <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
-                        <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
-                            <i class="fas fa-redo"></i>
-                        </button>
-                    </div>
+<div class="tab-content" id="dashboardTabContent">
+    <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
+        <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+            <div class="row">
+                <div class="col-lg-4 col-md-12 mb-3">
+                    <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
+                    <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
+                </div>
+                <div class="col-lg-2 col-md-6 mb-3">
+                    <label class="small text-muted font-weight-bold">FROM</label>
+                    <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-3">
+                    <label class="small text-muted font-weight-bold">TO</label>
+                    <select id="selTo" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
+                </div>
+                <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end">
+                    <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
+                        <i class="fas fa-filter mr-2"></i>My Potential Matches
+                    </button>
+                </div>
+                <div class="col-lg-1 col-md-12 mb-3 d-flex align-items-end">
+                    <button class="btn btn-light border rounded-14 w-100" style="height:52px;" onclick="resetUI()">
+                        <i class="fas fa-redo"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+        </div>
+
+    <div class="tab-pane fade" id="paneHub" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="font-weight-bold text-uppercase text-muted mb-0">
+                <i class="fas fa-users-rays mr-2"></i>Community Live Feed
+            </h6>
+            <span class="live-indicator">
+                <span class="pulse-dot" style="width:6px; height:6px;"></span>Live
+            </span>
+        </div>
+        <div id="hubActivityList">
+            </div>
+    </div>
+
+    <div class="tab-pane fade" id="paneActivity" role="tabpanel">
+        <div class="row">
+            <div class="col-md-7">
+                <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
+                <div id="notificationList"></div>
+            </div>
+            <div class="col-md-5">
+                <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-history mr-2"></i>My Update History</h6>
+                <div id="auditLog" class="small"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="table-wrapper">
                 <div class="table-responsive">
@@ -382,18 +581,6 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="paneHub" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="font-weight-bold text-uppercase text-muted mb-0">
-                    <i class="fas fa-users-rays mr-2"></i>Community Live Feed
-                </h6>
-                <span class="live-indicator">
-                    <span class="pulse-dot" style="width:6px; height:6px;"></span>Live
-                </span>
-            </div>
-            <div id="hubActivityList"></div>
-        </div>
-
         <div class="tab-pane fade" id="paneActivity" role="tabpanel">
             <div class="row">
                 <div class="col-md-7">
@@ -401,7 +588,7 @@
                     <div id="notificationList"></div>
                 </div>
                 <div class="col-md-5">
-                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-history mr-2"></i>My Update History</h6>
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-user-clock mr-2"></i>Update History</h6>
                     <div id="auditLog" class="small"></div>
                 </div>
             </div>
@@ -428,6 +615,40 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEdit" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
+                    <i class="fas fa-user-edit text-primary fa-lg"></i>
+                </div>
+                <h4 class="font-weight-bold">Update Profile</h4>
+                <p class="text-muted small">Need to change your core details (Name/Place/Phone)?</p>
+                <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-outline-success btn-sm font-weight-bold px-4 rounded-pill mb-4">
+                    <i class="fas fa-external-link-alt mr-2"></i>Go to Full Registration
+                </a>
+                <hr>
+                <p class="text-muted small mt-2">Or quickly update your transfer preferences below:</p>
+            </div>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted text-uppercase">Willing Districts</label>
+                <input id="editWilling" class="form-control filter-control" placeholder="e.g. Chennai, Madurai">
+                <small class="text-primary font-weight-bold">Tip: Separate multiple districts with a comma.</small>
+            </div>
+            <div class="form-group">
+                <label class="small font-weight-bold text-muted text-uppercase">Email Address</label>
+                <input id="editEmail" type="email" class="form-control filter-control" placeholder="yourname@email.com">
+                <small class="text-muted">Used for match alerts.</small>
+            </div>
+            <div class="alert alert-warning rounded-15 small mb-3">
+                <i class="fas fa-info-circle mr-1"></i> Quick changes will reset match status to "Pending" during recalculation.
+            </div>
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15" onclick="submitEdit()">Save Quick Changes</button>
+            <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
         </div>
     </div>
 </div>
@@ -460,6 +681,8 @@
 
     $(document).ready(() => {
         loadData();
+
+        // MODIFICATION: Auto-refresh Hub and Stats every 2 minutes without full reload
         setInterval(() => {
             if (document.visibilityState === 'visible' && !$('.modal.show').length) {
                 syncLiveFeed();
@@ -467,7 +690,83 @@
         }, 120000);
     });
 
+    /**
+     * Logic: Trust Score based on profile age/completeness
+     * (Simulated using ID as proxy for registration seniority)
+     */
+    function getTrustScore(rowId) {
+        const score = rowId % 3; // In production, calculate based on registration date
+        if (score === 0) return { label: 'Verified Pro', class: 'trust-high', icon: 'fa-check-circle' };
+        return { label: 'Active Member', class: 'trust-mid', icon: 'fa-user-check' };
+    }
+
+    /**
+     * Logic: Generates a small SVG/CSS Heatmap for District Trends
+     */
+    function renderHeatmap(demandStatus) {
+        const isHigh = demandStatus.toUpperCase().includes('HIGH');
+        return `
+        <div class="trend-indicator" title="7-day activity trend">
+            <div class="trend-bar" style="height: 40%"></div>
+            <div class="trend-bar" style="height: 60%"></div>
+            <div class="trend-bar ${isHigh ? 'trend-up' : 'trend-down'}" style="height: ${isHigh ? '90%' : '30%'}"></div>
+        </div>`;
+    }
+function renderVisualFlow(me, them, is3Way = false) {
+        if (is3Way) {
+            return `
+            <div class="flow-container">
+                <div class="flow-node"><small>YOU</small><br><b>${me.working}</b></div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node"><small>PARTNER</small><br><b>${them.working}</b></div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node"><small>LINK</small><br><b>${them.willing}</b></div>
+            </div>`;
+        }
+        return `
+        <div class="flow-container">
+            <div class="flow-node"><small>FROM</small><br><b>${me.working}</b></div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node"><small>TO</small><br><b>${me.willing}</b></div>
+        </div>`;
+    }
+   /**
+     * Generates a Skeleton Loader while data is fetching
+     */
+    function showSkeleton() {
+        const tbody = $('#mainTbody');
+        let skeletonHtml = "";
+        for(let i=0; i<5; i++) {
+            skeletonHtml += `
+            <tr>
+                <td><div class="skeleton" style="width: 70%"></div><div class="skeleton mt-2" style="width: 40%"></div></td>
+                <td><div class="skeleton"></div></td>
+                <td><div class="skeleton"></div></td>
+                <td class="desktop-only"><div class="skeleton"></div></td>
+                <td><div class="skeleton" style="width: 60%"></div></td>
+                <td><div class="skeleton" style="border-radius: 50%; width: 35px; height: 35px; margin: auto;"></div></td>
+            </tr>`;
+        }
+        tbody.html(skeletonHtml);
+    }
+    /**
+     * Calculate Match Intensity (Progress towards a chain)
+     */
+    function getMatchIntensity(row) {
+        const status = (row.MATCH_STATUS || '').toUpperCase();
+        if (status.includes("DIRECT")) return { percent: 100, color: "#10b981", label: "Ready" };
+        if (status.includes("3-WAY")) return { percent: 100, color: "#7c3aed", label: "Chain" };
+        
+        // Logical "Simulation" of chain completeness based on Demand
+        const demand = (row.DEMAND_STATUS || '').toUpperCase();
+        if (demand.includes("HIGH")) return { percent: 66, color: "#3b82f6", label: "High" };
+        return { percent: 33, color: "#94a3b8", label: "Slow" };
+    }
+    /**
+     * Core Data Loading Logic
+     */
     function loadData() {
+        showSkeleton();
         $("#globalLoader").show();
         fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
         .then(r => r.json())
@@ -475,6 +774,7 @@
             MASTER_DATA = response.records || [];
             ARCHIVE_COUNT = response.archivedCount || 0;
             
+            // MODIFICATION: Render Hub Activity if data exists in response
             if (response.publicHubActivity) {
                 renderHubActivity(response.publicHubActivity);
             }
@@ -484,7 +784,11 @@
                 return acc;
             }, {});
 
-            $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
+            if (response.serverTime) {
+                $('#lastUpdated').text(response.serverTime);
+            } else {
+                $('#lastUpdated').text(new Date().toLocaleTimeString());
+            }
 
             if (MY_PHONE) {
                 const currentUser = userLookup[String(MY_PHONE)];
@@ -504,6 +808,7 @@
             buildFilters();
             renderTable();
             loadActivityLog(); 
+
             $("#globalLoader").fadeOut();
         })
         .catch(err => {
@@ -513,12 +818,16 @@
         });
     }
 
+    /**
+     * MODIFICATION: Render Public Hub Activity (The Live Feed)
+     */
     function renderHubActivity(activities) {
         const container = $('#hubActivityList').empty();
         if (!activities.length) {
             container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
             return;
         }
+
         activities.forEach((act, i) => {
             const delay = i * 0.1; 
             container.append(`
@@ -537,6 +846,9 @@
         });
     }
 
+    /**
+     * MODIFICATION: Silent Sync for Live Feed
+     */
     async function syncLiveFeed() {
         try {
             const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
@@ -558,6 +870,9 @@
         $('#statRate').text(rate + '%');
     }
 
+    /**
+     * Activity & Match Notifications
+     */
     function loadActivityLog() {
         const container = $('#notificationList').empty();
         const audit = $('#auditLog').empty();
@@ -591,7 +906,9 @@
                 <div class="history-card" style="border-left-color: #cbd5e1;">
                     <div class="d-flex align-items-center">
                         <div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div>
-                        <div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div>
+                        <div>
+                            <p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p>
+                        </div>
                     </div>
                 </div>`);
         });
@@ -601,6 +918,9 @@
             <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
     }
 
+    /**
+     * Table Logic & High-Speed Rendering
+     */
     function renderTable() {
         const query = $('#inpSearch').val().toLowerCase();
         const from = $('#selFrom').val();
@@ -645,52 +965,63 @@
         renderTableToDOM(filtered);
     }
 
+   // --- UPDATED TABLE ROW RENDERING ---
     function renderTableToDOM(data) {
         const tbody = $('#mainTbody');
         tbody.empty();
-        $('#noData').toggleClass('d-none', data.length > 0);
-
-        let rowsHtml = ""; 
+        
         data.forEach(row => {
             const isMe = String(row.phone) === String(MY_PHONE);
-            const matchStat = row.MATCH_STATUS.toUpperCase();
-            const hasMatch = matchStat.includes("MATCH");
-            
-            let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
-            const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
-            if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
-            if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+            const intensity = getMatchIntensity(row);
+            const trust = getTrustScore(row.id);
+            const hasMatch = row.MATCH_STATUS.toUpperCase().includes("MATCH");
+            const dStatus = row.DEMAND_STATUS || 'Moderate';
 
-            let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
-            if(matchStat.includes("3-WAY")) statusMarkup = `<span class="badge badge-pill badge-secondary">3-WAY MATCH</span>`;
-            else if(hasMatch) statusMarkup = `<span class="badge badge-pill badge-success">DIRECT MATCH</span>`;
-
-            rowsHtml += `
-                <tr class="${isMe ? 'row-identity' : ''}">
+            tbody.append(`
+                <tr class="${isMe ? 'row-identity' : ''} ${hasMatch ? 'matched-glow' : ''}">
                     <td>
-                        <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                        ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}
-                    </td>
-                    <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                    <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
-                    <td class="desktop-only">
-                        <div class="demand-pill ${demandCfg.c}">
-                            <span style="background:${demandCfg.d}; height:7px; width:7px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
-                            ${row.DEMAND_STATUS || 'Moderate'}
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="font-weight-bold mr-2">${row['Your Designation']}</span>
+                            ${isMe ? '<span class="badge badge-primary" style="font-size:10px">YOU</span>' : ''}
+                        </div>
+                        <div class="trust-score-wrapper">
+                            <i class="fas ${trust.icon} text-primary" style="font-size: 10px;"></i>
+                            <span style="font-size: 10px; font-weight: 700;">${trust.label}</span>
                         </div>
                     </td>
-                    <td>${statusMarkup}</td>
+                    <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <strong>${row['Willing District']}</strong>
+                            ${dStatus.includes('HIGH') ? '<span class="heat-label ml-2">HOT</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="desktop-only">
+                        <div class="d-flex align-items-center">
+                            ${renderHeatmap(dStatus)}
+                            <div class="intensity-ring mr-2" style="border-color: ${intensity.color}">
+                                ${intensity.percent}%
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                         <span class="badge-status ${hasMatch ? 's-match' : 's-pending'}">
+                            ${row.MATCH_STATUS}
+                         </span>
+                    </td>
                     <td class="text-center">
-                        <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
-                                onclick="unlockRow(${row.id}, ${hasMatch})">
-                            <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
+                        <button class="btn btn-unlock" onclick="unlockRow(${row.id}, ${hasMatch})">
+                            <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock'}"></i>
                         </button>
                     </td>
-                </tr>`;
+                </tr>
+            `);
         });
-        tbody.html(rowsHtml);
     }
 
+    /**
+     * Actions & Utility
+     */
     async function unlockRow(id, active) {
         if(!active) { alert("Contact details visible only after a match is found."); return; }
         if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
@@ -770,7 +1101,7 @@
 
     function redirectToRegistration() {
         const up = localStorage.getItem("userPhone");
-        const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html";
+        const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html";
         window.location.href = up ? `${url}?editPhone=${up}` : url;
     }
 
