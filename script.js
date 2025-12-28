@@ -154,9 +154,31 @@ async function syncLiveFeed() {
     try {
         const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
         const res = await r.json();
-        if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+
+        // 1. Detect New Matches for the User
+        const oldMatches = MASTER_DATA.filter(x => 
+            String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
+        ).length;
+
+        const newMatches = res.records.filter(x => 
+            String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
+        ).length;
+
+        // 2. Alert user if a match was just found by the system
+        if (newMatches > oldMatches) {
+            showToast("🎉 Great news! A new mutual match has been found!", "success");
+            if (window.navigator.vibrate) window.navigator.vibrate(200); // Haptic feedback
+        }
+
+        // 3. Update the UI silently
+        MASTER_DATA = res.records;
+        renderTable(); 
         updateStats(res.records, res.archivedCount);
-    } catch (e) { console.warn("Background sync failed."); }
+        if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+        
+    } catch (e) { 
+        console.warn("Silent sync failed."); 
+    }
 }
 
 function updateStats(data, archived) {
@@ -319,14 +341,10 @@ function renderTableToDOM(data) {
 }
 
 async function unlockRow(id, active) {
-    // Ensure 'active' is treated as a boolean
-    const isActive = String(active) === "true" || active === true;
-
-    if(!isActive) { 
-        alert("Contact details visible only after a match is found."); 
+    if(!active) { 
+        showToast("Match required to view contact", "info"); 
         return; 
     }
-    
     if(!MY_PHONE) { 
         $('#modalVerify').modal('show'); 
         return; 
@@ -337,30 +355,24 @@ async function unlockRow(id, active) {
     try {
         const res = await fetch(API, {
             method: "POST",
-            // Use the 'id' passed into the function
-            body: JSON.stringify({ 
-                action: "getContact", 
-                rowId: id, 
-                userPhone: MY_PHONE 
-            })
+            body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
         });
-        
         const data = await res.json();
         $("#globalLoader").fadeOut();
         
         if(data.error) {
-            alert(data.error);
+            showToast(data.error, "error");
         } else {
-            // Ensure we are populating from 'data' (the server response)
-            $('#resName').text(data.name || "N/A");
-            $('#resPhone').text(data.contact || "N/A");
+            $('#resName').text(data.name);
+            $('#resPhone').text(data.contact);
             $('#callLink').attr("href", "tel:" + data.contact);
             $('#waLink').attr("href", "https://wa.me/91" + data.contact);
             $('#modalContact').modal('show');
+            showToast("Contact Unlocked Successfully!");
         }
     } catch(e) { 
         $("#globalLoader").fadeOut(); 
-        alert("Connection error: " + e.message); 
+        showToast("Connection Error", "error"); 
     }
 }
 
@@ -441,14 +453,56 @@ function selectRadio(id) {
     if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none');
     else $('#otherReasonWrapper').addClass('d-none');
 }
-function showToast(message, type = 'info') {
-    const color = type === 'error' ? '#ef4444' : '#4f46e5';
+function showToast(message, type = 'success') {
+    // Remove existing toast if any
+    $('.custom-toast').remove();
+
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+    const bgColor = type === 'success' ? '#10b981' : '#4f46e5';
+
     const toast = $(`
-        <div style="position:fixed; bottom:20px; right:20px; background:${color}; color:white; padding:12px 24px; border-radius:12px; z-index:10000; box-shadow:0 10px 15px rgba(0,0,0,0.1); display:none;">
-            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>
-            ${message}
+        <div class="custom-toast shadow-lg">
+            <i class="fas ${icon} mr-2"></i>
+            <span>${message}</span>
         </div>
     `);
+
     $('body').append(toast);
-    toast.fadeIn().delay(3000).fadeOut(() => toast.remove());
+    toast.css({
+        'position': 'fixed',
+        'bottom': '20px',
+        'left': '50%',
+        'transform': 'translateX(-50%)',
+        'background': bgColor,
+        'color': 'white',
+        'padding': '12px 24px',
+        'border-radius': '50px',
+        'z-index': '10000',
+        'font-weight': '600',
+        'display': 'none'
+    });
+
+    toast.fadeIn(400).delay(3000).fadeOut(400, function() { $(this).remove(); });
+}
+function shareToWhatsApp() {
+    const appUrl = window.location.href.split('?')[0]; // Clean URL
+    const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district";
+    
+    // Professional Message Template
+    const text = `*Mutual Transfer Portal Update* 🌐\n\n` +
+                 `I'm looking for a transfer from *${myDistrict}*.\n` +
+                 `Check live matches and register your profile here:\n\n` +
+                 `👉 ${appUrl}\n\n` +
+                 `_Verified profiles only. Auto-match system active._`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
+}
+function copyInviteLink() {
+    const appUrl = window.location.href.split('?')[0];
+    navigator.clipboard.writeText(appUrl).then(() => {
+        showToast("Invite link copied to clipboard!", "success");
+    }).catch(() => {
+        showToast("Failed to copy link", "error");
+    });
 }
