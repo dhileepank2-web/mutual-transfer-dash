@@ -257,19 +257,58 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalContact" tabindex="-1">
+<div class="modal fade" id="modalChain" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-            <div class="text-center">
-                <div class="small font-weight-bold text-primary mb-2 uppercase">Verified Match Found</div>
-                <h2 id="resName" class="font-weight-bold">---</h2>
-                <div class="bg-light p-4 rounded-24 my-4 border">
-                    <span class="text-muted small font-weight-bold">MOBILE NUMBER</span>
-                    <h1 class="text-dark font-weight-bold mb-0 mt-1" id="resPhone">---</h1>
+        <div class="modal-content border-0 shadow-lg rounded-24">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-link text-primary mr-2"></i>3-Way Transfer Chain</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body text-center pt-4">
+                <p class="small text-muted mb-4">A complete cycle has been found. Everyone moves one step forward!</p>
+                
+                <div class="d-flex justify-content-around align-items-center mb-5 position-relative">
+                    <div class="chain-node active">
+                        <div class="node-icon"><i class="fas fa-user"></i></div>
+                        <div class="node-label">You</div>
+                    </div>
+                    
+                    <div class="chain-arrow"><i class="fas fa-chevron-right"></i></div>
+                    
+                    <div class="chain-node">
+                        <div class="node-icon"><i class="fas fa-user-friends"></i></div>
+                        <div class="node-label" id="chainPersonB">Partner B</div>
+                    </div>
+                    
+                    <div class="chain-arrow"><i class="fas fa-chevron-right"></i></div>
+                    
+                    <div class="chain-node">
+                        <div class="node-icon"><i class="fas fa-user-tag"></i></div>
+                        <div class="node-label" id="chainPersonC">Partner C</div>
+                    </div>
+                    
+                    </div>
+
+                <div class="bg-light p-3 rounded-15 text-left mb-4">
+                    <div class="small mb-2"><i class="fas fa-info-circle text-primary mr-1"></i> <strong>How it works:</strong></div>
+                    <ul class="small text-muted pl-3 mb-0">
+                        <li>You move to <span id="distB" class="text-dark font-weight-bold">...</span></li>
+                        <li><span id="nameB">Partner B</span> moves to <span id="distC" class="text-dark font-weight-bold">...</span></li>
+                        <li><span id="nameC">Partner C</span> fills your spot in <span id="distA" class="text-dark font-weight-bold">...</span></li>
+                    </ul>
                 </div>
+
                 <div class="row">
-                    <div class="col-6"><a id="callLink" class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fas fa-phone mr-2"></i>Call</a></div>
-                    <div class="col-6"><a id="waLink" target="_blank" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm"><i class="fab fa-whatsapp mr-2"></i>Chat</a></div>
+                    <div class="col-6">
+                        <a id="btnChatB" href="#" target="_blank" class="btn btn-success btn-block rounded-pill btn-sm">
+                            <i class="fab fa-whatsapp mr-1"></i> Chat with B
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a id="btnChatC" href="#" target="_blank" class="btn btn-success btn-block rounded-pill btn-sm">
+                            <i class="fab fa-whatsapp mr-1"></i> Chat with C
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
