@@ -258,41 +258,58 @@ function renderTable() {
 
 function renderTableToDOM(data) {
     const tbody = $('#mainTbody');
+    
+    // Capture existing IDs before clearing to detect "New" entries
+    const existingIds = [];
+    tbody.find('tr').each(function() {
+        const id = $(this).attr('data-id');
+        if (id) existingIds.push(String(id));
+    });
+
     tbody.empty();
     $('#noData').toggleClass('d-none', data.length > 0);
+    
     let rowsHtml = ""; 
     data.forEach(row => {
         const isMe = String(row.phone) === String(MY_PHONE);
-        const matchStat = row.MATCH_STATUS.toUpperCase();
+        const matchStat = (row.MATCH_STATUS || "").toUpperCase();
         const hasMatch = matchStat.includes("MATCH");
         
+        // Check if this is a fresh update/new entry
+        const isNew = existingIds.length > 0 && !existingIds.includes(String(row.id));
+        
+        // Demand Styling
         let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
         const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
         if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
         if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
 
+        // Status Badges
         let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
-        if(matchStat.includes("3-WAY")) statusMarkup = `<span class="badge badge-pill badge-secondary">3-WAY MATCH</span>`;
-        else if(hasMatch) statusMarkup = `<span class="badge badge-pill badge-success">DIRECT MATCH</span>`;
+        if(matchStat.includes("3-WAY")) {
+            statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY MATCH</span>`;
+        } else if(hasMatch) {
+            statusMarkup = `<span class="badge badge-pill badge-success badge-glow-green">DIRECT MATCH</span>`;
+        }
 
         rowsHtml += `
-            <tr class="${isMe ? 'row-identity' : ''}">
+            <tr class="${isMe ? 'row-identity' : ''} ${isNew ? 'row-updated' : ''}" data-id="${row.id}">
                 <td>
                     <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}
+                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem; letter-spacing:0.5px;">MY ENTRY</div>' : ''}
                 </td>
                 <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
                 <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
                 <td class="desktop-only">
                     <div class="demand-pill ${demandCfg.c}">
-                        <span style="background:${demandCfg.d}; height:7px; width:7px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
+                        <span class="pulse-dot-small" style="background:${demandCfg.d};"></span>
                         ${row.DEMAND_STATUS || 'Moderate'}
                     </div>
                 </td>
                 <td>${statusMarkup}</td>
                 <td class="text-center">
-                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
-                            onclick="unlockRow('${row.id}', ${hasMatch})"
+                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" 
+                            onclick="unlockRow('${row.id}', ${hasMatch})">
                         <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                     </button>
                 </td>
@@ -423,4 +440,15 @@ function selectRadio(id) {
     $(`#${id}`).prop('checked', true);
     if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none');
     else $('#otherReasonWrapper').addClass('d-none');
+}
+function showToast(message, type = 'info') {
+    const color = type === 'error' ? '#ef4444' : '#4f46e5';
+    const toast = $(`
+        <div style="position:fixed; bottom:20px; right:20px; background:${color}; color:white; padding:12px 24px; border-radius:12px; z-index:10000; box-shadow:0 10px 15px rgba(0,0,0,0.1); display:none;">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>
+            ${message}
+        </div>
+    `);
+    $('body').append(toast);
+    toast.fadeIn().delay(3000).fadeOut(() => toast.remove());
 }
