@@ -524,16 +524,28 @@ function copyInviteLink() {
 }
 let currentRoomId = 'GLOBAL';
 let chatPollInterval = null;
+let LAST_MSG_ID = ""; 
+// Tracks the timestamp of the last message seen by the user
+let LAST_SEEN_TIME = localStorage.getItem('last_chat_seen') || 0;
 
 function openChat(roomId, title) {
     if (!MY_PHONE) { showToast("Please login first", "info"); return; }
+    
     currentRoomId = roomId;
     $('#chatTitle').text(title);
     $('#chatBox').empty();
-    $('#modalChat').modal('show');
     
+    // Logic: Clear Badge and Update 'Last Seen' if entering Global
+    if (roomId === 'GLOBAL') {
+        $('#chatBadge').fadeOut();
+        LAST_SEEN_TIME = Date.now();
+        localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
+    }
+    
+    $('#modalChat').modal('show');
     loadMessages();
-    // Refresh chat every 4 seconds while open
+    
+    if(chatPollInterval) clearInterval(chatPollInterval);
     chatPollInterval = setInterval(loadMessages, 4000);
 }
 
@@ -541,25 +553,37 @@ function openChat(roomId, title) {
 $('#modalChat').on('hidden.bs.modal', () => clearInterval(chatPollInterval));
 
 async function loadMessages() {
-    const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
-    const data = await res.json();
-    let html = "";
-    data.messages.forEach(m => {
-        html += `
-            <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
-                ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
-                <div>${m.text}</div>
-                <span class="msg-info">${m.time}</span>
-            </div>`;
-    });
-    $('#chatBox').html(html);
-    $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+    try {
+        const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
+        const data = await res.json();
+        let html = "";
+        
+        data.messages.forEach(m => {
+            html += `
+                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
+                    ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
+                    <div>${m.text}</div>
+                    <span class="msg-info">${m.time}</span>
+                </div>`;
+        });
+        
+        $('#chatBox').html(html);
+        $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+        
+        // If chat is open, keep updating Last Seen time so badge doesn't reappear
+        if ($('#modalChat').hasClass('show') && currentRoomId === 'GLOBAL') {
+            LAST_SEEN_TIME = Date.now();
+            localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
+        }
+    } catch(e) { console.warn("Chat load failed."); }
 }
 
-async function sendChatMessage() {
-    const msg = $('#chatInput').val().trim();
+async function sendChatMessage(customMsg = null) {
+    const inputField = $('#chatInput');
+    const msg = customMsg || inputField.val().trim();
+    
     if (!msg) return;
-    $('#chatInput').val('');
+    inputField.val('');
 
     await fetch(API, {
         method: "POST",
@@ -567,15 +591,17 @@ async function sendChatMessage() {
             action: "sendMessage",
             roomId: currentRoomId,
             userPhone: MY_PHONE,
-            userName: MY_NAME, // Ensure MY_NAME is set during login/checkPhone
+            userName: MY_NAME,
             msg: msg
         })
     });
-    loadMessages(); // Instant refresh
+    loadMessages();
 }
-let LAST_MSG_ID = ""; // To prevent showing the same message repeatedly
 
+// Background Listener for Previews and Red Badge
 async function updateChatPreview() {
+    if ($('#modalChat').hasClass('show')) return; // Don't show preview if user is already chatting
+
     try {
         const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
         const data = await res.json();
@@ -583,20 +609,21 @@ async function updateChatPreview() {
         if (data.messages && data.messages.length > 0) {
             const lastMsg = data.messages[data.messages.length - 1];
             
-            // Only show if it's a new message and not from me
-            if (lastMsg.text !== LAST_MSG_ID && !lastMsg.isMe) {
+            // Logic: Show Red Badge if message is newer than LAST_SEEN_TIME
+            // (Note: Backend should ideally send a timestamp for precise comparison)
+            if (!lastMsg.isMe && lastMsg.text !== LAST_MSG_ID) {
+                $('#chatBadge').fadeIn();
+                
+                // Logic: Show the floating preview card
                 $('#prevName').text(lastMsg.name);
                 $('#prevText').text(lastMsg.text);
                 $('#prevAvatar').text(lastMsg.name.charAt(0));
                 
-                $('#chatPreview').fadeIn().delay(5000).fadeOut(); // Show for 5 seconds
+                $('#chatPreview').fadeIn().delay(5000).fadeOut();
                 LAST_MSG_ID = lastMsg.text;
             }
         }
-    } catch (e) {
-        console.warn("Preview sync failed.");
-    }
+    } catch (e) { console.warn("Background sync failed."); }
 }
 
-// Check for new messages every 15 seconds in the background
 setInterval(updateChatPreview, 15000);
