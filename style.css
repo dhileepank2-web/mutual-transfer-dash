@@ -1,3 +1,50 @@
+/* Glow for New/Updated Rows */
+.row-updated {
+    animation: rowHighlight 3s ease-out;
+}
+
+@keyframes rowHighlight {
+    0% { background-color: rgba(79, 70, 229, 0.2); transform: scale(1.01); }
+    100% { background-color: transparent; transform: scale(1); }
+}
+
+/* Pulsing Status Badges */
+.badge-glow-green {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    animation: pulseGreen 2s infinite;
+}
+
+.badge-glow-purple {
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+    animation: pulsePurple 2s infinite;
+}
+
+@keyframes pulseGreen {
+    0% { box-shadow: 0 0 0px rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0px rgba(16, 185, 129, 0); }
+}
+
+/* Subtle Hover Effects */
+.btn-hover-grow {
+    transition: transform 0.2s ease;
+}
+.btn-hover-grow:hover {
+    transform: scale(1.1);
+    background-color: #4f46e5 !important;
+    color: white !important;
+}
+
+/* Demand Pill Dot */
+.pulse-dot-small {
+    height: 7px; 
+    width: 7px; 
+    border-radius: 50%; 
+    display: inline-block; 
+    margin-right: 6px;
+    box-shadow: 0 0 5px currentColor;
+}
+
 /* Smooth Row Transitions */
 #mainTbody tr {
     transition: all 0.5s ease;
