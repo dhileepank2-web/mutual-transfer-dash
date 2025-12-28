@@ -366,9 +366,9 @@ async function unlockRow(id, active) {
                 $('#distC').text(data.partnerC.workingDistrict);
                 
                 // Set Chat Buttons for the Room
-                const roomId = `MATCH_${id}`;
-                $('#btnChatPartners').attr('onclick', `openChat('${roomId}', 'Chain Discussion')`);
-                
+               // Example for Individual Match Chat Button
+                const privateRoomId = `MATCH_${id}`;
+                $('#btnChatPartner').attr('onclick', `openChat('${privateRoomId}', 'Private Chat')`);
                 // OPEN THE CHAIN MODAL
                 $('#modalChain').modal('show'); 
             } else {
@@ -521,4 +521,55 @@ function copyInviteLink() {
     }).catch(() => {
         showToast("Failed to copy link", "error");
     });
+}
+let currentRoomId = 'GLOBAL';
+let chatPollInterval = null;
+
+function openChat(roomId, title) {
+    if (!MY_PHONE) { showToast("Please login first", "info"); return; }
+    currentRoomId = roomId;
+    $('#chatTitle').text(title);
+    $('#chatBox').empty();
+    $('#modalChat').modal('show');
+    
+    loadMessages();
+    // Refresh chat every 4 seconds while open
+    chatPollInterval = setInterval(loadMessages, 4000);
+}
+
+// Stop polling when modal closes
+$('#modalChat').on('hidden.bs.modal', () => clearInterval(chatPollInterval));
+
+async function loadMessages() {
+    const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
+    const data = await res.json();
+    let html = "";
+    data.messages.forEach(m => {
+        html += `
+            <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
+                ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
+                <div>${m.text}</div>
+                <span class="msg-info">${m.time}</span>
+            </div>`;
+    });
+    $('#chatBox').html(html);
+    $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+}
+
+async function sendChatMessage() {
+    const msg = $('#chatInput').val().trim();
+    if (!msg) return;
+    $('#chatInput').val('');
+
+    await fetch(API, {
+        method: "POST",
+        body: JSON.stringify({
+            action: "sendMessage",
+            roomId: currentRoomId,
+            userPhone: MY_PHONE,
+            userName: MY_NAME, // Ensure MY_NAME is set during login/checkPhone
+            msg: msg
+        })
+    });
+    loadMessages(); // Instant refresh
 }
