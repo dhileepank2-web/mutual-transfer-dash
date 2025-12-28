@@ -12,16 +12,7 @@
 </head>
 <body>
     
-<div id="chatPreview" class="chat-preview-card shadow-sm" onclick="openChat('GLOBAL', 'Global Discussion Hub')">
-    <div class="d-flex align-items-center">
-        <div class="preview-avatar" id="prevAvatar">?</div>
-        <div class="preview-content">
-            <div class="preview-name" id="prevName">Global Hub</div>
-            <div class="preview-text" id="prevText">Loading messages...</div>
-        </div>
-    </div>
-</div>
-    
+
 <div id="btnGlobalChat" onclick="openChat('GLOBAL', 'Global Discussion Hub')" 
      style="position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#4f46e5; border-radius:50%; color:white; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:1000; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
     <i class="fas fa-comments fa-lg"></i>
@@ -109,7 +100,18 @@
             </div>
         </div>
     </div>
+    
 </header>
+    <div id="chatPreview" class="chat-preview-card shadow-sm" onclick="openChat('GLOBAL', 'Global Discussion Hub')">
+    <div class="d-flex align-items-center">
+        <div class="preview-avatar" id="prevAvatar">?</div>
+        <div class="preview-content">
+            <div class="preview-name" id="prevName">Global Hub</div>
+            <div class="preview-text" id="prevText">Loading messages...</div>
+        </div>
+    </div>
+</div>
+    
 
 <div class="container mt-4 pb-5">
     <div class="text-right mb-2">
