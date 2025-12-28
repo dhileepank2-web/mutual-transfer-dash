@@ -15,7 +15,7 @@
 <div id="btnGlobalChat" onclick="openChat('GLOBAL', 'Global Discussion Hub')" 
      style="position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#4f46e5; border-radius:50%; color:white; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:1000; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
     <i class="fas fa-comments fa-lg"></i>
-    <span id="chatBadge" style="display:none; position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:10px; font-weight:bold; height:20px; width:20px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center;">!</span>
+    <span id="chatBadge" style="display:none; position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:10px; font-weight:bold; height:20px; width:20px; border-radius:50%; border:2px solid white; align-items:center; justify-content:center;">!</span>
 </div>
 
 <div class="modal fade" id="modalChat" tabindex="-1" role="dialog" aria-hidden="true">
@@ -28,7 +28,7 @@
             <div class="modal-body p-0" style="background:#f0f2f5;">
                 <div id="chatBox" style="height:400px; overflow-y:auto; padding:20px; display:flex; flex-direction:column;"></div>
                 <div class="p-3 bg-white border-top d-flex">
-                    <input type="text" id="chatInput" class="form-control rounded-pill border-0 bg-light" placeholder="Type message..." onkeypress="handleChatKey(event)">
+                    <input type="text" id="chatInput" class="form-control rounded-pill border-0 bg-light" placeholder="Type message...">
                     <button class="btn btn-primary rounded-circle ml-2" onclick="sendChatMessage()" aria-label="Send">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -93,7 +93,7 @@
             <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                 <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                 <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="openEditModal()"></i>
+                <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="redirectToRegistration()"></i>
                 <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
                 <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
             </div>
@@ -112,9 +112,9 @@
 </div>
 
 <div class="d-flex p-2 bg-white border-bottom overflow-auto" style="white-space: nowrap; gap: 8px;">
-    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendQuickMessage('Any Junior Assistant matches?')">Jr. Asst?</button>
-    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendQuickMessage('Looking for 3-way match.')">3-Way Match?</button>
-    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendQuickMessage('Is this profile verified?')">Verified?</button>
+    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendChatMessage('Any Junior Assistant matches?')">Jr. Asst?</button>
+    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendChatMessage('Looking for 3-way match.')">3-Way Match?</button>
+    <button class="btn btn-xs btn-outline-primary rounded-pill small" onclick="sendChatMessage('Is this profile verified?')">Verified?</button>
 </div>
 
 <div class="container mt-4 pb-5">
@@ -151,11 +151,6 @@
         <li class="nav-item ml-2">
             <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
                 <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="success-tab" data-toggle="pill" href="#paneSuccess" role="tab" onclick="renderSuccessWall()">
-                <i class="fas fa-trophy mr-2"></i>Success Wall
             </a>
         </li>
         <li class="nav-item ml-2">
@@ -232,20 +227,6 @@
             <div id="hubActivityList"></div>
         </div>
 
-        <div class="tab-pane fade" id="paneSuccess" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h5 class="font-weight-bold mb-1">Success Stories Wall 🏆</h5>
-                    <p class="text-muted small">Celebrating successful transfers made through our platform.</p>
-                </div>
-            </div>
-            <div id="successWallGrid" class="row">
-                <div class="col-12 text-center p-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-        </div>
-
         <div class="tab-pane fade" id="paneActivity" role="tabpanel">
             <div class="row">
                 <div class="col-md-7">
@@ -273,7 +254,7 @@
                 <input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="10-digit mobile">
                 <div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div>
                 <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button>
-                <div id="regSection" class="border-top pt-3">
+                <div id="regSection" style="display:none;" class="border-top pt-3">
                     <p class="text-muted small mb-2">Not a member yet?</p>
                     <a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15">
                         <i class="fas fa-user-plus mr-2"></i>Register Now
