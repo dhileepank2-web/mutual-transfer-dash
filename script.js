@@ -341,14 +341,8 @@ function renderTableToDOM(data) {
 }
 
 async function unlockRow(id, active) {
-    if(!active) { 
-        showToast("Match required to view contact", "info"); 
-        return; 
-    }
-    if(!MY_PHONE) { 
-        $('#modalVerify').modal('show'); 
-        return; 
-    }
+    const isActive = String(active) === "true" || active === true;
+    if(!isActive) { showToast("Match required to view contact", "info"); return; }
     
     $("#globalLoader").fadeIn();
     
@@ -359,20 +353,42 @@ async function unlockRow(id, active) {
         });
         const data = await res.json();
         $("#globalLoader").fadeOut();
-        
+
         if(data.error) {
             showToast(data.error, "error");
         } else {
-            $('#resName').text(data.name);
-            $('#resPhone').text(data.contact);
-            $('#callLink').attr("href", "tel:" + data.contact);
-            $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-            $('#modalContact').modal('show');
-            showToast("Contact Unlocked Successfully!");
+            // Check if it's a 3-way chain or a direct match
+            if (data.is3Way) {
+                // Populate Chain Modal
+                $('#chainPersonB').text(data.partnerB.name);
+                $('#chainPersonC').text(data.partnerC.name);
+                $('#distB').text(data.partnerB.workingDistrict);
+                $('#distC').text(data.partnerC.workingDistrict);
+                
+                // Set Chat Buttons for the Room
+                const roomId = `MATCH_${id}`;
+                $('#btnChatPartners').attr('onclick', `openChat('${roomId}', 'Chain Discussion')`);
+                
+                // OPEN THE CHAIN MODAL
+                $('#modalChain').modal('show'); 
+            } else {
+                // Populate Standard Contact Modal
+                $('#resName').text(data.name || "N/A");
+                $('#resPhone').text(data.contact || "N/A");
+                $('#callLink').attr("href", "tel:" + data.contact);
+                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
+                
+                // Set Private Chat Button
+                $('#btnChatPartner').attr('onclick', `openChat('MATCH_${id}', 'Chat with ${data.name}')`);
+
+                // OPEN THE CONTACT MODAL
+                $('#modalContact').modal('show'); 
+            }
+            showToast("Contact Unlocked!", "success");
         }
     } catch(e) { 
         $("#globalLoader").fadeOut(); 
-        showToast("Connection Error", "error"); 
+        showToast("Server Error", "error"); 
     }
 }
 
