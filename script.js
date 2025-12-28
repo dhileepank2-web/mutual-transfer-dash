@@ -192,15 +192,73 @@ async function syncLiveFeed() {
 }
 
 function updateStats(data, archived) {
-    const liveTotal = [...new Set(data.map(x => x.phone))].length;
+    // --- LIVE DASHBOARD LOGIC ---
+    // Total Unique Requests (Unique phone numbers)
+    const liveTotalUnique = [...new Set(data.map(x => x.phone))].length;
+    // Total Requests (All entries including duplicates/different districts)
+    const totalRequests = data.length;
+    // Matched Only (Currently active matches)
     const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+
+    // Updating Live Dashboard UI
+    $('#statTotalUnique').text(liveTotalUnique);
+    $('#statTotalRequests').text(totalRequests);
+    $('#statMatchedLive').text(liveMatched);
+
+    // --- ARCHIVED DASHBOARD LOGIC ---
+    // Using your original calculation for historical data
     const systemMatchesTotal = liveMatched + archived;
-    const totalHistoricalProfiles = liveTotal + archived;
+    const totalHistoricalProfiles = liveTotalUnique + archived;
     const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
     
-    $('#statTotal').text(liveTotal);
+    // Legacy support for your existing IDs if needed
+    $('#statTotal').text(liveTotalUnique);
     $('#statMatched').text(systemMatchesTotal);
     $('#statRate').text(rate + '%');
+
+    // Trigger the rendering of the Archive "Wall of Fame"
+    renderArchivedMatches(); 
+}
+
+// 2. New Function for Archived Dashboard
+async function renderArchivedDashboard() {
+    const container = $('#archivedGrid'); // Ensure you have this ID in your HTML
+    if (!container.length) return;
+
+    try {
+        // Fetching specifically for archived success stories
+        const r = await fetch(`${API}?action=getArchivedStories`);
+        const res = await r.json();
+        
+        if (!res.stories || res.stories.length === 0) {
+            container.html('<div class="col-12 text-center text-muted">No archived matches yet.</div>');
+            return;
+        }
+
+        let html = "";
+        res.stories.forEach(story => {
+            html += `
+                <div class="col-md-4 mb-3">
+                    <div class="archive-card shadow-sm border-left-success">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="font-weight-bold text-dark mb-0">${story.name}</h6>
+                            <span class="badge badge-success-soft">Success</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="small text-muted">
+                            <div><i class="fas fa-handshake mr-1"></i> Match Date: <strong>${story.matchDate}</strong></div>
+                            <div><i class="fas fa-door-open mr-1"></i> Left Portal: <strong>${story.exitDate}</strong></div>
+                        </div>
+                        <div class="mt-2 small font-italic text-primary">
+                            Status: Successfully Transferred
+                        </div>
+                    </div>
+                </div>`;
+        });
+        container.html(html);
+    } catch (e) {
+        console.warn("Archived dashboard failed to load.");
+    }
 }
 
 function loadActivityLog() {
