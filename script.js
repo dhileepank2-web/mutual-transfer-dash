@@ -79,24 +79,36 @@ function animateValue(id, start, end, duration) {
 setInterval(professionalSync, 30000);
 
 
-async function loadData() {
+function loadData() {
     $("#globalLoader").show();
-    try {
-        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`, { mode: 'cors' });
-        const response = await r.json();
-        
+    // FIX: Added 'action' and cache-buster 't' to ensure Google Apps Script fetches live data
+    fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
+    .then(r => r.json())
+    .then(response => {
         MASTER_DATA = response.records || [];
-        ARCHIVE_COUNT = response.archivedCount || 0;
+        const ARCHIVE_COUNT = response.archivedCount || 0;
         
-        // Setup User Identity
+        if (response.publicHubActivity) {
+            renderHubActivity(response.publicHubActivity);
+        }
+
+        const userLookup = MASTER_DATA.reduce((acc, user) => {
+            acc[String(user.phone)] = user;
+            return acc;
+        }, {});
+
+        $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
+
         if (MY_PHONE) {
-            const currentUser = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+            const currentUser = userLookup[String(MY_PHONE)];
             if (currentUser) {
                 MY_NAME = currentUser['Your Designation'] || "User";
                 $('#idContainer').removeClass('d-none');
+                // SHOW MASKED PHONE IN HEADER
                 $('#lblUserPhone').text(maskPhone(MY_PHONE));
             } else {
                 localStorage.removeItem("userPhone");
+                MY_PHONE = null;
                 $('#modalVerify').modal('show');
             }
         } else {
@@ -105,13 +117,14 @@ async function loadData() {
 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         buildFilters();
-        renderTable();
-        if (response.publicHubActivity) renderHubActivity(response.publicHubActivity);
+        renderTable(); // This will trigger the fixed renderTableToDOM below
+        loadActivityLog(); 
         $("#globalLoader").fadeOut();
-    } catch (err) {
-        console.error("Fetch Error:", err);
+    })
+    .catch(err => {
+        console.error("Critical Load Error:", err);
         $("#globalLoader").hide();
-    }
+    });
 }
 function renderHubActivity(activities) {
     const container = $('#hubActivityList');
