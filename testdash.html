@@ -154,6 +154,11 @@
             </a>
         </li>
         <li class="nav-item ml-2">
+            <a class="nav-link" id="success-tab" data-toggle="pill" href="#paneSuccess" role="tab" onclick="renderSuccessWall()">
+                <i class="fas fa-trophy mr-2"></i>Success Wall
+            </a>
+        </li>
+        <li class="nav-item ml-2">
             <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
                 <i class="fas fa-user-shield mr-2"></i>My Activity
             </a>
@@ -225,6 +230,20 @@
                 </span>
             </div>
             <div id="hubActivityList"></div>
+        </div>
+
+        <div class="tab-pane fade" id="paneSuccess" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="font-weight-bold mb-1">Success Stories Wall 🏆</h5>
+                    <p class="text-muted small">Celebrating successful transfers made through our platform.</p>
+                </div>
+            </div>
+            <div id="successWallGrid" class="row">
+                <div class="col-12 text-center p-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
         </div>
 
         <div class="tab-pane fade" id="paneActivity" role="tabpanel">
