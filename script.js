@@ -37,6 +37,7 @@ async function professionalSync() {
         if (hasChanges) {
             MASTER_DATA = res.records;
             renderTable(); // This now needs to handle transitions
+            // FIX: Ensure Hub Activity is updated during professionalSync
             if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
             console.log("Sync Complete: Data Updated");
         }
@@ -130,8 +131,13 @@ function loadData() {
 }
 
 function renderHubActivity(activities) {
-    const container = $('#hubActivityList').empty();
-    if (!activities.length) {
+    const container = $('#hubActivityList');
+    // FIX: Check if container exists before proceeding to prevent errors
+    if (!container.length) return;
+    
+    container.empty();
+    
+    if (!activities || !activities.length) {
         container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
         return;
     }
@@ -177,6 +183,7 @@ async function syncLiveFeed() {
         MASTER_DATA = res.records;
         renderTable(); 
         updateStats(res.records, res.archivedCount);
+        // FIX: Explicitly call renderHubActivity here to ensure the feed updates
         if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
         
     } catch (e) { 
