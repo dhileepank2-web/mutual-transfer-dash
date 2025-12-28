@@ -13,6 +13,73 @@ $(document).ready(() => {
     }, 120000);
 });
 
+// 1. Better State Management
+let IS_SYNCING = false;
+
+// 2. High-End Sync Function
+async function professionalSync() {
+    if (IS_SYNCING || document.visibilityState !== 'visible') return;
+    
+    IS_SYNCING = true;
+    showSlimProgress(30); // Start a subtle top-bar loader
+
+    try {
+        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
+        const res = await r.json();
+        
+        // Update stats with a counter animation (Pro feature)
+        animateValue("statTotal", MASTER_DATA.length, res.records.length, 1000);
+        
+        // Perform the "Deep Compare" 
+        const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
+        
+        if (hasChanges) {
+            MASTER_DATA = res.records;
+            renderTable(); // This now needs to handle transitions
+            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+            console.log("Sync Complete: Data Updated");
+        }
+
+        showSlimProgress(100);
+    } catch (e) {
+        console.warn("Background sync failed silently to keep UI smooth.");
+    } finally {
+        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
+    }
+}
+
+// 3. Subtle Progress Bar UI
+function showSlimProgress(percent) {
+    if (!$('#slim-progress').length) {
+        $('body').append('<div id="slim-progress" style="position:fixed; top:0; left:0; height:3px; background:#4f46e5; z-index:9999; transition: width 0.4s ease;"></div>');
+    }
+    $('#slim-progress').css('width', percent + '%').fadeIn();
+}
+
+function hideSlimProgress() {
+    $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%'));
+}
+
+// 4. Smooth Counter Animation for Stats
+function animateValue(id, start, end, duration) {
+    if (start === end) return;
+    const obj = document.getElementById(id);
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+// 5. Initialize the Auto-Sync (Every 30 seconds for "Live" feel)
+setInterval(professionalSync, 30000);
+
+
 function loadData() {
     $("#globalLoader").show();
     fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
