@@ -126,7 +126,7 @@ function loadActivityLog() {
                             <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
                             <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
                         </div>
-                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow(${m.id}, true)">View Contact</button>
+                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
                     </div>
                 </div>`);
         });
@@ -225,7 +225,7 @@ function renderTableToDOM(data) {
                 <td>${statusMarkup}</td>
                 <td class="text-center">
                     <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
-                            onclick="unlockRow(${row.id}, ${hasMatch})">
+                            onclick="unlockRow('${row.id}', ${hasMatch})"
                         <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                     </button>
                 </td>
@@ -235,25 +235,49 @@ function renderTableToDOM(data) {
 }
 
 async function unlockRow(id, active) {
-    if(!active) { alert("Contact details visible only after a match is found."); return; }
-    if(!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+    // Ensure 'active' is treated as a boolean
+    const isActive = String(active) === "true" || active === true;
+
+    if(!isActive) { 
+        alert("Contact details visible only after a match is found."); 
+        return; 
+    }
+    
+    if(!MY_PHONE) { 
+        $('#modalVerify').modal('show'); 
+        return; 
+    }
+    
     $("#globalLoader").fadeIn();
+    
     try {
         const res = await fetch(API, {
             method: "POST",
-            body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
+            // Use the 'id' passed into the function
+            body: JSON.stringify({ 
+                action: "getContact", 
+                rowId: id, 
+                userPhone: MY_PHONE 
+            })
         });
+        
         const data = await res.json();
         $("#globalLoader").fadeOut();
-        if(data.error) alert(data.error);
-        else {
-            $('#resName').text(data.name);
-            $('#resPhone').text(data.contact);
+        
+        if(data.error) {
+            alert(data.error);
+        } else {
+            // Ensure we are populating from 'data' (the server response)
+            $('#resName').text(data.name || "N/A");
+            $('#resPhone').text(data.contact || "N/A");
             $('#callLink').attr("href", "tel:" + data.contact);
             $('#waLink').attr("href", "https://wa.me/91" + data.contact);
             $('#modalContact').modal('show');
         }
-    } catch(e) { $("#globalLoader").fadeOut(); alert("Connection error."); }
+    } catch(e) { 
+        $("#globalLoader").fadeOut(); 
+        alert("Connection error: " + e.message); 
+    }
 }
 
 function toggleMatches() {
