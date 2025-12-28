@@ -573,3 +573,30 @@ async function sendChatMessage() {
     });
     loadMessages(); // Instant refresh
 }
+let LAST_MSG_ID = ""; // To prevent showing the same message repeatedly
+
+async function updateChatPreview() {
+    try {
+        const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > 0) {
+            const lastMsg = data.messages[data.messages.length - 1];
+            
+            // Only show if it's a new message and not from me
+            if (lastMsg.text !== LAST_MSG_ID && !lastMsg.isMe) {
+                $('#prevName').text(lastMsg.name);
+                $('#prevText').text(lastMsg.text);
+                $('#prevAvatar').text(lastMsg.name.charAt(0));
+                
+                $('#chatPreview').fadeIn().delay(5000).fadeOut(); // Show for 5 seconds
+                LAST_MSG_ID = lastMsg.text;
+            }
+        }
+    } catch (e) {
+        console.warn("Preview sync failed.");
+    }
+}
+
+// Check for new messages every 15 seconds in the background
+setInterval(updateChatPreview, 15000);
