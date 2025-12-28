@@ -1,3 +1,20 @@
+.chat-preview-card {
+    position: fixed; bottom: 90px; right: 20px;
+    background: white; width: 220px; padding: 10px;
+    border-radius: 15px; z-index: 999;
+    border: 1px solid #e5e7eb;
+    cursor: pointer; transition: all 0.3s ease;
+    display: none; /* Hidden by default until message arrives */
+}
+.chat-preview-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.preview-avatar { 
+    width: 35px; height: 35px; background: #4f46e5; color: white;
+    border-radius: 10px; display: flex; align-items: center; 
+    justify-content: center; font-weight: bold; font-size: 0.8rem;
+}
+.preview-content { margin-left: 10px; overflow: hidden; }
+.preview-name { font-size: 0.65rem; font-weight: bold; color: #4f46e5; text-transform: uppercase; }
+.preview-text { font-size: 0.75rem; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .msg-bubble {
     padding: 8px 15px;
     border-radius: 18px;
