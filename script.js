@@ -558,14 +558,21 @@ async function loadMessages() {
         const data = await res.json();
         let html = "";
         
-        data.messages.forEach(m => {
-            html += `
-                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
-                    ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
-                    <div>${m.text}</div>
-                    <span class="msg-info">${m.time}</span>
-                </div>`;
-        });
+       // Replace the current loop inside loadMessages with this
+data.messages.forEach(m => {
+    // Replace with your actual phone number to see the delete button
+    const isAdmin = String(MY_PHONE) === "9080141350"; 
+
+    html += `
+        <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'} position-relative">
+            ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
+            <div>${m.text}</div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+                <span class="msg-info">${m.time}</span>
+                ${isAdmin ? `<i class="fas fa-trash-alt text-danger ml-2" style="cursor:pointer; font-size:0.7rem;" onclick="adminDeleteMsg('${m.text}')"></i>` : ''}
+            </div>
+        </div>`;
+});
         
         $('#chatBox').html(html);
         $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
@@ -577,13 +584,40 @@ async function loadMessages() {
         }
     } catch(e) { console.warn("Chat load failed."); }
 }
+async function adminDeleteMsg(text) {
+    if (!confirm("Are you sure you want to remove this message for everyone?")) return;
 
+    try {
+        const res = await fetch(API, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "deleteMessage",
+                roomId: currentRoomId,
+                userPhone: MY_PHONE,
+                msgText: text
+            })
+        });
+        const data = await res.json();
+        
+        if (data.status === "DELETED") {
+            showToast("Message Removed", "success");
+            loadMessages(); // Refresh UI
+        } else {
+            showToast("Unauthorized Access", "error");
+        }
+    } catch (e) {
+        showToast("System Error", "error");
+    }
+}
 async function sendChatMessage(customMsg = null) {
     const inputField = $('#chatInput');
+    const sendBtn = $('#btnSendChat');
     const msg = customMsg || inputField.val().trim();
     
     if (!msg) return;
+    
     inputField.val('');
+    sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
     await fetch(API, {
         method: "POST",
@@ -595,6 +629,8 @@ async function sendChatMessage(customMsg = null) {
             msg: msg
         })
     });
+    
+    sendBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
     loadMessages();
 }
 
