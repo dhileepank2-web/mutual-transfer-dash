@@ -297,15 +297,17 @@ function renderTable() {
     const myCriteria = MASTER_DATA
         .filter(x => String(x.phone) === String(MY_PHONE))
         .map(me => ({
-            working: String(me['Working District']).trim().toUpperCase(),
-            willing: String(me['Willing District']).trim().toUpperCase()
+            working: String(me['Working District'] || "").trim().toUpperCase(),
+            willing: String(me['Willing District'] || "").trim().toUpperCase()
         }));
 
     const potentialMatches = MASTER_DATA.filter(r => {
         if (String(r.phone) === String(MY_PHONE)) return false;
-        const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWilling = String(r['Willing District']).trim().toUpperCase();
-        const systemMatch = r.MATCH_STATUS.toUpperCase().includes("MATCH");
+        const theirWorking = String(r['Working District'] || "").trim().toUpperCase();
+        const theirWilling = String(r['Willing District'] || "").trim().toUpperCase();
+        const status = String(r.MATCH_STATUS || "").toUpperCase();
+        const systemMatch = status.includes("MATCH");
+        
         return myCriteria.some(me => {
             const isDirectMutual = (theirWorking === me.willing && theirWilling === me.working);
             const isChainMatch = (systemMatch && theirWorking === me.willing);
@@ -331,8 +333,6 @@ function renderTable() {
 
 function renderTableToDOM(data) {
     const tbody = $('#mainTbody');
-    
-    // Capture existing IDs before clearing to detect "New" entries
     const existingIds = [];
     tbody.find('tr').each(function() {
         const id = $(this).attr('data-id');
@@ -347,41 +347,38 @@ function renderTableToDOM(data) {
         const isMe = String(row.phone) === String(MY_PHONE);
         const matchStat = (row.MATCH_STATUS || "").toUpperCase();
         const hasMatch = matchStat.includes("MATCH");
-        
-        // Check if this is a fresh update/new entry
         const isNew = existingIds.length > 0 && !existingIds.includes(String(row.id));
         
-        // Demand Styling
+        // Demand Styling (Removed desktop-only class for mobile support)
         let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
         const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
         if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
         if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
 
-        // Status Badges
         let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
         if(matchStat.includes("3-WAY")) {
-            statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY MATCH</span>`;
+            statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY</span>`;
         } else if(hasMatch) {
-            statusMarkup = `<span class="badge badge-pill badge-success badge-glow-green">DIRECT MATCH</span>`;
+            statusMarkup = `<span class="badge badge-pill badge-success badge-glow-green">DIRECT</span>`;
         }
 
         rowsHtml += `
             <tr class="${isMe ? 'row-identity' : ''} ${isNew ? 'row-updated' : ''}" data-id="${row.id}">
                 <td>
                     <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem; letter-spacing:0.5px;">MY ENTRY</div>' : ''}
+                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.6rem;">MY ENTRY</div>' : ''}
                 </td>
-                <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
-                <td class="desktop-only">
+                <td>${row['Working District']}</td>
+                <td><strong>${row['Willing District']}</strong></td>
+                <td class="col-demand">
                     <div class="demand-pill ${demandCfg.c}">
                         <span class="pulse-dot-small" style="background:${demandCfg.d};"></span>
-                        ${row.DEMAND_STATUS || 'Moderate'}
+                        <span class="d-text">${row.DEMAND_STATUS || 'Med'}</span>
                     </div>
                 </td>
                 <td>${statusMarkup}</td>
                 <td class="text-center">
-                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" 
+                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
                             onclick="unlockRow('${row.id}', ${hasMatch})">
                         <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                     </button>
@@ -390,7 +387,6 @@ function renderTableToDOM(data) {
     });
     tbody.html(rowsHtml);
 }
-
 async function unlockRow(id, active) {
     const isActive = String(active) === "true" || active === true;
     if(!isActive) { showToast("Match required to view contact", "info"); return; }
