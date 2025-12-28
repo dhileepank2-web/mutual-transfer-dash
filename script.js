@@ -1,96 +1,103 @@
 const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
 let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
 let MY_PHONE = localStorage.getItem("userPhone");
-let MY_NAME = ""; // Added to prevent ReferenceError in sendChatMessage
+let MY_NAME = ""; 
+
+// State Management
 let IS_SYNCING = false;
+let currentRoomId = 'GLOBAL';
+let chatPollInterval = null;
+let LAST_MSG_ID = ""; 
+let LAST_SEEN_TIME = localStorage.getItem('last_chat_seen') || 0;
 
 $(document).ready(() => {
     loadData();
+
+    // Auto-refresh logic (2 mins)
     setInterval(() => {
         if (document.visibilityState === 'visible' && !$('.modal.show').length) {
-            professionalSync();
+            syncLiveFeed();
         }
-    }, 30000);
+    }, 120000);
+
+    // High-End Professional Sync (30 seconds)
+    setInterval(professionalSync, 30000);
+    
+    // Background Chat Preview Polling
+    setInterval(updateChatPreview, 15000);
 });
 
+/* --- 1. CORE UTILITIES --- */
 
-async function professionalSync() {
-    if (IS_SYNCING) return;
-    IS_SYNCING = true;
-    showSlimProgress(40);
-
-    try {
-        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
-        const res = await r.json();
-        
-        const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
-        if (hasChanges) {
-            animateValue("statTotalUnique", MASTER_DATA.length, res.records.length, 1000);
-            MASTER_DATA = res.records;
-            renderTable();
-            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
-        }
-        showSlimProgress(100);
-    } catch (e) {
-        console.warn("Silent sync failed.");
-    } finally {
-        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 800);
-    }
+// Phone Masking Utility for Privacy (e.g., 9080141350 -> 90******50)
+function maskPhone(phone) {
+    if (!phone) return "User";
+    const str = String(phone).replace(/\D/g, ''); // Ensure only digits
+    if (str.length < 10) return str;
+    return str.slice(0, 2) + "******" + str.slice(-2);
 }
 
-        showSlimProgress(100);
-    } catch (e) {
-        console.warn("Background sync failed silently to keep UI smooth.");
-    } finally {
-        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
-    }
-}
-
-// 3. Subtle Progress Bar UI
 function showSlimProgress(percent) {
     if (!$('#slim-progress').length) {
-        $('body').append('<div id="slim-progress" style="position:fixed; top:0; left:0; height:3px; background:#4f46e5; z-index:9999; transition: width 0.4s ease;"></div>');
+        $('body').append('<div id="slim-progress"></div>');
     }
-    $('#slim-progress').css('width', percent + '%').fadeIn();
+    $('#slim-progress').css('width', percent + '%').show();
 }
 
 function hideSlimProgress() {
     $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%'));
 }
 
-// 4. Smooth Counter Animation for Stats
 function animateValue(id, start, end, duration) {
-    if (start === end) return;
     const obj = document.getElementById(id);
-    if (!obj) return;
+    if (!obj || start === end) return;
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         obj.innerHTML = Math.floor(progress * (end - start) + start);
-        if (progress < 1) {
-            window.requestAnimationFrame(step);
-        }
+        if (progress < 1) window.requestAnimationFrame(step);
     };
     window.requestAnimationFrame(step);
 }
 
-// 5. Initialize the Auto-Sync (Every 30 seconds for "Live" feel)
-setInterval(professionalSync, 30000);
+/* --- 2. DATA SYNC LOGIC --- */
 
+async function professionalSync() {
+    if (IS_SYNCING || document.visibilityState !== 'visible') return;
+    IS_SYNCING = true;
+    showSlimProgress(30);
+
+    try {
+        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
+        const res = await r.json();
+        
+        animateValue("statTotal", MASTER_DATA.length, res.records.length, 1000);
+        
+        // Check for data changes to avoid UI jitter
+        if (JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records)) {
+            MASTER_DATA = res.records;
+            renderTable(); 
+            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+            updateStats(res.records, res.archivedCount);
+        }
+        showSlimProgress(100);
+    } catch (e) {
+        console.warn("Professional sync paused.");
+    } finally {
+        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
+    }
+}
 
 function loadData() {
     $("#globalLoader").show();
-    // FIX: Added 'action' and cache-buster 't' to ensure Google Apps Script fetches live data
     fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
     .then(r => r.json())
     .then(response => {
         MASTER_DATA = response.records || [];
-        const ARCHIVE_COUNT = response.archivedCount || 0;
+        ARCHIVE_COUNT = response.archivedCount || 0;
         
-        if (response.publicHubActivity) {
-            renderHubActivity(response.publicHubActivity);
-        }
+        if (response.publicHubActivity) renderHubActivity(response.publicHubActivity);
 
         const userLookup = MASTER_DATA.reduce((acc, user) => {
             acc[String(user.phone)] = user;
@@ -104,7 +111,6 @@ function loadData() {
             if (currentUser) {
                 MY_NAME = currentUser['Your Designation'] || "User";
                 $('#idContainer').removeClass('d-none');
-                // SHOW MASKED PHONE IN HEADER
                 $('#lblUserPhone').text(maskPhone(MY_PHONE));
             } else {
                 localStorage.removeItem("userPhone");
@@ -117,41 +123,13 @@ function loadData() {
 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         buildFilters();
-        renderTable(); // This will trigger the fixed renderTableToDOM below
+        renderTable();
         loadActivityLog(); 
         $("#globalLoader").fadeOut();
     })
     .catch(err => {
-        console.error("Critical Load Error:", err);
+        console.error("Critical Load Error", err);
         $("#globalLoader").hide();
-    });
-}
-function renderHubActivity(activities) {
-    const container = $('#hubActivityList');
-    // FIX: Check if container exists before proceeding to prevent errors
-    if (!container.length) return;
-    
-    container.empty();
-    
-    if (!activities || !activities.length) {
-        container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
-        return;
-    }
-    activities.forEach((act, i) => {
-        const delay = i * 0.1; 
-        container.append(`
-            <div class="activity-item shadow-sm" style="animation-delay: ${delay}s">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                    <span class="live-indicator"><span class="pulse-dot mr-1" style="width:6px; height:6px;"></span>Live</span>
-                    <small class="text-muted" style="font-size:0.7rem;">${act.time}</small>
-                </div>
-                <div class="font-weight-bold text-dark" style="font-size:0.9rem;">${act.msg}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <small class="text-primary font-weight-bold" style="font-size:0.7rem;">${act.type}</small>
-                    <small class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user-shield mr-1"></i>${act.user}</small>
-                </div>
-            </div>
-        `);
     });
 }
 
@@ -160,7 +138,6 @@ async function syncLiveFeed() {
         const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
         const res = await r.json();
 
-        // 1. Detect New Matches for the User
         const oldMatches = MASTER_DATA.filter(x => 
             String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
         ).length;
@@ -169,138 +146,110 @@ async function syncLiveFeed() {
             String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
         ).length;
 
-        // 2. Alert user if a match was just found by the system
         if (newMatches > oldMatches) {
-            showToast("🎉 Great news! A new mutual match has been found!", "success");
-            if (window.navigator.vibrate) window.navigator.vibrate(200); // Haptic feedback
+            showToast("🎉 Great news! New match found!", "success");
+            if (window.navigator.vibrate) window.navigator.vibrate(200);
         }
 
-        // 3. Update the UI silently
         MASTER_DATA = res.records;
         renderTable(); 
         updateStats(res.records, res.archivedCount);
-        // FIX: Explicitly call renderHubActivity here to ensure the feed updates
         if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
-        
-    } catch (e) { 
-        console.warn("Silent sync failed."); 
-    }
+    } catch (e) { console.warn("Live sync error."); }
 }
 
-function updateStats(data, archived) {
-    // --- LIVE DASHBOARD LOGIC ---
-    // Total Unique Requests (Unique phone numbers)
-    const liveTotalUnique = [...new Set(data.map(x => x.phone))].length;
-    // Total Requests (All entries including duplicates/different districts)
-    const totalRequests = data.length;
-    // Matched Only (Currently active matches)
-    const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+/* --- 3. CHAT SYSTEM (WITH MASKING) --- */
 
-    // Updating Live Dashboard UI
-    $('#statTotalUnique').text(liveTotalUnique);
-    $('#statTotalRequests').text(totalRequests);
-    $('#statMatchedLive').text(liveMatched);
-
-    // --- ARCHIVED DASHBOARD LOGIC ---
-    // Using your original calculation for historical data
-    const systemMatchesTotal = liveMatched + archived;
-    const totalHistoricalProfiles = liveTotalUnique + archived;
-    const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
+function openChat(roomId, title) {
+    if (!MY_PHONE) { showToast("Login to chat", "info"); return; }
+    currentRoomId = roomId;
+    $('#chatTitle').text(title);
+    $('#chatBox').empty();
     
-    // Legacy support for your existing IDs if needed
-    $('#statTotal').text(liveTotalUnique);
-    $('#statMatched').text(systemMatchesTotal);
-    $('#statRate').text(rate + '%');
-
-    // Trigger the rendering of the Archive "Wall of Fame"
-    renderArchivedMatches(); 
+    if (roomId === 'GLOBAL') {
+        $('#chatBadge').fadeOut();
+        LAST_SEEN_TIME = Date.now();
+        localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
+    }
+    
+    $('#modalChat').modal('show');
+    loadMessages();
+    
+    if(chatPollInterval) clearInterval(chatPollInterval);
+    chatPollInterval = setInterval(loadMessages, 4000);
 }
 
-// 2. New Function for Archived Dashboard
-async function renderArchivedDashboard() {
-    const container = $('#archivedGrid'); // Ensure you have this ID in your HTML
-    if (!container.length) return;
-
+async function loadMessages() {
     try {
-        // Fetching specifically for archived success stories
-        const r = await fetch(`${API}?action=getArchivedStories`);
-        const res = await r.json();
-        
-        if (!res.stories || res.stories.length === 0) {
-            container.html('<div class="col-12 text-center text-muted">No archived matches yet.</div>');
-            return;
-        }
-
+        const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
+        const data = await res.json();
         let html = "";
-        res.stories.forEach(story => {
+        
+        data.messages.forEach(m => {
+            const isAdmin = String(MY_PHONE) === "9080141350"; 
+            // Mask sender identity for everyone except 'Me'
+            const senderDisplay = m.isMe ? "You" : maskPhone(m.name);
+
             html += `
-                <div class="col-md-4 mb-3">
-                    <div class="archive-card shadow-sm border-left-success">
-                        <div class="d-flex justify-content-between">
-                            <h6 class="font-weight-bold text-dark mb-0">${story.name}</h6>
-                            <span class="badge badge-success-soft">Success</span>
-                        </div>
-                        <hr class="my-2">
-                        <div class="small text-muted">
-                            <div><i class="fas fa-handshake mr-1"></i> Match Date: <strong>${story.matchDate}</strong></div>
-                            <div><i class="fas fa-door-open mr-1"></i> Left Portal: <strong>${story.exitDate}</strong></div>
-                        </div>
-                        <div class="mt-2 small font-italic text-primary">
-                            Status: Successfully Transferred
-                        </div>
+                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
+                    ${!m.isMe ? `<div class="msg-sender">${senderDisplay}</div>` : ''}
+                    <div>${m.text}</div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="msg-info" style="font-size:0.6rem; opacity:0.7;">${m.time}</span>
+                        ${isAdmin ? `<i class="fas fa-trash-alt text-danger ml-2" onclick="adminDeleteMsg('${m.text}')"></i>` : ''}
                     </div>
                 </div>`;
         });
-        container.html(html);
-    } catch (e) {
-        console.warn("Archived dashboard failed to load.");
-    }
+        
+        $('#chatBox').html(html);
+        const cb = $('#chatBox')[0];
+        cb.scrollTop = cb.scrollHeight;
+    } catch(e) { console.warn("Message sync fail."); }
 }
 
-function loadActivityLog() {
-    const container = $('#notificationList').empty();
-    const audit = $('#auditLog').empty();
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
+async function sendChatMessage(customMsg = null) {
+    const inputField = $('#chatInput');
+    const msg = customMsg || inputField.val().trim();
+    if (!msg) return;
     
-    if (myEntries.length === 0) {
-        container.append(`<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>`);
-        return;
-    }
-
-    const successfulMatches = myEntries.filter(e => e.MATCH_STATUS.toUpperCase().includes("MATCH"));
-    if (successfulMatches.length > 0) {
-        successfulMatches.forEach(m => {
-            const is3Way = m.MATCH_STATUS.toUpperCase().includes("3-WAY");
-            container.append(`
-                <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
-                            <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
-                            <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
-                        </div>
-                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
-                    </div>
-                </div>`);
-        });
-    }
-
-    myEntries.filter(e => !e.MATCH_STATUS.toUpperCase().includes("MATCH")).forEach(p => {
-        container.append(`
-            <div class="history-card" style="border-left-color: #cbd5e1;">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div>
-                    <div>
-                        <p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p>
-                    </div>
-                </div>
-            </div>`);
+    inputField.val('');
+    await fetch(API, {
+        method: "POST",
+        body: JSON.stringify({
+            action: "sendMessage",
+            roomId: currentRoomId,
+            userPhone: MY_PHONE,
+            userName: MY_PHONE, // We send Phone to server, then mask it on load
+            msg: msg
+        })
     });
-
-    audit.append(`
-        <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div>
-        <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
+    loadMessages();
 }
+
+async function updateChatPreview() {
+    if ($('#modalChat').hasClass('show')) return; 
+
+    try {
+        const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > 0) {
+            const lastMsg = data.messages[data.messages.length - 1];
+            if (!lastMsg.isMe && lastMsg.text !== LAST_MSG_ID) {
+                const previewName = maskPhone(lastMsg.name);
+                $('#chatBadge').fadeIn();
+                $('#prevName').text(previewName);
+                $('#prevText').text(lastMsg.text);
+                $('#prevAvatar').text(previewName.charAt(0));
+                
+                $('#chatPreview').fadeIn().delay(5000).fadeOut();
+                LAST_MSG_ID = lastMsg.text;
+            }
+        }
+    } catch (e) { console.warn("Preview sync fail."); }
+}
+
+/* --- 4. TABLE & UI RENDERING --- */
 
 function renderTable() {
     const query = $('#inpSearch').val().toLowerCase();
@@ -310,25 +259,23 @@ function renderTable() {
     const myCriteria = MASTER_DATA
         .filter(x => String(x.phone) === String(MY_PHONE))
         .map(me => ({
-            working: String(me['Working District'] || "").trim().toUpperCase(),
-            willing: String(me['Willing District'] || "").trim().toUpperCase()
+            working: String(me['Working District']).trim().toUpperCase(),
+            willing: String(me['Willing District']).trim().toUpperCase()
         }));
 
     const potentialMatches = MASTER_DATA.filter(r => {
         if (String(r.phone) === String(MY_PHONE)) return false;
-        const theirWorking = String(r['Working District'] || "").trim().toUpperCase();
-        const theirWilling = String(r['Willing District'] || "").trim().toUpperCase();
-        const status = String(r.MATCH_STATUS || "").toUpperCase();
-        const systemMatch = status.includes("MATCH");
-        
+        const tWorking = String(r['Working District']).trim().toUpperCase();
+        const tWilling = String(r['Willing District']).trim().toUpperCase();
+        const systemMatch = r.MATCH_STATUS.toUpperCase().includes("MATCH");
         return myCriteria.some(me => {
-            const isDirectMutual = (theirWorking === me.willing && theirWilling === me.working);
-            const isChainMatch = (systemMatch && theirWorking === me.willing);
-            return isDirectMutual || isChainMatch;
+            const isDirect = (tWorking === me.willing && tWilling === me.working);
+            const isChain = (systemMatch && tWorking === me.willing);
+            return isDirect || isChain;
         });
     });
 
-    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches ${potentialMatches.length > 0 ? `<span class="badge badge-light ml-1">${potentialMatches.length}</span>` : ''}`);
+    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Matches ${potentialMatches.length > 0 ? `<span class="badge badge-light ml-1">${potentialMatches.length}</span>` : ''}`);
 
     const filtered = MASTER_DATA.filter(r => {
         const isOwn = String(r.phone) === String(MY_PHONE);
@@ -362,36 +309,35 @@ function renderTableToDOM(data) {
         const hasMatch = matchStat.includes("MATCH");
         const isNew = existingIds.length > 0 && !existingIds.includes(String(row.id));
         
-        // Demand Styling (Removed desktop-only class for mobile support)
-        let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
-        const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
-        if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
-        if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+        let dCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
+        const dStat = (row.DEMAND_STATUS || '').toUpperCase();
+        if(dStat.includes('HIGH')) dCfg = { c: 'lvl-high', d: '#ef4444' };
+        if(dStat.includes('LOW')) dCfg = { c: 'lvl-low', d: '#10b981' };
 
         let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
         if(matchStat.includes("3-WAY")) {
-            statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY</span>`;
+            statusMarkup = `<span class="badge badge-pill badge-glow-purple">3-WAY MATCH</span>`;
         } else if(hasMatch) {
-            statusMarkup = `<span class="badge badge-pill badge-success badge-glow-green">DIRECT</span>`;
+            statusMarkup = `<span class="badge badge-pill badge-success">DIRECT MATCH</span>`;
         }
 
         rowsHtml += `
             <tr class="${isMe ? 'row-identity' : ''} ${isNew ? 'row-updated' : ''}" data-id="${row.id}">
                 <td>
                     <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.6rem;">MY ENTRY</div>' : ''}
+                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}
                 </td>
-                <td>${row['Working District']}</td>
-                <td><strong>${row['Willing District']}</strong></td>
+                <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
+                <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
                 <td class="col-demand">
-                    <div class="demand-pill ${demandCfg.c}">
-                        <span class="pulse-dot-small" style="background:${demandCfg.d};"></span>
-                        <span class="d-text">${row.DEMAND_STATUS || 'Med'}</span>
+                    <div class="demand-pill ${dCfg.c}">
+                        <span class="pulse-dot-small" style="background:${dCfg.d};"></span>
+                        ${row.DEMAND_STATUS || 'Moderate'}
                     </div>
                 </td>
                 <td>${statusMarkup}</td>
                 <td class="text-center">
-                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : ''}" 
+                    <button class="btn btn-unlock ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" 
                             onclick="unlockRow('${row.id}', ${hasMatch})">
                         <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
                     </button>
@@ -400,12 +346,63 @@ function renderTableToDOM(data) {
     });
     tbody.html(rowsHtml);
 }
+
+/* --- 5. STATS & HUB --- */
+
+function updateStats(data, archived) {
+    const uniqueLive = [...new Set(data.map(x => x.phone))].length;
+    const liveMatch = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+    
+    $('#statTotalUnique').text(uniqueLive);
+    $('#statTotal').text(uniqueLive);
+    $('#statMatched').text(liveMatch + archived);
+    
+    const rate = (uniqueLive + archived) > 0 ? Math.round(((liveMatch + archived) / (uniqueLive + archived)) * 100) : 0;
+    $('#statRate').text(rate + '%');
+}
+
+function renderHubActivity(activities) {
+    const container = $('#hubActivityList');
+    if (!container.length) return;
+    container.empty();
+    
+    activities.forEach((act, i) => {
+        container.append(`
+            <div class="activity-item shadow-sm" style="animation-delay: ${i * 0.1}s">
+                <div class="d-flex justify-content-between">
+                    <span class="live-indicator"><span class="pulse-dot mr-1"></span>Live</span>
+                    <small class="text-muted">${act.time}</small>
+                </div>
+                <div class="font-weight-bold" style="font-size:0.85rem;">${act.msg}</div>
+                <div class="small text-muted mt-1">User: ${maskPhone(act.user)}</div>
+            </div>`);
+    });
+}
+
+function loadActivityLog() {
+    const container = $('#notificationList').empty();
+    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
+    
+    if (myEntries.length === 0) {
+        container.append(`<div class="text-center p-4 text-muted">No active registration found.</div>`);
+        return;
+    }
+
+    myEntries.forEach(m => {
+        const isMatch = m.MATCH_STATUS.toUpperCase().includes("MATCH");
+        container.append(`
+            <div class="history-card" style="border-left: 4px solid ${isMatch ? '#10b981' : '#cbd5e1'}">
+                <h6 class="font-weight-bold mb-1">${m['Willing District']} Transfer</h6>
+                <p class="small text-muted mb-0">${isMatch ? 'Match Found! Unlock to see contact.' : 'Searching for mutual matches...'}</p>
+            </div>`);
+    });
+}
+
+/* --- 6. ACTIONS & MODALS --- */
+
 async function unlockRow(id, active) {
-    const isActive = String(active) === "true" || active === true;
-    if(!isActive) { showToast("Match required to view contact", "info"); return; }
-    
+    if(!active) { showToast("Match required to view contact", "info"); return; }
     $("#globalLoader").fadeIn();
-    
     try {
         const res = await fetch(API, {
             method: "POST",
@@ -414,106 +411,26 @@ async function unlockRow(id, active) {
         const data = await res.json();
         $("#globalLoader").fadeOut();
 
-        if(data.error) {
-            showToast(data.error, "error");
+        if (data.is3Way) {
+            $('#chainPersonB').text(data.partnerB.name);
+            $('#chainPersonC').text(data.partnerC.name);
+            $('#modalChain').modal('show'); 
         } else {
-            // Check if it's a 3-way chain or a direct match
-            if (data.is3Way) {
-                // Populate Chain Modal
-                $('#chainPersonB').text(data.partnerB.name);
-                $('#chainPersonC').text(data.partnerC.name);
-                $('#distB').text(data.partnerB.workingDistrict);
-                $('#distC').text(data.partnerC.workingDistrict);
-                
-                // Set Chat Buttons for the Room
-                const privateRoomId = `MATCH_${id}`;
-                $('#btnChatPartner').attr('onclick', `openChat('${privateRoomId}', 'Private Chat')`);
-                // OPEN THE CHAIN MODAL
-                $('#modalChain').modal('show'); 
-            } else {
-                // Populate Standard Contact Modal
-                $('#resName').text(data.name || "N/A");
-                $('#resPhone').text(data.contact || "N/A");
-                $('#callLink').attr("href", "tel:" + data.contact);
-                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-                
-                // Set Private Chat Button
-                $('#btnChatPartner').attr('onclick', `openChat('MATCH_${id}', 'Chat with ${data.name}')`);
-
-                // OPEN THE CONTACT MODAL
-                $('#modalContact').modal('show'); 
-            }
-            showToast("Contact Unlocked!", "success");
+            $('#resName').text(data.name);
+            $('#resPhone').text(data.contact);
+            $('#callLink').attr("href", "tel:" + data.contact);
+            $('#waLink').attr("href", "https://wa.me/91" + data.contact);
+            $('#modalContact').modal('show'); 
         }
     } catch(e) { 
         $("#globalLoader").fadeOut(); 
-        showToast("Server Error", "error"); 
+        showToast("Connection error", "error");
     }
-}
-
-function toggleMatches() {
-    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    FILTER_MATCHES = !FILTER_MATCHES;
-    const btn = $('#btnMatches');
-    FILTER_MATCHES ? btn.removeClass('btn-outline-primary').addClass('btn-primary text-white') : btn.addClass('btn-outline-primary').removeClass('btn-primary text-white');
-    renderTable();
-}
-
-function deleteMyEntry() {
-    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    $('#r1').prop('checked', true);
-    $('#otherReasonWrapper').addClass('d-none');
-    $('#modalDeleteConfirm').modal('show');
-}
-
-async function executeDeletion() {
-    let sel = $('input[name="delReason"]:checked').val();
-    let finalReason = sel === "OTHER" ? $('#deleteReasonOther').val().trim() : sel;
-    if (sel === "OTHER" && !finalReason) { alert("Please provide a reason."); return; }
-    if (!confirm("Are you sure? This will permanently remove your profile.")) return;
-    $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").show();
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: finalReason })
-        });
-        const data = await res.json();
-        if (data.status === "SUCCESS") {
-            alert("Entry Successfully Deleted.");
-            clearIdentity();
-        } else {
-            alert("Error: " + data.error);
-            $("#globalLoader").fadeOut();
-        }
-    } catch(e) { $("#globalLoader").fadeOut(); alert("Connection Error."); }
-}
-
-function buildFilters() {
-    const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
-    const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-    $('#selFrom').html('<option value="all">All Districts</option>');
-    $('#selTo').html('<option value="all">All Districts</option>');
-    fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
-    toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
-}
-
-function resetUI() {
-    $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
-    FILTER_MATCHES = false; renderTable();
-}
-
-function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
-
-function redirectToRegistration() {
-    const up = localStorage.getItem("userPhone");
-    const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html";
-    window.location.href = up ? `${url}?editPhone=${up}` : url;
 }
 
 function saveVerify() {
     const val = $('#verifyPhone').val();
-    if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
+    if(!/^\d{10}$/.test(val)) { alert("Enter 10 digit number"); return; }
     if(MASTER_DATA.some(x => String(x.phone) === String(val))) {
         localStorage.setItem("userPhone", val);
         location.reload();
@@ -522,185 +439,29 @@ function saveVerify() {
     }
 }
 
-// Utility for custom radio select
-function selectRadio(id) {
-    $(`#${id}`).prop('checked', true);
-    if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none');
-    else $('#otherReasonWrapper').addClass('d-none');
-}
-
 function showToast(message, type = 'success') {
     $('.custom-toast').remove();
-    const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
-    const bgColor = type === 'success' ? '#10b981' : '#4f46e5';
-
-    const toast = $(`
-        <div class="custom-toast shadow-lg">
-            <i class="fas ${icon} mr-2"></i>
-            <span>${message}</span>
-        </div>
-    `);
-
+    const toast = $(`<div class="custom-toast shadow-lg">${message}</div>`).css({
+        'position': 'fixed', 'bottom': '20px', 'left': '50%', 'transform': 'translateX(-50%)',
+        'background': type === 'success' ? '#10b981' : '#4f46e5', 'color': 'white', 
+        'padding': '12px 24px', 'border-radius': '50px', 'z-index': '10000', 'display': 'none'
+    });
     $('body').append(toast);
-    toast.css({
-        'position': 'fixed',
-        'bottom': '20px',
-        'left': '50%',
-        'transform': 'translateX(-50%)',
-        'background': bgColor,
-        'color': 'white',
-        'padding': '12px 24px',
-        'border-radius': '50px',
-        'z-index': '10000',
-        'font-weight': '600',
-        'display': 'none'
-    });
-
-    toast.fadeIn(400).delay(3000).fadeOut(400, function() { $(this).remove(); });
+    toast.fadeIn().delay(3000).fadeOut(() => toast.remove());
 }
 
-function shareToWhatsApp() {
-    const appUrl = window.location.href.split('?')[0];
-    const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district";
-    const text = `*Mutual Transfer Portal Update* 🌐\n\n` +
-                 `I'm looking for a transfer from *${myDistrict}*.\n` +
-                 `Check live matches and register your profile here:\n\n` +
-                 `👉 ${appUrl}\n\n` +
-                 `_Verified profiles only. Auto-match system active._`;
-
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, '_blank');
+function buildFilters() {
+    const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
+    const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
+    $('#selFrom').html('<option value="all">All Districts</option>').append(fromSet.map(d => `<option value="${d}">${d}</option>`));
+    $('#selTo').html('<option value="all">All Districts</option>').append(toSet.map(d => `<option value="${d}">${d}</option>`));
 }
 
-function copyInviteLink() {
-    const appUrl = window.location.href.split('?')[0];
-    navigator.clipboard.writeText(appUrl).then(() => {
-        showToast("Invite link copied to clipboard!", "success");
-    }).catch(() => {
-        showToast("Failed to copy link", "error");
-    });
+function toggleMatches() {
+    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+    FILTER_MATCHES = !FILTER_MATCHES;
+    $('#btnMatches').toggleClass('btn-primary btn-outline-primary text-white');
+    renderTable();
 }
 
-let currentRoomId = 'GLOBAL';
-let chatPollInterval = null;
-let LAST_MSG_ID = ""; 
-let LAST_SEEN_TIME = localStorage.getItem('last_chat_seen') || 0;
-
-function openChat(roomId, title) {
-    if (!MY_PHONE) { showToast("Please login first", "info"); return; }
-    
-    currentRoomId = roomId;
-    $('#chatTitle').text(title);
-    $('#chatBox').empty();
-    
-    if (roomId === 'GLOBAL') {
-        $('#chatBadge').fadeOut();
-        LAST_SEEN_TIME = Date.now();
-        localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
-    }
-    
-    $('#modalChat').modal('show');
-    loadMessages();
-    
-    if(chatPollInterval) clearInterval(chatPollInterval);
-    chatPollInterval = setInterval(loadMessages, 4000);
-}
-
-$('#modalChat').on('hidden.bs.modal', () => clearInterval(chatPollInterval));
-
-async function loadMessages() {
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        let html = "";
-        
-        data.messages.forEach(m => {
-            // Masking phone number in sender name if it's a phone number
-            const senderDisplay = m.isMe ? "You" : (m.name.match(/\d{10}/) ? maskPhone(m.name) : m.name);
-            
-            html += `
-                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
-                    <div class="msg-sender">${senderDisplay}</div>
-                    <div>${m.text}</div>
-                    <small class="msg-info">${m.time}</small>
-                </div>`;
-        });
-        $('#chatBox').html(html).scrollTop($('#chatBox')[0].scrollHeight);
-    } catch(e) { console.warn("Chat failed"); }
-}
-
-async function adminDeleteMsg(text) {
-    if (!confirm("Are you sure you want to remove this message for everyone?")) return;
-
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "deleteMessage",
-                roomId: currentRoomId,
-                userPhone: MY_PHONE,
-                msgText: text
-            })
-        });
-        const data = await res.json();
-        
-        if (data.status === "DELETED") {
-            showToast("Message Removed", "success");
-            loadMessages();
-        } else {
-            showToast("Unauthorized Access", "error");
-        }
-    } catch (e) {
-        showToast("System Error", "error");
-    }
-}
-
-async function sendChatMessage(customMsg = null) {
-    const inputField = $('#chatInput');
-    const sendBtn = $('#btnSendChat');
-    const msg = customMsg || inputField.val().trim();
-    
-    if (!msg) return;
-    
-    inputField.val('');
-    sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-    await fetch(API, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "sendMessage",
-            roomId: currentRoomId,
-            userPhone: MY_PHONE,
-            userName: MY_NAME, // This variable is now defined in loadData()
-            msg: msg
-        })
-    });
-    
-    sendBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
-    loadMessages();
-}
-
-async function updateChatPreview() {
-    if ($('#modalChat').hasClass('show')) return; 
-
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        
-        if (data.messages && data.messages.length > 0) {
-            const lastMsg = data.messages[data.messages.length - 1];
-            
-            if (!lastMsg.isMe && lastMsg.text !== LAST_MSG_ID) {
-                $('#chatBadge').fadeIn();
-                $('#prevName').text(lastMsg.name);
-                $('#prevText').text(lastMsg.text);
-                $('#prevAvatar').text(lastMsg.name.charAt(0));
-                
-                $('#chatPreview').fadeIn().delay(5000).fadeOut();
-                LAST_MSG_ID = lastMsg.text;
-            }
-        }
-    } catch (e) { console.warn("Background sync failed."); }
-}
-
-setInterval(updateChatPreview, 15000);
+function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
