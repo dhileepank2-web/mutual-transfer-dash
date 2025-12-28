@@ -117,35 +117,62 @@
             Last Sync: <span id="lastUpdated">Loading...</span>
         </small>
     </div>
-
-   <div class="dashboard-section mb-5">
-    <h4 class="section-title"><span class="pulse-dot"></span> Live Dashboard</h4>
+<div class="container mt-4 pb-5">
+    <div class="text-right mb-2">
+        <small class="text-muted">
+            <i class="fas fa-sync-alt fa-spin mr-1"></i> 
+            Last Sync: <span id="lastUpdated">Loading...</span>
+        </small>
+    </div>
+<div class="stat-container">
     <div class="row">
-        <div class="col-md-4">
-            <div class="stat-card">
-                <small>Total Unique Requests</small>
-                <h2 id="statTotalUnique">0</h2>
+        <div class="col-lg-8">
+            <div class="p-3 bg-white rounded-24 border shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="font-weight-bold text-primary mb-0"><i class="fas fa-satellite-dish mr-2"></i>LIVE DASHBOARD</h6>
+                    <span class="badge badge-primary-soft">Real-time</span>
+                </div>
+                <div class="row text-center">
+                    <div class="col-4 border-right">
+                        <small class="stat-label d-block">Unique Requests</small>
+                        <span class="stat-value" id="statTotalUnique">0</span>
+                        <span class="d-none" id="statTotal">0</span> </div>
+                    <div class="col-4 border-right">
+                        <small class="stat-label d-block">Total Requests</small>
+                        <span class="stat-value" id="statTotalRequests">0</span>
+                    </div>
+                    <div class="col-4">
+                        <small class="stat-label d-block">Matched Only</small>
+                        <span class="stat-value text-success" id="statMatchedLive">0</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <small>Total Requests</small>
-                <h2 id="statTotalRequests">0</h2>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <small>Currently Matched</small>
-                <h2 id="statMatchedLive">0</h2>
+
+        <div class="col-lg-4">
+            <div class="p-3 bg-dark rounded-24 border shadow-sm mb-4 text-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="font-weight-bold mb-0 text-success"><i class="fas fa-history mr-2"></i>ARCHIVED</h6>
+                    <span id="statRate" class="badge badge-success">0% Rate</span> </div>
+                <div class="text-center py-1">
+                    <small class="text-muted d-block">Total System Success</small>
+                    <h3 class="font-weight-bold mb-0" id="statMatched">0</h3> </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="dashboard-section">
-    <h4 class="section-title text-muted"><i class="fas fa-archive mr-2"></i> Successful Transfers (Archived)</h4>
-    <div class="row" id="archivedGrid">
+    <div class="row">
+        <div class="col-12">
+            <div class="bg-light p-3 rounded-24 border mb-4">
+                <h6 class="small font-weight-bold text-muted mb-3 text-uppercase">
+                    <i class="fas fa-trophy text-warning mr-2"></i>Successful Matches & Exit History
+                </h6>
+                <div id="archivedList" class="d-flex overflow-auto pb-2" style="gap: 15px; scrollbar-width: thin;">
+                    <div class="text-muted small p-3">Loading success stories...</div>
+                </div>
+            </div>
         </div>
+    </div>
 </div>
 
     <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
