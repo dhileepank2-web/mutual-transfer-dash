@@ -2,45 +2,41 @@ const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54R
 let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
 let MY_PHONE = localStorage.getItem("userPhone");
 let MY_NAME = ""; // Added to prevent ReferenceError in sendChatMessage
+let IS_SYNCING = false;
 
 $(document).ready(() => {
     loadData();
-
-    // Auto-refresh Hub and Stats every 2 minutes
     setInterval(() => {
         if (document.visibilityState === 'visible' && !$('.modal.show').length) {
-            syncLiveFeed();
+            professionalSync();
         }
-    }, 120000);
+    }, 30000);
 });
 
-// 1. Better State Management
-let IS_SYNCING = false;
 
-// 2. High-End Sync Function
 async function professionalSync() {
-    if (IS_SYNCING || document.visibilityState !== 'visible') return;
-    
+    if (IS_SYNCING) return;
     IS_SYNCING = true;
-    showSlimProgress(30); // Start a subtle top-bar loader
+    showSlimProgress(40);
 
     try {
         const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
         const res = await r.json();
         
-        // Update stats with a counter animation (Pro feature)
-        animateValue("statTotal", MASTER_DATA.length, res.records.length, 1000);
-        
-        // Perform the "Deep Compare" 
         const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
-        
         if (hasChanges) {
+            animateValue("statTotalUnique", MASTER_DATA.length, res.records.length, 1000);
             MASTER_DATA = res.records;
-            renderTable(); // This now needs to handle transitions
-            // FIX: Ensure Hub Activity is updated during professionalSync
+            renderTable();
             if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
-            console.log("Sync Complete: Data Updated");
         }
+        showSlimProgress(100);
+    } catch (e) {
+        console.warn("Silent sync failed.");
+    } finally {
+        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 800);
+    }
+}
 
         showSlimProgress(100);
     } catch (e) {
@@ -83,34 +79,24 @@ function animateValue(id, start, end, duration) {
 setInterval(professionalSync, 30000);
 
 
-function loadData() {
+async function loadData() {
     $("#globalLoader").show();
-    fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
-    .then(r => r.json())
-    .then(response => {
+    try {
+        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`, { mode: 'cors' });
+        const response = await r.json();
+        
         MASTER_DATA = response.records || [];
         ARCHIVE_COUNT = response.archivedCount || 0;
         
-        if (response.publicHubActivity) {
-            renderHubActivity(response.publicHubActivity);
-        }
-
-        const userLookup = MASTER_DATA.reduce((acc, user) => {
-            acc[String(user.phone)] = user;
-            return acc;
-        }, {});
-
-        $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
-
+        // Setup User Identity
         if (MY_PHONE) {
-            const currentUser = userLookup[String(MY_PHONE)];
+            const currentUser = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
             if (currentUser) {
-                MY_NAME = currentUser['Your Designation'] || "User"; // Define MY_NAME for chat
+                MY_NAME = currentUser['Your Designation'] || "User";
                 $('#idContainer').removeClass('d-none');
-                $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+                $('#lblUserPhone').text(maskPhone(MY_PHONE));
             } else {
                 localStorage.removeItem("userPhone");
-                MY_PHONE = null;
                 $('#modalVerify').modal('show');
             }
         } else {
@@ -120,16 +106,13 @@ function loadData() {
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         buildFilters();
         renderTable();
-        loadActivityLog(); 
+        if (response.publicHubActivity) renderHubActivity(response.publicHubActivity);
         $("#globalLoader").fadeOut();
-    })
-    .catch(err => {
-        console.error("Critical Load Error:", err);
+    } catch (err) {
+        console.error("Fetch Error:", err);
         $("#globalLoader").hide();
-        alert("Unable to load data. Please check your internet connection.");
-    });
+    }
 }
-
 function renderHubActivity(activities) {
     const container = $('#hubActivityList');
     // FIX: Check if container exists before proceeding to prevent errors
@@ -623,27 +606,18 @@ async function loadMessages() {
         let html = "";
         
         data.messages.forEach(m => {
-            const isAdmin = String(MY_PHONE) === "9080141350"; 
-
+            // Masking phone number in sender name if it's a phone number
+            const senderDisplay = m.isMe ? "You" : (m.name.match(/\d{10}/) ? maskPhone(m.name) : m.name);
+            
             html += `
-                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'} position-relative">
-                    ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
+                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'}">
+                    <div class="msg-sender">${senderDisplay}</div>
                     <div>${m.text}</div>
-                    <div class="d-flex justify-content-between align-items-center mt-1">
-                        <span class="msg-info">${m.time}</span>
-                        ${isAdmin ? `<i class="fas fa-trash-alt text-danger ml-2" style="cursor:pointer; font-size:0.7rem;" onclick="adminDeleteMsg('${m.text}')"></i>` : ''}
-                    </div>
+                    <small class="msg-info">${m.time}</small>
                 </div>`;
         });
-        
-        $('#chatBox').html(html);
-        $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
-        
-        if ($('#modalChat').hasClass('show') && currentRoomId === 'GLOBAL') {
-            LAST_SEEN_TIME = Date.now();
-            localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
-        }
-    } catch(e) { console.warn("Chat load failed."); }
+        $('#chatBox').html(html).scrollTop($('#chatBox')[0].scrollHeight);
+    } catch(e) { console.warn("Chat failed"); }
 }
 
 async function adminDeleteMsg(text) {
