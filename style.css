@@ -1,3 +1,22 @@
+.msg-bubble {
+    padding: 8px 15px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.msg-me {
+    background: #4f46e5; color: white;
+    align-self: flex-end; border-bottom-right-radius: 2px;
+}
+.msg-them {
+    background: white; color: #1f2937;
+    align-self: flex-start; border-bottom-left-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.msg-info { font-size: 0.65rem; display: block; margin-top: 4px; opacity: 0.7; }
+.msg-sender { font-size: 0.7rem; font-weight: bold; color: #6366f1; margin-bottom: 2px; }
 .chain-node {
     text-align: center;
     z-index: 2;
