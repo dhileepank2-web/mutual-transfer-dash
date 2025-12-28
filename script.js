@@ -1,101 +1,101 @@
+/********************************************************
+ * GLOBAL STATE & CONFIGURATION
+ ********************************************************/
 const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
-let MASTER_DATA = [], ARCHIVE_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
+let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_DATA = [];
 let MY_PHONE = localStorage.getItem("userPhone");
 let MY_NAME = ""; 
 let IS_SYNCING = false;
+let LAST_MSG_ID = "";
 
-// 1. INITIALIZATION
+/********************************************************
+ * INITIALIZATION
+ ********************************************************/
 $(document).ready(() => {
-    loadData();
+    initPremiumUI();
+    loadDashboard();
 
-    // Auto-refresh Hub and Stats every 2 minutes
-    setInterval(() => {
-        if (document.visibilityState === 'visible' && !$('.modal.show').length) {
-            syncLiveFeed();
-        }
-    }, 120000);
-
-    // High-End Sync (Every 30 seconds for "Live" feel)
+    // High-Frequency Sync for Chat & Real-time status
+    setInterval(updateChatPreview, 15000);
+    
+    // Background Data Sync (Professional Polling)
     setInterval(professionalSync, 30000);
 });
 
-// 2. DATA LOADING & STATE MANAGEMENT
-async function loadData() {
+function initPremiumUI() {
+    // Add subtle top loader if not exists
+    if (!$('#slim-progress').length) {
+        $('body').append('<div id="slim-progress" style="position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg, #4f46e5, #818cf8); z-index:9999; width:0%; transition: width 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1);"></div>');
+    }
+}
+
+/********************************************************
+ * CORE DATA ENGINE
+ ********************************************************/
+async function loadDashboard() {
+    showSlimProgress(30);
     $("#globalLoader").show();
-    fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
-    .then(r => r.json())
-    .then(response => {
-        MASTER_DATA = response.records || [];
-        ARCHIVE_DATA = response.archives || []; // Loaded from the backend
-        ARCHIVE_COUNT = response.archivedCount || ARCHIVE_DATA.length;
+
+    try {
+        const response = await fetchWithTimeout(`${API}?action=getDashboardData&t=${Date.now()}`);
+        const data = await response.json();
+
+        MASTER_DATA = data.records || [];
         
-        if (response.publicHubActivity) {
-            renderHubActivity(response.publicHubActivity);
-        }
+        // Setup Identity
+        handleIdentity(MASTER_DATA);
 
-        const userLookup = MASTER_DATA.reduce((acc, user) => {
-            acc[String(user.phone)] = user;
-            return acc;
-        }, {});
-
-        $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
-
-        if (MY_PHONE) {
-            const currentUser = userLookup[String(MY_PHONE)];
-            if (currentUser) {
-                MY_NAME = currentUser['Your Designation'] || "User"; 
-                $('#idContainer').removeClass('d-none');
-                $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
-            } else {
-                // If not in live records, check if they are in archives (Success Exit)
-                const isArchived = ARCHIVE_DATA.some(x => String(x.phone) === String(MY_PHONE));
-                if(!isArchived) {
-                    localStorage.removeItem("userPhone");
-                    MY_PHONE = null;
-                    $('#modalVerify').modal('show');
-                }
-            }
-        } else {
-            $('#modalVerify').modal('show');
-        }
-
-        updateStats(MASTER_DATA, ARCHIVE_COUNT);
+        // Render Everything
+        updateStats(MASTER_DATA, data.archivedCount || 0);
         buildFilters();
-        renderTable();           // Renders Live Dashboard
-        renderArchiveTable();    // Renders Archived Dashboard
-        loadActivityLog();       // Renders Personal History
-        $("#globalLoader").fadeOut();
-    })
-    .catch(err => {
-        console.error("Critical Load Error:", err);
-        $("#globalLoader").hide();
-        alert("Unable to load data. Please check your internet connection.");
-    });
+        renderTable();
+        if (data.publicHubActivity) renderHubActivity(data.publicHubActivity);
+        
+        showSlimProgress(100);
+    } catch (err) {
+        showToast("Connection unstable. Retrying...", "error");
+    } finally {
+        setTimeout(() => { 
+            $("#globalLoader").fadeOut(400); 
+            hideSlimProgress();
+        }, 600);
+    }
 }
 
-// 3. STATS & ANALYTICS (Live vs Unique vs Success)
-function updateStats(data, archived) {
-    const totalRequests = data.length;
-    const liveUniqueUsers = [...new Set(data.map(x => x.phone))].length;
-    const liveMatched = data.filter(r => (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
+async function professionalSync() {
+    if (IS_SYNCING || document.visibilityState !== 'visible' || $('.modal.show').length > 0) return;
     
-    const totalSuccessMatches = liveMatched + archived;
-    const historicalProfiles = liveUniqueUsers + archived;
-    const successRate = historicalProfiles > 0 ? Math.round((totalSuccessMatches / historicalProfiles) * 100) : 0;
-    
-    // Counter Animations for Professional Feel
-    animateValue("statTotalReq", 0, totalRequests, 1000); // Total active requests
-    animateValue("statUnique", 0, liveUniqueUsers, 1000); // Unique live people
-    animateValue("statMatched", 0, totalSuccessMatches, 1000); // Total system successes
-    animateValue("statRate", 0, successRate, 1200, '%'); // Success percentage
+    IS_SYNCING = true;
+    try {
+        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
+        const res = await r.json();
+        
+        // Deep compare to avoid unnecessary DOM thrashing
+        const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
+        
+        if (hasChanges) {
+            // Check for new match notification before updating MASTER_DATA
+            detectNewMatches(res.records);
+            
+            MASTER_DATA = res.records;
+            animateValue("statTotal", parseInt($('#statTotal').text()), MASTER_DATA.length, 1000);
+            renderTable();
+            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+        }
+    } catch (e) { console.warn("Sync deferred."); }
+    finally { IS_SYNCING = false; }
 }
 
-// 4. LIVE DASHBOARD RENDERING
+/********************************************************
+ * TABLE & UI RENDERING (PREMIUM MOTION)
+ ********************************************************/
 function renderTable() {
+    const tbody = $('#mainTbody');
     const query = $('#inpSearch').val().toLowerCase();
     const from = $('#selFrom').val();
     const to = $('#selTo').val();
-    
+
+    // User Criteria for local match detection
     const myCriteria = MASTER_DATA
         .filter(x => String(x.phone) === String(MY_PHONE))
         .map(me => ({
@@ -103,426 +103,206 @@ function renderTable() {
             willing: String(me['Willing District']).trim().toUpperCase()
         }));
 
-    const potentialMatches = MASTER_DATA.filter(r => {
-        if (String(r.phone) === String(MY_PHONE)) return false;
-        const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWilling = String(r['Willing District']).trim().toUpperCase();
-        const systemMatch = (r.MATCH_STATUS || "").toUpperCase().includes("MATCH");
-        return myCriteria.some(me => {
-            const isDirectMutual = (theirWorking === me.willing && theirWilling === me.working);
-            const isChainMatch = (systemMatch && theirWorking === me.willing);
-            return isDirectMutual || isChainMatch;
-        });
-    });
-
-    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches ${potentialMatches.length > 0 ? `<span class="badge badge-light ml-1">${potentialMatches.length}</span>` : ''}`);
-
+    // Filter Logic
     const filtered = MASTER_DATA.filter(r => {
-        const isOwn = String(r.phone) === String(MY_PHONE);
-        const matchesSearch = !query || r['Your Designation']?.toLowerCase().includes(query);
+        const isMe = String(r.phone) === String(MY_PHONE);
+        const matchesSearch = !query || (r['Your Designation'] || "").toLowerCase().includes(query);
         const matchesFrom = from === 'all' || r['Working District'] === from;
         const matchesTo = to === 'all' || r['Willing District'] === to;
+        
         if (FILTER_MATCHES) {
-            const isMatchForMe = potentialMatches.some(m => m.id === r.id);
-            return (isMatchForMe || isOwn) && matchesSearch && matchesFrom && matchesTo;
+            const theirWorking = String(r['Working District']).trim().toUpperCase();
+            const theirWilling = String(r['Willing District']).trim().toUpperCase();
+            const isMatchForMe = myCriteria.some(me => 
+                (theirWorking === me.willing && theirWilling === me.working) || 
+                (r.MATCH_STATUS.toUpperCase().includes("MATCH") && theirWorking === me.willing)
+            );
+            return (isMatchForMe || isMe) && matchesSearch && matchesFrom && matchesTo;
         }
         return matchesSearch && matchesFrom && matchesTo;
     });
 
-    const tbody = $('#mainTbody');
-    const existingIds = [];
-    tbody.find('tr').each(function() {
-        const id = $(this).attr('data-id');
-        if (id) existingIds.push(String(id));
-    });
+    // Update Counter Button
+    const matchCount = filtered.filter(x => String(x.phone) !== String(MY_PHONE)).length;
+    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Matches ${matchCount > 0 ? `<span class="badge badge-light ml-1">${matchCount}</span>` : ''}`);
 
+    // DOM Update
     tbody.empty();
     $('#noData').toggleClass('d-none', filtered.length > 0);
-    
-    let rowsHtml = ""; 
-    filtered.forEach(row => {
+
+    filtered.forEach((row, index) => {
         const isMe = String(row.phone) === String(MY_PHONE);
         const matchStat = (row.MATCH_STATUS || "").toUpperCase();
         const hasMatch = matchStat.includes("MATCH");
-        const isNew = existingIds.length > 0 && !existingIds.includes(String(row.id));
-        
-        let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
-        const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
-        if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
-        if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+        const delay = index * 0.03; // Staggered entry
 
-        let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
-        if(matchStat.includes("3-WAY")) statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY MATCH</span>`;
-        else if(hasMatch) statusMarkup = `<span class="badge badge-pill badge-success badge-glow-green">DIRECT MATCH</span>`;
+        let demandCfg = getDemandConfig(row.DEMAND_STATUS);
+        let statusBadge = getStatusBadge(matchStat, hasMatch);
 
-        rowsHtml += `
-            <tr class="${isMe ? 'row-identity' : ''} ${isNew ? 'row-updated' : ''}" data-id="${row.id}">
+        const rowHtml = `
+            <tr class="${isMe ? 'row-identity' : ''}" style="animation: slideIn 0.4s ease forwards ${delay}s; opacity:0;">
                 <td>
                     <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem; letter-spacing:0.5px;">MY ENTRY</div>' : ''}
+                    ${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY PROFILE</div>' : ''}
                 </td>
                 <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
                 <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
                 <td class="desktop-only">
                     <div class="demand-pill ${demandCfg.c}">
-                        <span class="pulse-dot-small" style="background:${demandCfg.d};"></span>
-                        ${row.DEMAND_STATUS || 'Moderate'}
+                        <span class="pulse-dot-small" style="background:${demandCfg.d}"></span>${row.DEMAND_STATUS || 'Moderate'}
                     </div>
                 </td>
-                <td>${statusMarkup}</td>
+                <td>${statusBadge}</td>
                 <td class="text-center">
-                    <button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" 
+                    <button class="btn btn-unlock ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" 
                             onclick="unlockRow('${row.id}', ${hasMatch})">
-                        <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'}"></i>
+                        <i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock'}"></i>
                     </button>
                 </td>
             </tr>`;
-    });
-    tbody.html(rowsHtml);
-}
-
-// 5. ARCHIVED DASHBOARD RENDERING (Successes)
-function renderArchiveTable() {
-    const tbody = $('#archiveTbody');
-    if (!tbody.length) return;
-    tbody.empty();
-
-    if (ARCHIVE_DATA.length === 0) {
-        tbody.append('<tr><td colspan="5" class="text-center p-4 text-muted">No successfully matched transfers archived yet.</td></tr>');
-        return;
-    }
-
-    ARCHIVE_DATA.forEach(row => {
-        tbody.append(`
-            <tr class="bg-light">
-                <td>
-                    <div class="font-weight-bold text-dark">${row['Your Designation']}</div>
-                    <div class="text-success small"><i class="fas fa-check-circle"></i> Profile Retired</div>
-                </td>
-                <td>${row['Working District']} <i class="fas fa-arrow-right mx-1 text-muted"></i> ${row['Willing District']}</td>
-                <td><span class="badge badge-info">${row.MATCH_DATE || 'N/A'}</span></td>
-                <td><span class="badge badge-dark">${row.EXIT_DATE || 'N/A'}</span></td>
-                <td class="text-right"><i class="fas fa-ribbon text-warning"></i></td>
-            </tr>
-        `);
+        tbody.append(rowHtml);
     });
 }
 
-// 6. SYNC LOGIC
-async function professionalSync() {
-    if (IS_SYNCING || document.visibilityState !== 'visible') return;
-    IS_SYNCING = true;
-    showSlimProgress(30);
+/********************************************************
+ * SUCCESS STORIES (ARCHIVE) LOGIC
+ ********************************************************/
+async function loadSuccessStories() {
+    const container = $('#successWallContainer').empty().append('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
+    
     try {
-        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
-        const res = await r.json();
-        const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
-        if (hasChanges) {
-            MASTER_DATA = res.records;
-            ARCHIVE_DATA = res.archives || [];
-            updateStats(MASTER_DATA, res.archivedCount);
-            renderTable();
-            renderArchiveTable();
-            if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+        const res = await fetch(`${API}?action=getArchivedStories`);
+        const data = await res.json();
+        container.empty();
+
+        if (!data.stories || data.stories.length === 0) {
+            container.append('<div class="text-center p-5 text-muted">Success stories will appear here soon.</div>');
+            return;
         }
-        showSlimProgress(100);
+
+        data.stories.forEach((story, i) => {
+            container.append(`
+                <div class="activity-item" style="animation-delay: ${i * 0.1}s">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mr-3" style="width:40px; height:40px;">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 font-weight-bold">${story.designation}</h6>
+                            <small class="text-muted">${new Date(story.matchDate).toLocaleDateString()}</small>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded bg-light border-left border-success">
+                        <strong>${story.from}</strong> <i class="fas fa-arrow-right mx-2 text-success"></i> <strong>${story.to}</strong>
+                    </div>
+                    <div class="mt-2 text-success small font-weight-bold uppercase"><i class="fas fa-medal mr-1"></i> ${story.outcome}</div>
+                </div>
+            `);
+        });
     } catch (e) {
-        console.warn("Background sync failed.");
-    } finally {
-        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
+        container.html('<div class="alert alert-warning">Failed to load success wall.</div>');
     }
 }
 
-async function syncLiveFeed() {
-    try {
-        const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
-        const res = await r.json();
-        const oldMatches = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE) && (x.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
-        const newMatches = res.records.filter(x => String(x.phone) === String(MY_PHONE) && (x.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
+/********************************************************
+ * CHAT SYSTEM (PREMIUM)
+ ********************************************************/
+async function sendChatMessage(customMsg = null) {
+    const inputField = $('#chatInput');
+    const msg = customMsg || inputField.val().trim();
+    if (!msg) return;
 
-        if (newMatches > oldMatches) {
-            showToast("🎉 Great news! A new mutual match has been found!", "success");
-            if (window.navigator.vibrate) window.navigator.vibrate(200);
-        }
-        MASTER_DATA = res.records;
-        ARCHIVE_DATA = res.archives || [];
-        renderTable(); 
-        renderArchiveTable();
-        updateStats(res.records, res.archivedCount);
-        if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
-    } catch (e) { console.warn("Silent sync failed."); }
+    // Optimistic UI: Clear input immediately for speed feel
+    inputField.val('');
+    
+    try {
+        await fetch(API, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "sendMessage",
+                roomId: currentRoomId,
+                userPhone: MY_PHONE,
+                userName: MY_NAME,
+                msg: msg
+            })
+        });
+        loadMessages(); // Refresh to show the message confirmed
+    } catch (e) {
+        showToast("Message failed to send", "error");
+    }
 }
 
-// 7. UTILITY & UI COMPONENTS
-function animateValue(id, start, end, duration, suffix = "") {
+/********************************************************
+ * UTILITIES & HELPERS
+ ********************************************************/
+function handleIdentity(records) {
+    if (MY_PHONE) {
+        const currentUser = records.find(x => String(x.phone) === String(MY_PHONE));
+        if (currentUser) {
+            MY_NAME = currentUser['Your Designation'] || "User";
+            $('#idContainer').removeClass('d-none');
+            $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+        } else {
+            clearIdentity();
+        }
+    }
+}
+
+function getDemandConfig(status) {
+    const s = (status || '').toUpperCase();
+    if (s.includes('HIGH')) return { c: 'lvl-high', d: '#ef4444' };
+    if (s.includes('LOW')) return { c: 'lvl-low', d: '#10b981' };
+    return { c: 'lvl-mod', d: '#f59e0b' };
+}
+
+function getStatusBadge(stat, hasMatch) {
+    if (stat.includes("3-WAY")) return `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY MATCH</span>`;
+    if (hasMatch) return `<span class="badge badge-pill badge-success badge-glow-green">DIRECT MATCH</span>`;
+    return `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
+}
+
+function detectNewMatches(newRecords) {
+    const oldMatched = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+    const newMatched = newRecords.filter(x => String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+    
+    if (newMatched > oldMatched) {
+        showToast("🎉 Mutual match found! Check your notifications.", "success");
+        if (window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]);
+    }
+}
+
+// Stats Animation
+function animateValue(id, start, end, duration) {
     const obj = document.getElementById(id);
     if (!obj || start === end) return;
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        obj.innerHTML = Math.floor(progress * (end - start) + start) + suffix;
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
         if (progress < 1) window.requestAnimationFrame(step);
     };
     window.requestAnimationFrame(step);
 }
 
-function showSlimProgress(percent) {
-    if (!$('#slim-progress').length) {
-        $('body').append('<div id="slim-progress" style="position:fixed; top:0; left:0; height:3px; background:#4f46e5; z-index:9999; transition: width 0.4s ease;"></div>');
-    }
-    $('#slim-progress').css('width', percent + '%').fadeIn();
+async function fetchWithTimeout(resource, options = {}) {
+    const { timeout = 8000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    const response = await fetch(resource, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
 }
 
-function hideSlimProgress() {
-    $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%'));
-}
+function showSlimProgress(percent) { $('#slim-progress').css('width', percent + '%').show(); }
+function hideSlimProgress() { $('#slim-progress').fadeOut(); }
 
-function renderHubActivity(activities) {
-    const container = $('#hubActivityList').empty();
-    if (!activities.length) {
-        container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
-        return;
-    }
-    activities.forEach((act, i) => {
-        const delay = i * 0.1; 
-        container.append(`
-            <div class="activity-item shadow-sm" style="animation-delay: ${delay}s">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                    <span class="live-indicator"><span class="pulse-dot mr-1" style="width:6px; height:6px;"></span>Live</span>
-                    <small class="text-muted" style="font-size:0.7rem;">${act.time}</small>
-                </div>
-                <div class="font-weight-bold text-dark" style="font-size:0.9rem;">${act.msg}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <small class="text-primary font-weight-bold" style="font-size:0.7rem;">${act.type}</small>
-                    <small class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user-shield mr-1"></i>${act.user}</small>
-                </div>
-            </div>`);
-    });
-}
-
-function loadActivityLog() {
-    const container = $('#notificationList').empty();
-    const audit = $('#auditLog').empty();
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
-    
-    if (myEntries.length === 0) {
-        container.append(`<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>`);
-        return;
-    }
-
-    myEntries.filter(e => (e.MATCH_STATUS || "").toUpperCase().includes("MATCH")).forEach(m => {
-        const is3Way = m.MATCH_STATUS.toUpperCase().includes("3-WAY");
-        container.append(`
-            <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
-                        <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
-                        <p class="small text-muted mb-0">A mutual match has been found.</p>
-                    </div>
-                    <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
-                </div>
-            </div>`);
-    });
-
-    myEntries.filter(e => !(e.MATCH_STATUS || "").toUpperCase().includes("MATCH")).forEach(p => {
-        container.append(`
-            <div class="history-card" style="border-left-color: #cbd5e1;">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div>
-                    <div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div>
-                </div>
-            </div>`);
-    });
-
-    audit.append(`
-        <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div>
-        <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
-}
-
-// 8. ACTIONS & HANDLERS
-async function unlockRow(id, active) {
-    const isActive = String(active) === "true" || active === true;
-    if(!isActive) { showToast("Match required to view contact", "info"); return; }
-    $("#globalLoader").fadeIn();
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
-        });
-        const data = await res.json();
-        $("#globalLoader").fadeOut();
-        if(data.error) { showToast(data.error, "error"); } 
-        else {
-            if (data.is3Way) {
-                $('#chainPersonB').text(data.partnerB.name);
-                $('#chainPersonC').text(data.partnerC.name);
-                $('#distB').text(data.partnerB.workingDistrict);
-                $('#distC').text(data.partnerC.workingDistrict);
-                $('#btnChatPartner').attr('onclick', `openChat('MATCH_${id}', 'Group Chat')`);
-                $('#modalChain').modal('show'); 
-            } else {
-                $('#resName').text(data.name || "N/A");
-                $('#resPhone').text(data.contact || "N/A");
-                $('#callLink').attr("href", "tel:" + data.contact);
-                $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-                $('#btnChatPartner').attr('onclick', `openChat('MATCH_${id}', 'Chat with ${data.name}')`);
-                $('#modalContact').modal('show'); 
-            }
-            showToast("Contact Unlocked!", "success");
-        }
-    } catch(e) { $("#globalLoader").fadeOut(); showToast("Server Error", "error"); }
-}
-
+// Global Actions
 function toggleMatches() {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
     FILTER_MATCHES = !FILTER_MATCHES;
-    const btn = $('#btnMatches');
-    FILTER_MATCHES ? btn.removeClass('btn-outline-primary').addClass('btn-primary text-white') : btn.addClass('btn-outline-primary').removeClass('btn-primary text-white');
+    $('#btnMatches').toggleClass('btn-primary text-white').toggleClass('btn-outline-primary');
     renderTable();
 }
 
-function deleteMyEntry() {
-    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    $('#r1').prop('checked', true);
-    $('#otherReasonWrapper').addClass('d-none');
-    $('#modalDeleteConfirm').modal('show');
-}
-
-async function executeDeletion() {
-    let sel = $('input[name="delReason"]:checked').val();
-    let finalReason = sel === "OTHER" ? $('#deleteReasonOther').val().trim() : sel;
-    if (sel === "OTHER" && !finalReason) { alert("Please provide a reason."); return; }
-    if (!confirm("Are you sure? This will permanently remove your profile.")) return;
-    $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").show();
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: finalReason })
-        });
-        const data = await res.json();
-        if (data.status === "SUCCESS") { alert("Entry Successfully Deleted."); clearIdentity(); } 
-        else { alert("Error: " + data.error); $("#globalLoader").fadeOut(); }
-    } catch(e) { $("#globalLoader").fadeOut(); alert("Connection Error."); }
-}
-
-function buildFilters() {
-    const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
-    const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
-    $('#selFrom').html('<option value="all">All Districts</option>');
-    $('#selTo').html('<option value="all">All Districts</option>');
-    fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
-    toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
-}
-
-function resetUI() { $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all'); FILTER_MATCHES = false; renderTable(); }
 function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
-function redirectToRegistration() {
-    const up = localStorage.getItem("userPhone");
-    const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html";
-    window.location.href = up ? `${url}?editPhone=${up}` : url;
-}
-
-function saveVerify() {
-    const val = $('#verifyPhone').val();
-    if(!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; }
-    if(MASTER_DATA.some(x => String(x.phone) === String(val))) { localStorage.setItem("userPhone", val); location.reload(); } 
-    else { $('#loginError, #regSection').fadeIn(); }
-}
-
-function selectRadio(id) {
-    $(`#${id}`).prop('checked', true);
-    if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none');
-    else $('#otherReasonWrapper').addClass('d-none');
-}
-
-function showToast(message, type = 'success') {
-    $('.custom-toast').remove();
-    const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
-    const bgColor = type === 'success' ? '#10b981' : '#4f46e5';
-    const toast = $(`<div class="custom-toast shadow-lg"><i class="fas ${icon} mr-2"></i><span>${message}</span></div>`);
-    $('body').append(toast);
-    toast.css({ 'position': 'fixed', 'bottom': '20px', 'left': '50%', 'transform': 'translateX(-50%)', 'background': bgColor, 'color': 'white', 'padding': '12px 24px', 'border-radius': '50px', 'z-index': '10000', 'font-weight': '600', 'display': 'none' });
-    toast.fadeIn(400).delay(3000).fadeOut(400, function() { $(this).remove(); });
-}
-
-function shareToWhatsApp() {
-    const appUrl = window.location.href.split('?')[0];
-    const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district";
-    const text = `*Mutual Transfer Portal Update* 🌐\n\nI'm looking for a transfer from *${myDistrict}*.\nCheck live matches and register here:\n👉 ${appUrl}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-function copyInviteLink() {
-    const appUrl = window.location.href.split('?')[0];
-    navigator.clipboard.writeText(appUrl).then(() => showToast("Invite link copied!", "success")).catch(() => showToast("Failed to copy link", "error"));
-}
-
-// 9. CHAT SYSTEM
-let currentRoomId = 'GLOBAL', chatPollInterval = null, LAST_MSG_ID = ""; 
-function openChat(roomId, title) {
-    if (!MY_PHONE) { showToast("Please login first", "info"); return; }
-    currentRoomId = roomId; $('#chatTitle').text(title); $('#chatBox').empty();
-    if (roomId === 'GLOBAL') { $('#chatBadge').fadeOut(); localStorage.setItem('last_chat_seen', Date.now()); }
-    $('#modalChat').modal('show'); loadMessages();
-    if(chatPollInterval) clearInterval(chatPollInterval);
-    chatPollInterval = setInterval(loadMessages, 4000);
-}
-
-$('#modalChat').on('hidden.bs.modal', () => clearInterval(chatPollInterval));
-
-async function loadMessages() {
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        let html = "";
-        data.messages.forEach(m => {
-            const isAdmin = String(MY_PHONE) === "9080141350"; 
-            html += `
-                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'} position-relative">
-                    ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
-                    <div>${m.text}</div>
-                    <div class="d-flex justify-content-between align-items-center mt-1">
-                        <span class="msg-info">${m.time}</span>
-                        ${isAdmin ? `<i class="fas fa-trash-alt text-danger ml-2" style="cursor:pointer; font-size:0.7rem;" onclick="adminDeleteMsg('${m.text}')"></i>` : ''}
-                    </div>
-                </div>`;
-        });
-        $('#chatBox').html(html);
-        $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
-    } catch(e) { console.warn("Chat load failed."); }
-}
-
-async function sendChatMessage(customMsg = null) {
-    const inputField = $('#chatInput'), sendBtn = $('#btnSendChat');
-    const msg = customMsg || inputField.val().trim();
-    if (!msg) return;
-    inputField.val('');
-    sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-    await fetch(API, {
-        method: "POST",
-        body: JSON.stringify({ action: "sendMessage", roomId: currentRoomId, userPhone: MY_PHONE, userName: MY_NAME, msg: msg })
-    });
-    sendBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
-    loadMessages();
-}
-
-async function updateChatPreview() {
-    if ($('#modalChat').hasClass('show')) return; 
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-            const lastMsg = data.messages[data.messages.length - 1];
-            if (!lastMsg.isMe && lastMsg.text !== LAST_MSG_ID) {
-                $('#chatBadge').fadeIn();
-                $('#prevName').text(lastMsg.name); $('#prevText').text(lastMsg.text); $('#prevAvatar').text(lastMsg.name.charAt(0));
-                $('#chatPreview').fadeIn().delay(5000).fadeOut();
-                LAST_MSG_ID = lastMsg.text;
-            }
-        }
-    } catch (e) { console.warn("Background sync failed."); }
-}
-setInterval(updateChatPreview, 15000);
