@@ -1,7 +1,7 @@
 const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
 let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0;
 let MY_PHONE = localStorage.getItem("userPhone");
-let MY_NAME = ""; // Added to prevent ReferenceError in sendChatMessage
+let MY_NAME = ""; 
 
 $(document).ready(() => {
     loadData();
@@ -22,21 +22,19 @@ async function professionalSync() {
     if (IS_SYNCING || document.visibilityState !== 'visible') return;
     
     IS_SYNCING = true;
-    showSlimProgress(30); // Start a subtle top-bar loader
+    showSlimProgress(30); 
 
     try {
         const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
         const res = await r.json();
         
-        // Update stats with a counter animation (Pro feature)
         animateValue("statTotal", MASTER_DATA.length, res.records.length, 1000);
         
-        // Perform the "Deep Compare" 
         const hasChanges = JSON.stringify(MASTER_DATA) !== JSON.stringify(res.records);
         
         if (hasChanges) {
             MASTER_DATA = res.records;
-            renderTable(); // This now needs to handle transitions
+            renderTable(); 
             if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
             console.log("Sync Complete: Data Updated");
         }
@@ -78,7 +76,7 @@ function animateValue(id, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
-// 5. Initialize the Auto-Sync (Every 30 seconds for "Live" feel)
+// 5. Initialize the Auto-Sync
 setInterval(professionalSync, 30000);
 
 
@@ -104,7 +102,7 @@ function loadData() {
         if (MY_PHONE) {
             const currentUser = userLookup[String(MY_PHONE)];
             if (currentUser) {
-                MY_NAME = currentUser['Your Designation'] || "User"; // Define MY_NAME for chat
+                MY_NAME = currentUser['Your Designation'] || "User"; 
                 $('#idContainer').removeClass('d-none');
                 $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
             } else {
@@ -158,7 +156,6 @@ async function syncLiveFeed() {
         const r = await fetch(`${API}?action=getDashboardData&t=${Date.now()}`);
         const res = await r.json();
 
-        // 1. Detect New Matches for the User
         const oldMatches = MASTER_DATA.filter(x => 
             String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
         ).length;
@@ -167,13 +164,11 @@ async function syncLiveFeed() {
             String(x.phone) === String(MY_PHONE) && x.MATCH_STATUS.toUpperCase().includes("MATCH")
         ).length;
 
-        // 2. Alert user if a match was just found by the system
         if (newMatches > oldMatches) {
             showToast("🎉 Great news! A new mutual match has been found!", "success");
-            if (window.navigator.vibrate) window.navigator.vibrate(200); // Haptic feedback
+            if (window.navigator.vibrate) window.navigator.vibrate(200); 
         }
 
-        // 3. Update the UI silently
         MASTER_DATA = res.records;
         renderTable(); 
         updateStats(res.records, res.archivedCount);
@@ -283,8 +278,6 @@ function renderTable() {
 
 function renderTableToDOM(data) {
     const tbody = $('#mainTbody');
-    
-    // Capture existing IDs before clearing to detect "New" entries
     const existingIds = [];
     tbody.find('tr').each(function() {
         const id = $(this).attr('data-id');
@@ -299,17 +292,13 @@ function renderTableToDOM(data) {
         const isMe = String(row.phone) === String(MY_PHONE);
         const matchStat = (row.MATCH_STATUS || "").toUpperCase();
         const hasMatch = matchStat.includes("MATCH");
-        
-        // Check if this is a fresh update/new entry
         const isNew = existingIds.length > 0 && !existingIds.includes(String(row.id));
         
-        // Demand Styling
         let demandCfg = { c: 'lvl-mod', d: '#f59e0b' }; 
         const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
         if(dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
         if(dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
 
-        // Status Badges
         let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
         if(matchStat.includes("3-WAY")) {
             statusMarkup = `<span class="badge badge-pill badge-secondary badge-glow-purple">3-WAY MATCH</span>`;
@@ -360,30 +349,17 @@ async function unlockRow(id, active) {
         if(data.error) {
             showToast(data.error, "error");
         } else {
-            // Check if it's a 3-way chain or a direct match
             if (data.is3Way) {
-                // Populate Chain Modal
                 $('#chainPersonB').text(data.partnerB.name);
                 $('#chainPersonC').text(data.partnerC.name);
                 $('#distB').text(data.partnerB.workingDistrict);
                 $('#distC').text(data.partnerC.workingDistrict);
-                
-                // Set Chat Buttons for the Room
-                const privateRoomId = `MATCH_${id}`;
-                $('#btnChatPartner').attr('onclick', `openChat('${privateRoomId}', 'Private Chat')`);
-                // OPEN THE CHAIN MODAL
                 $('#modalChain').modal('show'); 
             } else {
-                // Populate Standard Contact Modal
                 $('#resName').text(data.name || "N/A");
                 $('#resPhone').text(data.contact || "N/A");
                 $('#callLink').attr("href", "tel:" + data.contact);
                 $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-                
-                // Set Private Chat Button
-                $('#btnChatPartner').attr('onclick', `openChat('MATCH_${id}', 'Chat with ${data.name}')`);
-
-                // OPEN THE CONTACT MODAL
                 $('#modalContact').modal('show'); 
             }
             showToast("Contact Unlocked!", "success");
@@ -465,7 +441,6 @@ function saveVerify() {
     }
 }
 
-// Utility for custom radio select
 function selectRadio(id) {
     $(`#${id}`).prop('checked', true);
     if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none');
@@ -523,136 +498,3 @@ function copyInviteLink() {
         showToast("Failed to copy link", "error");
     });
 }
-
-let currentRoomId = 'GLOBAL';
-let chatPollInterval = null;
-let LAST_MSG_ID = ""; 
-let LAST_SEEN_TIME = localStorage.getItem('last_chat_seen') || 0;
-
-function openChat(roomId, title) {
-    if (!MY_PHONE) { showToast("Please login first", "info"); return; }
-    
-    currentRoomId = roomId;
-    $('#chatTitle').text(title);
-    $('#chatBox').empty();
-    
-    if (roomId === 'GLOBAL') {
-        $('#chatBadge').fadeOut();
-        LAST_SEEN_TIME = Date.now();
-        localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
-    }
-    
-    $('#modalChat').modal('show');
-    loadMessages();
-    
-    if(chatPollInterval) clearInterval(chatPollInterval);
-    chatPollInterval = setInterval(loadMessages, 4000);
-}
-
-$('#modalChat').on('hidden.bs.modal', () => clearInterval(chatPollInterval));
-
-async function loadMessages() {
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=${currentRoomId}&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        let html = "";
-        
-        data.messages.forEach(m => {
-            const isAdmin = String(MY_PHONE) === "9080141350"; 
-
-            html += `
-                <div class="msg-bubble ${m.isMe ? 'msg-me' : 'msg-them'} position-relative">
-                    ${!m.isMe ? `<div class="msg-sender">${m.name}</div>` : ''}
-                    <div>${m.text}</div>
-                    <div class="d-flex justify-content-between align-items-center mt-1">
-                        <span class="msg-info">${m.time}</span>
-                        ${isAdmin ? `<i class="fas fa-trash-alt text-danger ml-2" style="cursor:pointer; font-size:0.7rem;" onclick="adminDeleteMsg('${m.text}')"></i>` : ''}
-                    </div>
-                </div>`;
-        });
-        
-        $('#chatBox').html(html);
-        $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
-        
-        if ($('#modalChat').hasClass('show') && currentRoomId === 'GLOBAL') {
-            LAST_SEEN_TIME = Date.now();
-            localStorage.setItem('last_chat_seen', LAST_SEEN_TIME);
-        }
-    } catch(e) { console.warn("Chat load failed."); }
-}
-
-async function adminDeleteMsg(text) {
-    if (!confirm("Are you sure you want to remove this message for everyone?")) return;
-
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "deleteMessage",
-                roomId: currentRoomId,
-                userPhone: MY_PHONE,
-                msgText: text
-            })
-        });
-        const data = await res.json();
-        
-        if (data.status === "DELETED") {
-            showToast("Message Removed", "success");
-            loadMessages();
-        } else {
-            showToast("Unauthorized Access", "error");
-        }
-    } catch (e) {
-        showToast("System Error", "error");
-    }
-}
-
-async function sendChatMessage(customMsg = null) {
-    const inputField = $('#chatInput');
-    const sendBtn = $('#btnSendChat');
-    const msg = customMsg || inputField.val().trim();
-    
-    if (!msg) return;
-    
-    inputField.val('');
-    sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-    await fetch(API, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "sendMessage",
-            roomId: currentRoomId,
-            userPhone: MY_PHONE,
-            userName: MY_NAME, // This variable is now defined in loadData()
-            msg: msg
-        })
-    });
-    
-    sendBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
-    loadMessages();
-}
-
-async function updateChatPreview() {
-    if ($('#modalChat').hasClass('show')) return; 
-
-    try {
-        const res = await fetch(`${API}?action=getMessages&roomId=GLOBAL&userPhone=${MY_PHONE}`);
-        const data = await res.json();
-        
-        if (data.messages && data.messages.length > 0) {
-            const lastMsg = data.messages[data.messages.length - 1];
-            
-            if (!lastMsg.isMe && lastMsg.text !== LAST_MSG_ID) {
-                $('#chatBadge').fadeIn();
-                $('#prevName').text(lastMsg.name);
-                $('#prevText').text(lastMsg.text);
-                $('#prevAvatar').text(lastMsg.name.charAt(0));
-                
-                $('#chatPreview').fadeIn().delay(5000).fadeOut();
-                LAST_MSG_ID = lastMsg.text;
-            }
-        }
-    } catch (e) { console.warn("Background sync failed."); }
-}
-
-setInterval(updateChatPreview, 15000);
