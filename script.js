@@ -410,6 +410,97 @@ function redirectToRegistration() { const up = localStorage.getItem("userPhone")
 function shareToWhatsApp() { const appUrl = window.location.href.split('?')[0]; const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district"; const text = `*Mutual Transfer Portal Update* 🌐\n\nI'm looking for a transfer from *${myDistrict}*.\nCheck live matches and register your profile here:\n\n👉 ${appUrl}`; const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(waUrl, '_blank'); }
 function copyInviteLink() { const appUrl = window.location.href.split('?')[0]; navigator.clipboard.writeText(appUrl).then(() => { showToast("Invite link copied!", "success"); }); }
 
-// Non-essential functions placeholders to match your request
-function renderHubActivity(activities) { /* Logic included in snippet above */ }
-function loadActivityLog() { /* Logic included in snippet above */ }
+// Non-// --- Updated Hub Activity with Key Fallbacks ---
+function renderHubActivity(activities) {
+    const container = $('#hubActivityList');
+    if (!container.length) return; // Guard against missing HTML ID
+    
+    container.empty();
+    
+    if (!activities || activities.length === 0) {
+        container.append('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
+        return;
+    }
+
+    activities.forEach((act, i) => {
+        const delay = i * 0.1;
+        // Fallback logic for keys: msg/message, type/category, user/name
+        const message = act.msg || act.message || "Activity updated";
+        const time = act.time || "Just now";
+        const type = act.type || act.category || "System";
+        const user = act.user || act.name || "Member";
+
+        container.append(`
+            <div class="activity-item shadow-sm" style="animation-delay: ${delay}s; margin-bottom: 10px; padding: 10px; border-radius: 12px; background: #fff;">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <span class="live-indicator" style="color: #ef4444; font-size: 0.7rem;"><span class="pulse-dot"></span>Live</span>
+                    <small class="text-muted" style="font-size:0.7rem;">${time}</small>
+                </div>
+                <div class="font-weight-bold text-dark" style="font-size:0.9rem;">${message}</div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-primary font-weight-bold" style="font-size:0.7rem;">${type}</small>
+                    <small class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user-shield mr-1"></i>${user}</small>
+                </div>
+            </div>
+        `);
+    });
+}
+
+// --- Updated My Activity (Notifications) ---
+function loadActivityLog() {
+    const container = $('#notificationList');
+    const audit = $('#auditLog');
+    if (!container.length) return;
+
+    container.empty();
+    audit.empty();
+
+    if (!MY_PHONE) {
+        container.append('<div class="text-center p-3">Please verify your phone.</div>');
+        return;
+    }
+
+    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
+    
+    if (myEntries.length === 0) {
+        container.append(`<div class="text-center p-4 border rounded-24 bg-light"><p class="text-muted mb-0">No active registration found for ${MY_PHONE}.</p></div>`);
+        return;
+    }
+
+    myEntries.forEach(e => {
+        const status = (e.MATCH_STATUS || "").toUpperCase();
+        const isMatch = status.includes("MATCH");
+        const is3Way = status.includes("3-WAY");
+
+        if (isMatch) {
+            container.append(`
+                <div class="history-card" style="border-left: 4px solid ${is3Way ? '#7c3aed' : '#10b981'}; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
+                            <h6 class="font-weight-bold mb-1">Transfer to ${e['Willing District']} Ready</h6>
+                            <p class="small text-muted mb-0">Contact details unlocked for this route.</p>
+                        </div>
+                        <button class="btn btn-sm btn-primary rounded-pill" onclick="unlockRow('${e.id}', true)">View</button>
+                    </div>
+                </div>`);
+        } else {
+            container.append(`
+                <div class="history-card" style="border-left: 4px solid #cbd5e1; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 12px;">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-muted mr-3"></div>
+                        <div>
+                            <p class="mb-0 font-weight-bold">Searching for ${e['Willing District']}...</p>
+                            <small class="text-muted">Registered from ${e['Working District']}</small>
+                        </div>
+                    </div>
+                </div>`);
+        }
+    });
+
+    // Simple Audit Logs
+    audit.append(`
+        <div class="p-2 mb-2 border-bottom"><small><b>ID Verified:</b> ${MY_PHONE}</small></div>
+        <div class="p-2 mb-2 border-bottom"><small><b>Syncing:</b> ${myEntries.length} Active Requests</small></div>
+    `);
+}
