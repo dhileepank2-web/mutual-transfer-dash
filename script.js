@@ -418,8 +418,12 @@ function buildFilters() {
 }
 
 function resetUI() {
-    $('#inpSearch').val(''); $('#selFrom').val('all'); $('#selTo').val('all');
-    FILTER_MATCHES = false; renderTable();
+    $('#selDesignation').val('all'); // Reset designation
+    $('#selFrom').val('all'); 
+    $('#selTo').val('all');
+    FILTER_MATCHES = false; 
+    $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white');
+    renderTable();
 }
 
 function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
