@@ -237,7 +237,7 @@ function loadActivityLog() {
 }
 
 function renderTable() {
-    const query = $('#inpSearch').val().toLowerCase();
+   const selectedDesig = $('#selDesignation').val();
     const from = $('#selFrom').val();
     const to = $('#selTo').val();
     
@@ -260,18 +260,18 @@ function renderTable() {
         });
     });
 
-    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i> Potential Matches ${potentialMatches.length > 0 ? `<span class="badge badge-light ml-1">${potentialMatches.length}</span>` : ''}`);
+    $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i>My Matches ${potentialMatches.length > 0 ? `<span class="badge badge-light ml-1">${potentialMatches.length}</span>` : ''}`);
 
     const filtered = MASTER_DATA.filter(r => {
         const isOwn = String(r.phone) === String(MY_PHONE);
-        const matchesSearch = !query || r['Your Designation']?.toLowerCase().includes(query);
+        const matchesDesig = selectedDesig === 'all' || r['Your Designation'] === selectedDesig;
         const matchesFrom = from === 'all' || r['Working District'] === from;
         const matchesTo = to === 'all' || r['Willing District'] === to;
         if (FILTER_MATCHES) {
             const isMatchForMe = potentialMatches.some(m => m.id === r.id);
-            return (isMatchForMe || isOwn) && matchesSearch && matchesFrom && matchesTo;
+            return (isMatchForMe || isOwn) && matchesDesig && matchesFrom && matchesTo;
         }
-        return matchesSearch && matchesFrom && matchesTo;
+        return matchesDesig && matchesFrom && matchesTo;
     });
     renderTableToDOM(filtered);
 }
