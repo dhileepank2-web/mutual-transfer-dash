@@ -409,10 +409,22 @@ async function executeDeletion() {
 }
 
 function buildFilters() {
-    const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].sort();
-    const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].sort();
+    // 1. Get unique values from MASTER_DATA
+    const desigSet = [...new Set(MASTER_DATA.map(x => x['Your Designation']))].filter(Boolean).sort();
+    const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].filter(Boolean).sort();
+    const toSet = [...new Set(MASTER_DATA.map(x => x['Willing District']))].filter(Boolean).sort();
+
+    // 2. Clear and Set Default "All" options
+    $('#selDesignation').html('<option value="all">All Designations</option>');
     $('#selFrom').html('<option value="all">All Districts</option>');
     $('#selTo').html('<option value="all">All Districts</option>');
+
+    // 3. Populate Designation dropdown
+    desigSet.forEach(d => {
+        $('#selDesignation').append(`<option value="${d}">${d}</option>`);
+    });
+
+    // 4. Populate District dropdowns
     fromSet.forEach(d => $('#selFrom').append(`<option value="${d}">${d}</option>`));
     toSet.forEach(d => $('#selTo').append(`<option value="${d}">${d}</option>`));
 }
