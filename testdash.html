@@ -83,40 +83,49 @@
         </small>
     </div>
 
-    <div class="stat-container">
-        <div class="row">
-            <div class="col-md-4 stat-box">
-                <span class="stat-label">Total Requests</span>
-                <span class="stat-value" id="statTotal">0</span>
-            </div>
-            <div class="col-md-4 stat-box">
-                <span class="stat-label">Total Successful Matches</span>
-                <span class="stat-value text-primary" id="statMatched">0</span>
-            </div>
-            <div class="col-md-4 stat-box">
-                <span class="stat-label">Success Rate</span>
-                <span class="stat-value text-success" id="statRate">0%</span>
-            </div>
+   <div class="stat-container">
+    <div class="row">
+        <div class="col-md-3 stat-box">
+            <span class="stat-label">Unique Users (Live)</span>
+            <span class="stat-value" id="statUnique">0</span>
+        </div>
+        <div class="col-md-3 stat-box border-left">
+            <span class="stat-label">Total Requests (Live)</span>
+            <span class="stat-value" id="statTotal">0</span>
+        </div>
+        <div class="col-md-3 stat-box border-left">
+            <span class="stat-label">Total Leaved (Archive)</span>
+            <span class="stat-value text-secondary" id="statArchived">0</span>
+        </div>
+        <div class="col-md-3 stat-box border-left">
+            <span class="stat-label">Successful Matches</span>
+            <span class="stat-value text-success" id="statMatched">0</span>
         </div>
     </div>
+</div>
 
     <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
-                <i class="fas fa-list-ul mr-2"></i>Live Listings
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
-                <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
-            </a>
-        </li>
-        <li class="nav-item ml-2">
-            <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab" onclick="loadActivityLog()">
-                <i class="fas fa-user-shield mr-2"></i>My Activity
-            </a>
-        </li>
-    </ul>
+    <li class="nav-item">
+        <a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab">
+            <i class="fas fa-list-ul mr-2"></i>Live Listings
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="archive-tab" data-toggle="pill" href="#paneArchive" role="tab">
+            <i class="fas fa-history mr-2"></i>Archive List
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="hub-tab" data-toggle="pill" href="#paneHub" role="tab">
+            <i class="fas fa-broadcast-tower mr-2"></i>Hub Activity
+        </a>
+    </li>
+    <li class="nav-item ml-2">
+        <a class="nav-link" id="activity-tab" data-toggle="pill" href="#paneActivity" role="tab">
+            <i class="fas fa-user-shield mr-2"></i>My Activity
+        </a>
+    </li>
+</ul>
 
   <div class="tab-content" id="dashboardTabContent">
         <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
@@ -182,7 +191,23 @@
                 </div>
             </div>
         </div>
-
+<div class="tab-pane fade" id="paneArchive" role="tabpanel">
+    <div class="table-wrapper">
+        <div class="table-responsive">
+            <table class="table m-0">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>From/To</th>
+                        <th>Deletion Reason</th>
+                    </tr>
+                </thead>
+                <tbody id="archiveTbody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
         <div class="tab-pane fade" id="paneHub" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="font-weight-bold text-uppercase text-muted mb-0">
