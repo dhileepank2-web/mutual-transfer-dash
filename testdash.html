@@ -118,64 +118,47 @@
         </li>
     </ul>
 
-    <div class="tab-content" id="dashboardTabContent">
-        <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
-    <div class="row align-items-end">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1 mb-1 d-block">Designation Filter</label>
-            <select id="selDesignation" onchange="renderTable()" class="form-control filter-control">
-                <option value="all">All Designations</option>
-                <option>Assistant</option>
-                <option>Junior Assistant</option>
-                <option>Typist</option>
-                <option>Steno Typist</option>
-                <option>WATCHMAN</option>
-                <option>CLEANLINESS WORKER</option>
-                <option>MASALCHI</option>
-                <option>NIGHT WATCHMAN – CUM – MASALCHI</option>
-                <option>MASALCHI CUM – NIGHT WATCHMAN</option>
-                <option>OFFICE ASSISTANT</option>
-                <option>COPYIST ATTENDER</option>
-                <option>RECORD CLERK</option>
-                <option>XEROX MACHINE OPERATOR (Adhoc Rules)</option>
-                <option>JUNIOR BAILIFF</option>
-                <option>DRIVER</option>
-                <option>SENIOR BAILIFF</option>
-                <option>BENCH CLERKS GRADE - III</option>
-                <option>BENCH CLERKS GRADE - II</option>
-            </select>
-        </div>
-
-        <div class="col-lg-2 col-md-3 mb-3">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1 mb-1 d-block">FROM</label>
-            <select id="selFrom" class="form-control filter-control" onchange="renderTable()">
-                <option value="all">All Districts</option>
-            </select>
-        </div>
-
-        <div class="col-lg-2 col-md-3 mb-3">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1 mb-1 d-block">TO</label>
-            <select id="selTo" class="form-control filter-control" onchange="renderTable()">
-                <option value="all">All Districts</option>
-            </select>
-        </div>
-
-        <div class="col-auto mb-3">
-            <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 whitespace-nowrap" style="height:52px;" onclick="toggleMatches()">
-                <i class="fas fa-filter mr-2"></i>My Matches
-            </button>
-        </div>
-
-        <div class="col-auto mb-3 d-flex" style="gap:10px;">
-            <button class="btn btn-outline-success rounded-pill px-3 shadow-sm" style="height:52px;" onclick="shareToWhatsApp()">
-                <i class="fab fa-whatsapp mr-1"></i> Invite
-            </button>
-            <button class="btn btn-light border rounded-14" style="height:52px; width:52px;" onclick="resetUI()" aria-label="Reset">
-                <i class="fas fa-redo"></i>
-            </button>
-        </div>
-    </div>
+  <div class="tab-content" id="dashboardTabContent">
+        <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
+            <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+                <div class="row align-items-end">
+                   <div class="col-lg-3 col-md-6 mb-3">
+    <label class="text-[10px] font-extrabold text-muted uppercase tracking-wider ml-1 mb-1 d-block">Designation Filter</label>
+    <select id="selDesignation" onchange="renderTable()" class="form-control filter-control">
+        <option value="all">All Designations</option>
+        </select>
 </div>
+
+                    <div class="col-lg-2 col-md-3 mb-3">
+                        <label class="text-[10px] font-extrabold text-muted uppercase tracking-wider ml-1 mb-1 d-block">FROM</label>
+                        <select id="selFrom" class="form-control filter-control" onchange="renderTable()">
+                            <option value="all">All Districts</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 mb-3">
+                        <label class="text-[10px] font-extrabold text-muted uppercase tracking-wider ml-1 mb-1 d-block">TO</label>
+                        <select id="selTo" class="form-control filter-control" onchange="renderTable()">
+                            <option value="all">All Districts</option>
+                        </select>
+                    </div>
+
+                    <div class="col-auto mb-3">
+                        <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 whitespace-nowrap" style="height:52px;" onclick="toggleMatches()">
+                            <i class="fas fa-filter mr-2"></i>My Matches
+                        </button>
+                    </div>
+
+                    <div class="col-auto mb-3 d-flex" style="gap:10px;">
+                        <button class="btn btn-outline-success rounded-pill px-3 shadow-sm" style="height:52px;" onclick="shareToWhatsApp()">
+                            <i class="fab fa-whatsapp mr-1"></i> Invite
+                        </button>
+                        <button class="btn btn-light border rounded-14" style="height:52px; width:52px;" onclick="resetUI()" aria-label="Reset">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div class="table-wrapper">
                 <div class="table-responsive">
@@ -225,7 +208,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <div class="modal fade" id="modalVerify" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
