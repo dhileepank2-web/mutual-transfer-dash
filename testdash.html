@@ -122,11 +122,33 @@
         <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
             <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
                 <div class="row">
-                    <div class="col-lg-4 col-md-12 mb-3">
-                        <label class="small text-muted font-weight-bold">QUICK SEARCH</label>
-                        <input id="inpSearch" class="form-control filter-control" placeholder="Search designation..." oninput="renderTable()">
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
+                   <div class="grid md:grid-cols-3 gap-4 mb-6">
+    <div>
+        <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">Designation Filter</label>
+        <select id="selDesignation" onchange="renderTable()" class="filter-control w-full px-4 mt-1 bg-white border-slate-200">
+            <option value="all">All Designations</option>
+            <option>Assistant</option>
+            <option>Junior Assistant</option>
+            <option>Typist</option>
+            <option>Steno Typist</option>
+            <option>WATCHMAN</option>
+            <option>CLEANLINESS WORKER</option>
+            <option>MASALCHI</option>
+            <option>NIGHT WATCHMAN – CUM – MASALCHI</option>
+            <option>MASALCHI CUM – NIGHT WATCHMAN</option>
+            <option>OFFICE ASSISTANT</option>
+            <option>COPYIST ATTENDER</option>
+            <option>RECORD CLERK</option>
+            <option>XEROX MACHINE OPERATOR (Adhoc Rules)</option>
+            <option>JUNIOR BAILIFF</option>
+            <option>DRIVER</option>
+            <option>SENIOR BAILIFF</option>
+            <option>BENCH CLERKS GRADE - III</option>
+            <option>BENCH CLERKS GRADE - II</option>
+        </select>
+    </div>
+
+                       <div class="col-lg-2 col-md-6 mb-3">
                         <label class="small text-muted font-weight-bold">FROM</label>
                         <select id="selFrom" class="form-control filter-control" onchange="renderTable()"><option value="all">All Districts</option></select>
                     </div>
@@ -136,7 +158,7 @@
                     </div>
                     <div class="col-lg-3 col-md-12 mb-3 d-flex align-items-end" style="gap:10px;">
                         <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 w-100" style="height:52px;" onclick="toggleMatches()">
-                            <i class="fas fa-filter mr-2"></i>My Potential Matches
+                            <i class="fas fa-filter mr-2"></i>My Matches
                         </button>
                         <button class="btn btn-outline-success rounded-pill px-3 shadow-sm w-100" style="height:52px;" onclick="shareToWhatsApp()">
                             <i class="fab fa-whatsapp mr-1"></i> Invite
