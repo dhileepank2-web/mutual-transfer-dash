@@ -180,15 +180,20 @@ async function syncLiveFeed() {
 }
 
 function updateStats(data, archived) {
-    const liveTotal = [...new Set(data.map(x => x.phone))].length;
-    const liveMatched = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
-    const systemMatchesTotal = liveMatched + archived;
-    const totalHistoricalProfiles = liveTotal + archived;
-    const rate = totalHistoricalProfiles > 0 ? Math.round((systemMatchesTotal / totalHistoricalProfiles) * 100) : 0;
+    // Unique People (Count unique phone numbers)
+    const uniquePeople = [...new Set(data.map(x => x.phone))].length;
     
-    $('#statTotal').text(liveTotal);
-    $('#statMatched').text(systemMatchesTotal);
-    $('#statRate').text(rate + '%');
+    // Total Entries (Every row in the spreadsheet)
+    const totalEntries = data.length;
+    
+    // Total Successful Matches (Live Matches + Archived Successes)
+    const liveMatches = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
+    const totalHistoricalMatches = liveMatches + archived;
+
+    // Update the UI
+    $('#statTotal').text(uniquePeople); // Label this "Unique Users"
+    $('#statEntries').text(totalEntries); // New Stat Box for "Total Requests"
+    $('#statMatched').text(totalHistoricalMatches);
 }
 
 function loadActivityLog() {
