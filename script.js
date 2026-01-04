@@ -179,23 +179,53 @@ async function syncLiveFeed() {
     }
 }
 
-function updateStats(data, archived) {
-    // Unique People (Count unique phone numbers)
-    const uniquePeople = [...new Set(data.map(x => x.phone))].length;
+function updateStats(data, archivedCount) {
+    // 1. Unique Count (Based on phone number)
+    const uniqueUsers = [...new Set(data.map(x => String(x.phone)))].length;
     
-    // Total Entries (Every row in the spreadsheet)
-    const totalEntries = data.length;
-    
-    // Total Successful Matches (Live Matches + Archived Successes)
-    const liveMatches = data.filter(r => r.MATCH_STATUS.toUpperCase().includes("MATCH")).length;
-    const totalHistoricalMatches = liveMatches + archived;
+    // 2. Total Count (Total rows currently in Live)
+    const totalRequests = data.length;
 
-    // Update the UI
-    $('#statTotal').text(uniquePeople); // Label this "Unique Users"
-    $('#statEntries').text(totalEntries); // New Stat Box for "Total Requests"
-    $('#statMatched').text(totalHistoricalMatches);
+    // 3. Current Live Matches
+    const liveMatches = data.filter(r => (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
+
+    // 4. Combined Successful Matches (Live Matches + Total Archived)
+    const totalSuccessful = liveMatches + archivedCount;
+
+    // Update UI
+    $('#statUnique').text(uniqueUsers);
+    $('#statTotal').text(totalRequests);
+    $('#statArchived').text(archivedCount);
+    $('#statMatched').text(totalSuccessful);
 }
+// Add this inside loadData() or call it separately
+function renderArchiveTable(archivedRecords) {
+    const tbody = $('#archiveTbody').empty();
+    if (!archivedRecords || archivedRecords.length === 0) {
+        tbody.append('<tr><td colspan="3" class="text-center p-4">No archived entries found.</td></tr>');
+        return;
+    }
 
+    archivedRecords.forEach(row => {
+        tbody.append(`
+            <tr>
+                <td>
+                    <div class="font-weight-bold">${row['Your Designation']}</div>
+                    <small class="text-muted">ID: ${row.id}</small>
+                </td>
+                <td>
+                    <div class="small"><i class="fas fa-map-marker-alt text-muted mr-1"></i>${row['Working District']}</div>
+                    <div class="small"><i class="fas fa-paper-plane text-primary mr-1"></i>${row['Willing District']}</div>
+                </td>
+                <td>
+                    <span class="badge badge-pill badge-light border text-danger">
+                        ${row.deletionReason || 'Found Match'}
+                    </span>
+                </td>
+            </tr>
+        `);
+    });
+}
 function loadActivityLog() {
     const container = $('#notificationList').empty();
     const audit = $('#auditLog').empty();
