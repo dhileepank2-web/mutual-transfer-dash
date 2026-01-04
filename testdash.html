@@ -82,24 +82,27 @@
             Last Sync: <span id="lastUpdated">Loading...</span>
         </small>
     </div>
-
-   <div class="stat-container">
+<div class="stat-container">
     <div class="row">
-        <div class="col-md-3 stat-box">
-            <span class="stat-label">Unique Users (Live)</span>
+        <div class="col-md col-6 stat-box">
+            <span class="stat-label">Unique Members</span>
             <span class="stat-value" id="statUnique">0</span>
         </div>
-        <div class="col-md-3 stat-box border-left">
-            <span class="stat-label">Total Requests (Live)</span>
-            <span class="stat-value" id="statTotal">0</span>
+        <div class="col-md col-6 stat-box border-left">
+            <span class="stat-label">Total Requests</span>
+            <span class="stat-value text-info" id="statTotal">0</span>
         </div>
-        <div class="col-md-3 stat-box border-left">
-            <span class="stat-label">Total Leaved (Archive)</span>
+        <div class="col-md col-4 stat-box border-left">
+            <span class="stat-label">Current Matches</span>
+            <span class="stat-value text-primary" id="statLiveMatches">0</span>
+        </div>
+        <div class="col-md col-4 stat-box border-left">
+            <span class="stat-label">Total Leaved</span>
             <span class="stat-value text-secondary" id="statArchived">0</span>
         </div>
-        <div class="col-md-3 stat-box border-left">
-            <span class="stat-label">Successful Matches</span>
-            <span class="stat-value text-success" id="statMatched">0</span>
+        <div class="col-md col-4 stat-box border-left">
+            <span class="stat-label">Hub Success</span>
+            <span class="stat-value text-success" id="statOverall">0</span>
         </div>
     </div>
 </div>
