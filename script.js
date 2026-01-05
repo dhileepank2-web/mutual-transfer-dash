@@ -240,35 +240,41 @@ function renderTableToDOM(data) {
     });
     tbody.html(rowsHtml);
 }
-
 function renderArchiveTable(archivedRecords) {
     const tbody = $('#archiveTbody').empty();
+    const noDataView = $('#noArchiveData');
+
     if (!archivedRecords || archivedRecords.length === 0) {
-        tbody.append('<tr><td colspan="3" class="text-center p-4 text-muted">No historical records.</td></tr>');
+        noDataView.removeClass('d-none');
         return;
     }
 
+    noDataView.addClass('d-none');
+    
     archivedRecords.forEach(row => {
         tbody.append(`
-            <tr>
-                <td>
-                    <div class="font-weight-bold">${row['Your Designation']}</div>
-                    <small class="text-muted">ID: ${row.id || 'N/A'}</small>
+            <tr class="align-middle">
+                <td class="py-3 px-4">
+                    <div class="font-weight-bold text-dark">${row['Your Designation'] || 'Employee'}</div>
+                    <small class="text-muted"><i class="fas fa-fingerprint mr-1"></i>ID: ${row.id || 'N/A'}</small>
                 </td>
-                <td>
-                    <div class="small"><i class="fas fa-map-marker-alt text-muted mr-1"></i>${row['Working District']}</div>
-                    <div class="small"><i class="fas fa-paper-plane text-primary mr-1"></i>${row['Willing District']}</div>
+                <td class="py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="text-muted small">
+                            <span class="d-block"><i class="fas fa-map-marker-alt mr-1"></i>${row['Working District']}</span>
+                            <span class="d-block text-primary"><i class="fas fa-arrow-right mr-1"></i>${row['Willing District']}</span>
+                        </div>
+                    </div>
                 </td>
-                <td>
-                    <span class="badge badge-pill badge-light border text-success">
-                        ${row.reason || 'Found Match'}
+                <td class="py-3 text-center">
+                    <span class="badge badge-pill py-2 px-3" style="background: #ecfdf5; color: #059669; border: 1px solid #10b981;">
+                        <i class="fas fa-check-circle mr-1"></i>${row.reason || 'SUCCESS'}
                     </span>
                 </td>
             </tr>
         `);
     });
 }
-
 // --- UTILITY & ACTION FUNCTIONS ---
 
 async function unlockRow(id, active) {
