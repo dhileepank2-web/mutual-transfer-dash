@@ -410,7 +410,34 @@ function showToast(message, type = 'success') {
 
 function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
 function resetUI() { $('#selDesignation').val('all'); $('#selFrom').val('all'); $('#selTo').val('all'); FILTER_MATCHES = false; $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white'); renderTable(); }
-function deleteMyEntry() { if (!MY_PHONE) { $('#modalVerify').modal('show'); return; } $('#r1').prop('checked', true); $('#otherReasonWrapper').addClass('d-none'); $('#modalDeleteConfirm').modal('show'); }
+function deleteMyEntry() {
+    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
+
+    // 1. Find your record in the master data
+    const myRecord = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+    
+    // 2. Check if you have an active system match
+    const isMatched = myRecord && (myRecord.MATCH_STATUS || "").toUpperCase().includes("MATCH");
+
+    // 3. Reset to default state first
+    $('#r1').prop('checked', true); 
+    $('#otherReasonWrapper').addClass('d-none');
+
+    // 4. Verification Check: Lock/Unlock the "Found Match" option
+    if (!isMatched) {
+        // Disable the success option if no match exists in the system
+        $('#r2').prop('disabled', true);
+        $('#r2').parent().addClass('text-muted').css('cursor', 'not-allowed');
+        $('#r2-hint').html('<small class="text-danger d-block">Not available: No system match found yet.</small>');
+    } else {
+        // Enable it for truly matched users
+        $('#r2').prop('disabled', false);
+        $('#r2').parent().removeClass('text-muted').css('cursor', 'default');
+        $('#r2-hint').html('<small class="text-success d-block">Available: System match verified!</small>');
+    }
+
+    $('#modalDeleteConfirm').modal('show');
+}
 function selectRadio(id) { $(`#${id}`).prop('checked', true); if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none'); else $('#otherReasonWrapper').addClass('d-none'); }
 function redirectToRegistration() { const up = localStorage.getItem("userPhone"); const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html"; window.location.href = up ? `${url}?editPhone=${up}` : url; }
 function shareToWhatsApp() { const appUrl = window.location.href.split('?')[0]; const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district"; const text = `*Mutual Transfer Portal Update* 🌐\n\nI'm looking for a transfer from *${myDistrict}*.\nCheck live matches and register your profile here:\n\n👉 ${appUrl}`; const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(waUrl, '_blank'); }
