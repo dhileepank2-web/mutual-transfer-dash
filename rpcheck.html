@@ -6,138 +6,117 @@
     <title>Secure RP Number Check</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            -webkit-user-select: none; user-select: none;
-            background: #020617; font-family: -apple-system, system-ui, sans-serif;
-            color: #f8fafc;
-        }
-        /* High-end inputs */
+        body { -webkit-user-select: none; user-select: none; background: #020617; font-family: sans-serif; color: #fff; }
+        .glass { background: #ffffff; color: #0f172a; border-radius: 28px; }
         input { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
-        input:focus { border-color: #6366f1 !important; ring: 2px; ring-color: #6366f1; }
-        /* Professional result card */
-        .record-card { background: #ffffff; color: #0f172a; border-radius: 24px; }
-        .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="p-5">
 
     <div class="max-w-md mx-auto">
-        <header class="text-center mt-6 mb-10">
-            <h1 class="text-2xl font-black tracking-tighter text-white">SECURE RP <span class="text-indigo-500">CHECK</span></h1>
-            <div class="flex items-center justify-center gap-2 mt-1">
-                <span class="h-1 w-8 bg-indigo-500 rounded-full"></span>
-                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">Authorized Access Only</p>
-                <span class="h-1 w-8 bg-indigo-500 rounded-full"></span>
+        <div id="loginSection" class="mt-20">
+            <header class="text-center mb-10">
+                <h1 class="text-3xl font-black italic">SECURE <span class="text-indigo-500">RP</span></h1>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-2">Identity Verification Required</p>
+            </header>
+            <div class="glass p-8 shadow-2xl">
+                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">10-Digit Mobile Number</label>
+                <input type="number" id="loginMobile" inputmode="numeric" oninput="if(this.value.length > 10) this.value = this.value.slice(0,10)" placeholder="9876543210" class="w-full p-5 rounded-2xl text-2xl font-bold mt-2 mb-6 outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="doLogin()" id="loginBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                    <span>AUTHENTICATE</span>
+                    <div id="loginLoader" class="hidden spinner"></div>
+                </button>
             </div>
-        </header>
-
-        <div class="space-y-4 mb-8">
-            <div class="flex gap-3">
-                <div class="flex-1">
-                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR Number</label>
-                    <input type="number" id="fir" inputmode="numeric" placeholder="000" 
-                           class="w-full p-4 rounded-2xl text-xl font-bold outline-none transition-all">
-                </div>
-                <div class="w-2/5">
-                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">Year (YYYY)</label>
-                    <input type="number" id="year" inputmode="numeric" 
-                           oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" 
-                           onkeydown="if(event.key==='Enter'){ validateAndSearch(); }"
-                           placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold outline-none transition-all">
-                </div>
-            </div>
-            
-            <button onclick="validateAndSearch()" id="btn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-xl shadow-indigo-500/10">
-                <span id="btnTxt">QUERY DATABASE</span>
-                <div id="loading" class="hidden spinner"></div>
-            </button>
         </div>
 
-        <div id="stationList" class="hidden space-y-3 mb-8"></div>
-
-        <div id="detailView" class="hidden record-card p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
-            <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+        <div id="appSection" class="hidden animate-in fade-in duration-500">
+            <header class="flex justify-between items-center mb-10">
                 <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Property Identification</p>
-                    <h2 id="rpDisplay" class="text-3xl font-black text-slate-900 leading-tight"></h2>
-                    <p id="stationDisplay" class="text-indigo-600 text-[11px] font-black uppercase mt-1 italic"></p>
+                    <h2 id="welcomeName" class="text-xl font-bold"></h2>
+                    <p id="userStation" class="text-[10px] text-indigo-400 font-bold uppercase"></p>
                 </div>
-                <div class="bg-indigo-50 p-2 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
+                <button onclick="location.reload()" class="text-[10px] bg-slate-800 px-3 py-1 rounded-full text-slate-400 font-bold">LOGOUT</button>
+            </header>
+
+            <div class="glass p-6 mb-8">
+                <div class="flex gap-3 mb-4">
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">FIR No</label>
+                        <input type="number" id="fir" inputmode="numeric" class="w-full p-4 rounded-xl text-xl font-bold outline-none">
+                    </div>
+                    <div class="w-2/5">
+                        <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">Year</label>
+                        <input type="number" id="year" inputmode="numeric" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" placeholder="YYYY" class="w-full p-4 rounded-xl text-xl font-bold outline-none">
+                    </div>
                 </div>
+                <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl active:scale-95 transition-all">QUERY DATABASE</button>
             </div>
 
-            <div class="space-y-2">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Item Description</p>
-                <div id="descDisplay" class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium bg-slate-50 p-4 rounded-xl border border-slate-100"></div>
+            <div id="stationList" class="hidden space-y-3 mb-8"></div>
+
+            <div id="detailView" class="hidden glass p-6 shadow-2xl">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Result Found</p>
+                <h2 id="rpDisplay" class="text-4xl font-black mb-4 tracking-tighter"></h2>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p id="descDisplay" class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium"></p>
+                </div>
             </div>
-            
-            <button onclick="window.print()" class="w-full mt-6 py-3 text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">
-                Internal Record Copy
-            </button>
         </div>
     </div>
 
     <script>
         const API = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec";
+        let userData = null;
         let matches = [];
 
-        function validateAndSearch() {
-            const y = document.getElementById('year').value;
-            if(y.length !== 4) {
-                alert("Please enter a valid 4-digit year.");
-                return;
-            }
-            search();
+        async function doLogin() {
+            const mob = document.getElementById('loginMobile').value;
+            if(mob.length !== 10) return alert("Enter 10 digits");
+
+            document.getElementById('loginLoader').classList.remove('hidden');
+            try {
+                const res = await fetch(`${API}?action=login&mobile=${mob}`);
+                const data = await res.json();
+                if(data.success) {
+                    userData = { ...data, mobile: mob };
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('appSection').classList.remove('hidden');
+                    document.getElementById('welcomeName').innerText = "Hello, " + data.name;
+                    document.getElementById('userStation').innerText = data.station;
+                } else {
+                    alert("Unauthorized Mobile Number");
+                }
+            } catch(e) { alert("Login failed"); }
+            document.getElementById('loginLoader').classList.add('hidden');
         }
 
-        async function search() {
+        async function doSearch() {
             const f = document.getElementById('fir').value;
             const y = document.getElementById('year').value;
-            if(!f || !y) return;
+            if(!f || y.length !== 4) return alert("Valid FIR and 4-digit Year required");
 
-            // Blur input to hide mobile keyboard immediately
-            document.activeElement.blur();
-
-            const btnTxt = document.getElementById('btnTxt');
-            const loader = document.getElementById('loading');
-            const list = document.getElementById('stationList');
-            const detail = document.getElementById('detailView');
-
-            btnTxt.innerText = "QUERYING...";
-            loader.classList.remove('hidden');
-            list.innerHTML = "";
-            detail.classList.add('hidden');
+            document.getElementById('stationList').classList.add('hidden');
+            document.getElementById('detailView').classList.add('hidden');
 
             try {
-                const res = await fetch(`${API}?fir=${f}&year=${y}`);
+                const res = await fetch(`${API}?action=search&fir=${f}&year=${y}&user=${userData.name}&mobile=${userData.mobile}`);
                 matches = await res.json();
-
-                if(matches.length === 0) {
-                    alert("No Data Found");
-                } else if(matches.length === 1) {
-                    showFinal(0);
-                } else {
-                    showOptions();
-                }
-            } catch(e) {
-                alert("Connection failed. Try again.");
-            } finally {
-                btnTxt.innerText = "QUERY DATABASE";
-                loader.classList.add('hidden');
-            }
+                if(matches.length === 0) alert("No Data Found");
+                else if(matches.length === 1) showFinal(0);
+                else showOptions();
+            } catch(e) { alert("Search failed"); }
         }
 
         function showOptions() {
             const list = document.getElementById('stationList');
-            list.innerHTML = `<p class="text-indigo-400 text-[10px] font-black uppercase tracking-widest ml-1 mb-2">Multiple Stations Matches:</p>`;
+            list.innerHTML = "";
             matches.forEach((m, i) => {
                 const b = document.createElement('button');
-                b.className = "w-full bg-slate-800/50 p-5 rounded-2xl text-left border border-slate-700 flex justify-between items-center active:bg-slate-700 transition-all";
-                b.innerHTML = `<span class="font-bold text-white text-sm">${m.station}</span><span class="text-indigo-400 font-black text-[10px] tracking-widest uppercase">Select</span>`;
+                b.className = "w-full bg-slate-800 p-5 rounded-2xl text-left border border-slate-700 flex justify-between items-center";
+                b.innerHTML = `<span class="font-bold">${m.station}</span><span class="text-indigo-400 text-xs">SELECT</span>`;
                 b.onclick = () => showFinal(i);
                 list.appendChild(b);
             });
@@ -148,15 +127,9 @@
             const data = matches[i];
             document.getElementById('stationList').classList.add('hidden');
             document.getElementById('rpDisplay').innerText = data.rpNo;
-            document.getElementById('stationDisplay').innerText = "Station: " + data.station;
-            // Uses whitespace-pre-wrap to keep the exact sheet layout (JM1, JM2, etc.)
             document.getElementById('descDisplay').innerText = data.description;
             document.getElementById('detailView').classList.remove('hidden');
-            document.getElementById('detailView').scrollIntoView({ behavior: 'smooth' });
         }
-
-        // Confidentiality: Block context menu
-        document.addEventListener('contextmenu', e => e.preventDefault());
     </script>
 </body>
 </html>
