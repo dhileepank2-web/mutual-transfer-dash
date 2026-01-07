@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Police Property Search</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    .box { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    input { width: 80px; padding: 10px; margin: 10px 5px; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    .station-btn { display: block; width: 100%; margin: 10px 0; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #details { display: none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Property Search</h2>
+  <input type="text" id="firNo" placeholder="FIR No">
+  <input type="text" id="year" placeholder="Year">
+  <button onclick="searchData()">Search</button>
+
+  <div id="loading" style="display:none;">Searching...</div>
+  <div id="stationButtons"></div>
+
+  <div id="details">
+    <p><strong>RP Number:</strong> <span id="rpDisplay" style="color:red; font-weight:bold;"></span></p>
+    <p><strong>Description:</strong> <br><span id="descDisplay"></span></p>
+  </div>
+</div>
+
+<script>
+  // PASTE YOUR GOOGLE WEB APP URL HERE
+  const SCRIPT_URL = "1waXS8TXn31XjKLOpeEABqg-CzYsgzkEiAbPYHij0vBFZtGuZ4pCH3m0d"; 
+  let currentResults = [];
+
+  async function searchData() {
+    const fir = document.getElementById('firNo').value;
+    const year = document.getElementById('year').value;
+    const btnDiv = document.getElementById('stationButtons');
+    const loading = document.getElementById('loading');
+    
+    if(!fir || !year) return alert("Enter FIR and Year");
+
+    loading.style.display = "block";
+    btnDiv.innerHTML = "";
+    document.getElementById('details').style.display = "none";
+
+    try {
+      const response = await fetch(`${SCRIPT_URL}?fir=${fir}&year=${year}`);
+      currentResults = await response.json();
+      
+      loading.style.display = "none";
+      
+      if (currentResults.length === 0) {
+        btnDiv.innerHTML = "No records found.";
+        return;
+      }
+
+      currentResults.forEach((item, index) => {
+        const btn = document.createElement('button');
+        btn.className = "station-btn";
+        btn.innerText = "Station: " + item.station;
+        btn.onclick = () => showDetails(index);
+        btnDiv.appendChild(btn);
+      });
+    } catch (error) {
+      console.error(error);
+      loading.innerHTML = "Error fetching data.";
+    }
+  }
+
+  function showDetails(index) {
+    const data = currentResults[index];
+    document.getElementById('rpDisplay').innerText = data.rpNo;
+    document.getElementById('descDisplay').innerText = data.description;
+    document.getElementById('details').style.display = "block";
+  }
+</script>
+
+</body>
+</html>
