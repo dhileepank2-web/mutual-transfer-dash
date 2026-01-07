@@ -3,144 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Property Search Portal</title>
+    <title>Property Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; font-family: 'Segoe UI', system-ui, sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.98); border-radius: 32px; transition: all 0.3s ease; }
-        .input-focus:focus-within { border-color: #6366f1; ring: 2px; ring-color: #818cf8; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-results { animation: fadeIn 0.4s ease forwards; }
+        /* Confidentiality Protections */
+        body { 
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            background: #020617; font-family: sans-serif;
+        }
+        .no-copy { pointer-events: none; }
+        
+        /* High-End Mobile UI */
+        .glass-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .station-item { border: 1px solid #e2e8f0; border-radius: 16px; transition: 0.2s; }
+        .station-item:active { background: #f1f5f9; transform: scale(0.98); }
+        
+        /* Speed Loader */
+        .spinner { width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 sm:p-8 min-h-screen flex flex-col items-center">
+<body class="p-4 sm:p-8">
 
-    <div class="w-full max-w-md">
-        <header class="text-center mt-4 mb-10">
-            <h1 class="text-white text-3xl font-black tracking-tight">PROPERTY DB</h1>
-            <p class="text-indigo-400 text-xs font-bold tracking-[0.2em] uppercase">Security Management Portal</p>
-        </header>
+    <div class="max-w-md mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-white text-2xl font-black tracking-tighter italic">SECURE ASSET SEARCH</h1>
+            <div class="h-1 w-12 bg-indigo-500 mx-auto mt-1 rounded-full"></div>
+        </div>
 
-        <div class="glass p-6 shadow-2xl space-y-5">
-            <div class="flex gap-4">
+        <div class="glass-card p-6 mb-6">
+            <div class="flex gap-3 mb-4">
                 <div class="flex-1">
-                    <label class="text-[10px] font-black text-slate-400 ml-2 uppercase">FIR Number</label>
-                    <input type="number" id="firNo" inputmode="numeric" pattern="[0-9]*" placeholder="000" 
-                           class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent rounded-2xl text-xl font-bold outline-none transition-all focus:border-indigo-500">
+                    <label class="text-[10px] font-bold text-slate-400 ml-1">FIR NUMBER</label>
+                    <input type="number" id="fir" inputmode="numeric" placeholder="000" class="w-full p-4 bg-slate-50 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div class="w-1/3">
-                    <label class="text-[10px] font-black text-slate-400 ml-2 uppercase">Year</label>
-                    <input type="number" id="year" inputmode="numeric" pattern="[0-9]*" placeholder="2026" 
-                           class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent rounded-2xl text-xl font-bold outline-none transition-all focus:border-indigo-500">
+                    <label class="text-[10px] font-bold text-slate-400 ml-1">YEAR</label>
+                    <input type="number" id="year" inputmode="numeric" placeholder="2026" class="w-full p-4 bg-slate-50 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
-            
-            <button onclick="searchData()" id="searchBtn" 
-                    class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-lg shadow-indigo-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                <span id="btnText">SEARCH DATABASE</span>
-                <div id="loader" class="hidden w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <button onclick="search()" id="btn" class="w-full bg-indigo-600 text-white font-bold py-5 rounded-xl shadow-xl active:bg-indigo-800 flex items-center justify-center gap-3">
+                <span id="btnTxt">SEARCH DATABASE</span>
+                <div id="loading" class="hidden spinner"></div>
             </button>
         </div>
 
-        <div id="debugConsole" class="hidden mt-4 p-4 bg-black/50 rounded-2xl font-mono text-[10px] text-green-400 border border-white/10 overflow-auto max-h-32">
-            <p id="debugText">> System Ready...</p>
+        <div id="stationList" class="hidden space-y-2 mb-6 animate-in fade-in slide-in-from-bottom-4">
+            <p class="text-indigo-300 text-[10px] font-bold ml-1 uppercase">Select Police Station</p>
         </div>
 
-        <div id="stationList" class="mt-6 space-y-3"></div>
-
-        <div id="resultCard" class="hidden glass p-6 shadow-2xl mt-6 animate-results">
-            <div class="flex justify-between items-start mb-6">
-                <div class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Property Detail</div>
-                <button onclick="shareToWhatsApp()" class="text-green-600 text-[10px] font-black hover:underline">SHARE WHATSAPP</button>
+        <div id="detailView" class="hidden glass-card p-6 border-l-8 border-indigo-600 animate-in fade-in zoom-in-95">
+            <div class="mb-6">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
+                <h2 id="rpText" class="text-4xl font-black text-slate-900 leading-none"></h2>
+                <p id="stationText" class="text-indigo-600 text-xs font-bold mt-1"></p>
             </div>
-            
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Assigned RP Number</p>
-            <h2 id="rpDisplay" class="text-4xl font-black text-slate-900 mb-6"></h2>
-
-            <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Description</p>
-                <p id="descDisplay" class="text-slate-700 leading-relaxed text-sm font-medium"></p>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Description of Properties</p>
+                <p id="descText" class="text-slate-700 text-sm leading-relaxed font-medium"></p>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec"; 
-        let currentMatches = [];
+        const API = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec";
+        let matches = [];
 
-        async function searchData() {
-            const fir = document.getElementById('firNo').value;
-            const year = document.getElementById('year').value;
-            const btnText = document.getElementById('btnText');
-            const loader = document.getElementById('loader');
-            const stationList = document.getElementById('stationList');
-            const resultCard = document.getElementById('resultCard');
-            const debug = document.getElementById('debugConsole');
-
-            if(!fir || !year) return;
+        async function search() {
+            const f = document.getElementById('fir').value;
+            const y = document.getElementById('year').value;
+            if(!f || !y) return;
 
             // Reset UI
-            btnText.innerText = "CONNECTING...";
-            loader.classList.remove('hidden');
-            stationList.innerHTML = "";
-            resultCard.classList.add('hidden');
-            debug.classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('btnTxt').innerText = "FETCHING...";
+            document.getElementById('stationList').classList.add('hidden');
+            document.getElementById('detailView').classList.add('hidden');
 
             try {
-                logDebug(`Attempting fetch for ${fir}/${year}...`);
-                
-                // Note: The Script joins these with a "/"
-                const response = await fetch(`${SCRIPT_URL}?fir=${encodeURIComponent(fir)}&year=${encodeURIComponent(year)}`);
-                
-                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-                
-                currentMatches = await response.json();
-                logDebug(`Received ${currentMatches.length} matches.`);
+                const res = await fetch(`${API}?fir=${f}&year=${y}`);
+                matches = await res.json();
 
-                if (currentMatches.error) throw new Error(currentMatches.error);
-
-                if (currentMatches.length === 0) {
-                    stationList.innerHTML = "<p class='text-center text-white/50 py-4 font-bold text-xs uppercase tracking-widest'>No matches found</p>";
-                } else {
-                    currentMatches.forEach((item, index) => {
-                        const b = document.createElement('button');
-                        b.className = "w-full glass p-5 text-left font-bold text-slate-700 shadow-xl active:scale-95 transition-all flex justify-between items-center";
-                        b.innerHTML = `<span>STATION: ${item.station}</span> <span class="text-indigo-600">VIEW →</span>`;
-                        b.onclick = () => displayProperty(index);
-                        stationList.appendChild(b);
-                    });
+                if(matches.length === 0) {
+                    alert("No Record Found");
+                } 
+                else if(matches.length === 1) {
+                    // Logic: Auto-show if single result
+                    renderDetails(0);
+                } 
+                else {
+                    // Logic: Show station list if multiple matches
+                    renderList();
                 }
-            } catch (err) {
-                debug.classList.remove('hidden');
-                logDebug(`ERROR: ${err.message}`);
-                alert("Database Connection Error. Check Debug Console.");
+            } catch(e) {
+                alert("Connection Error");
             } finally {
-                btnText.innerText = "SEARCH DATABASE";
-                loader.classList.add('hidden');
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('btnTxt').innerText = "SEARCH DATABASE";
             }
         }
 
-        function displayProperty(index) {
-            const data = currentMatches[index];
-            document.getElementById('rpDisplay').innerText = data.rpNo;
-            document.getElementById('descDisplay').innerText = data.description;
-            document.getElementById('resultCard').classList.remove('hidden');
-            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+        function renderList() {
+            const list = document.getElementById('stationList');
+            list.innerHTML = `<p class="text-indigo-300 text-[10px] font-bold ml-1 uppercase">Multiple Stations Found:</p>`;
+            matches.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 station-item flex justify-between items-center cursor-pointer shadow-sm";
+                div.innerHTML = `<span class="font-bold text-slate-700">${item.station}</span><span class="text-indigo-500 font-bold text-xs">VIEW →</span>`;
+                div.onclick = () => renderDetails(i);
+                list.appendChild(div);
+            });
+            list.classList.remove('hidden');
         }
 
-        function shareToWhatsApp() {
-            const rp = document.getElementById('rpDisplay').innerText;
-            const desc = document.getElementById('descDisplay').innerText;
-            const text = `*Property Record Details*\n\n*RP No:* ${rp}\n*Description:* ${desc}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+        function renderDetails(index) {
+            const data = matches[index];
+            document.getElementById('stationList').classList.add('hidden');
+            document.getElementById('rpText').innerText = data.rpNo;
+            document.getElementById('stationText').innerText = "Police Station: " + data.station;
+            document.getElementById('descText').innerText = data.description;
+            document.getElementById('detailView').classList.remove('hidden');
+            document.getElementById('detailView').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function logDebug(msg) {
-            const el = document.getElementById('debugText');
-            el.innerHTML += `<br>> ${msg}`;
-            console.log(msg);
-        }
+        // Prevent Right Click
+        document.addEventListener('contextmenu', event => event.preventDefault());
     </script>
 </body>
 </html>
