@@ -3,65 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Property Portal</title>
+    <title>Secure RP Number Check</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Confidentiality Protections */
         body { 
-            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
-            background: #020617; font-family: sans-serif;
+            -webkit-user-select: none; user-select: none;
+            background: #020617; font-family: -apple-system, system-ui, sans-serif;
+            color: #f8fafc;
         }
-        .no-copy { pointer-events: none; }
-        
-        /* High-End Mobile UI */
-        .glass-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        .station-item { border: 1px solid #e2e8f0; border-radius: 16px; transition: 0.2s; }
-        .station-item:active { background: #f1f5f9; transform: scale(0.98); }
-        
-        /* Speed Loader */
-        .spinner { width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        /* High-end inputs */
+        input { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
+        input:focus { border-color: #6366f1 !important; ring: 2px; ring-color: #6366f1; }
+        /* Professional result card */
+        .record-card { background: #ffffff; color: #0f172a; border-radius: 24px; }
+        .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 sm:p-8">
+<body class="p-5">
 
     <div class="max-w-md mx-auto">
-        <div class="text-center mb-8">
-            <h1 class="text-white text-2xl font-black tracking-tighter italic">SECURE ASSET SEARCH</h1>
-            <div class="h-1 w-12 bg-indigo-500 mx-auto mt-1 rounded-full"></div>
-        </div>
+        <header class="text-center mt-6 mb-10">
+            <h1 class="text-2xl font-black tracking-tighter text-white">SECURE RP <span class="text-indigo-500">CHECK</span></h1>
+            <div class="flex items-center justify-center gap-2 mt-1">
+                <span class="h-1 w-8 bg-indigo-500 rounded-full"></span>
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">Authorized Access Only</p>
+                <span class="h-1 w-8 bg-indigo-500 rounded-full"></span>
+            </div>
+        </header>
 
-        <div class="glass-card p-6 mb-6">
-            <div class="flex gap-3 mb-4">
+        <div class="space-y-4 mb-8">
+            <div class="flex gap-3">
                 <div class="flex-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1">FIR NUMBER</label>
-                    <input type="number" id="fir" inputmode="numeric" placeholder="000" class="w-full p-4 bg-slate-50 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR Number</label>
+                    <input type="number" id="fir" inputmode="numeric" placeholder="000" 
+                           class="w-full p-4 rounded-2xl text-xl font-bold outline-none transition-all">
                 </div>
-                <div class="w-1/3">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1">YEAR</label>
-                    <input type="number" id="year" inputmode="numeric" placeholder="2026" class="w-full p-4 bg-slate-50 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="w-2/5">
+                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">Year (YYYY)</label>
+                    <input type="number" id="year" inputmode="numeric" 
+                           oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" 
+                           onkeydown="if(event.key==='Enter'){ validateAndSearch(); }"
+                           placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold outline-none transition-all">
                 </div>
             </div>
-            <button onclick="search()" id="btn" class="w-full bg-indigo-600 text-white font-bold py-5 rounded-xl shadow-xl active:bg-indigo-800 flex items-center justify-center gap-3">
-                <span id="btnTxt">SEARCH DATABASE</span>
+            
+            <button onclick="validateAndSearch()" id="btn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-xl shadow-indigo-500/10">
+                <span id="btnTxt">QUERY DATABASE</span>
                 <div id="loading" class="hidden spinner"></div>
             </button>
         </div>
 
-        <div id="stationList" class="hidden space-y-2 mb-6 animate-in fade-in slide-in-from-bottom-4">
-            <p class="text-indigo-300 text-[10px] font-bold ml-1 uppercase">Select Police Station</p>
-        </div>
+        <div id="stationList" class="hidden space-y-3 mb-8"></div>
 
-        <div id="detailView" class="hidden glass-card p-6 border-l-8 border-indigo-600 animate-in fade-in zoom-in-95">
-            <div class="mb-6">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
-                <h2 id="rpText" class="text-4xl font-black text-slate-900 leading-none"></h2>
-                <p id="stationText" class="text-indigo-600 text-xs font-bold mt-1"></p>
+        <div id="detailView" class="hidden record-card p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+            <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Property Identification</p>
+                    <h2 id="rpDisplay" class="text-3xl font-black text-slate-900 leading-tight"></h2>
+                    <p id="stationDisplay" class="text-indigo-600 text-[11px] font-black uppercase mt-1 italic"></p>
+                </div>
+                <div class="bg-indigo-50 p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
             </div>
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Description of Properties</p>
-                <p id="descText" class="text-slate-700 text-sm leading-relaxed font-medium"></p>
+
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Item Description</p>
+                <div id="descDisplay" class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium bg-slate-50 p-4 rounded-xl border border-slate-100"></div>
             </div>
+            
+            <button onclick="window.print()" class="w-full mt-6 py-3 text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">
+                Internal Record Copy
+            </button>
         </div>
     </div>
 
@@ -69,65 +85,78 @@
         const API = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec";
         let matches = [];
 
+        function validateAndSearch() {
+            const y = document.getElementById('year').value;
+            if(y.length !== 4) {
+                alert("Please enter a valid 4-digit year.");
+                return;
+            }
+            search();
+        }
+
         async function search() {
             const f = document.getElementById('fir').value;
             const y = document.getElementById('year').value;
             if(!f || !y) return;
 
-            // Reset UI
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('btnTxt').innerText = "FETCHING...";
-            document.getElementById('stationList').classList.add('hidden');
-            document.getElementById('detailView').classList.add('hidden');
+            // Blur input to hide mobile keyboard immediately
+            document.activeElement.blur();
+
+            const btnTxt = document.getElementById('btnTxt');
+            const loader = document.getElementById('loading');
+            const list = document.getElementById('stationList');
+            const detail = document.getElementById('detailView');
+
+            btnTxt.innerText = "QUERYING...";
+            loader.classList.remove('hidden');
+            list.innerHTML = "";
+            detail.classList.add('hidden');
 
             try {
                 const res = await fetch(`${API}?fir=${f}&year=${y}`);
                 matches = await res.json();
 
                 if(matches.length === 0) {
-                    alert("No Record Found");
-                } 
-                else if(matches.length === 1) {
-                    // Logic: Auto-show if single result
-                    renderDetails(0);
-                } 
-                else {
-                    // Logic: Show station list if multiple matches
-                    renderList();
+                    alert("No Data Found");
+                } else if(matches.length === 1) {
+                    showFinal(0);
+                } else {
+                    showOptions();
                 }
             } catch(e) {
-                alert("Connection Error");
+                alert("Connection failed. Try again.");
             } finally {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('btnTxt').innerText = "SEARCH DATABASE";
+                btnTxt.innerText = "QUERY DATABASE";
+                loader.classList.add('hidden');
             }
         }
 
-        function renderList() {
+        function showOptions() {
             const list = document.getElementById('stationList');
-            list.innerHTML = `<p class="text-indigo-300 text-[10px] font-bold ml-1 uppercase">Multiple Stations Found:</p>`;
-            matches.forEach((item, i) => {
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 station-item flex justify-between items-center cursor-pointer shadow-sm";
-                div.innerHTML = `<span class="font-bold text-slate-700">${item.station}</span><span class="text-indigo-500 font-bold text-xs">VIEW →</span>`;
-                div.onclick = () => renderDetails(i);
-                list.appendChild(div);
+            list.innerHTML = `<p class="text-indigo-400 text-[10px] font-black uppercase tracking-widest ml-1 mb-2">Multiple Stations Matches:</p>`;
+            matches.forEach((m, i) => {
+                const b = document.createElement('button');
+                b.className = "w-full bg-slate-800/50 p-5 rounded-2xl text-left border border-slate-700 flex justify-between items-center active:bg-slate-700 transition-all";
+                b.innerHTML = `<span class="font-bold text-white text-sm">${m.station}</span><span class="text-indigo-400 font-black text-[10px] tracking-widest uppercase">Select</span>`;
+                b.onclick = () => showFinal(i);
+                list.appendChild(b);
             });
             list.classList.remove('hidden');
         }
 
-        function renderDetails(index) {
-            const data = matches[index];
+        function showFinal(i) {
+            const data = matches[i];
             document.getElementById('stationList').classList.add('hidden');
-            document.getElementById('rpText').innerText = data.rpNo;
-            document.getElementById('stationText').innerText = "Police Station: " + data.station;
-            document.getElementById('descText').innerText = data.description;
+            document.getElementById('rpDisplay').innerText = data.rpNo;
+            document.getElementById('stationDisplay').innerText = "Station: " + data.station;
+            // Uses whitespace-pre-wrap to keep the exact sheet layout (JM1, JM2, etc.)
+            document.getElementById('descDisplay').innerText = data.description;
             document.getElementById('detailView').classList.remove('hidden');
             document.getElementById('detailView').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Prevent Right Click
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        // Confidentiality: Block context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
     </script>
 </body>
 </html>
