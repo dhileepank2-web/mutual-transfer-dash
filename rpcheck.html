@@ -3,16 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Secure RP Check</title>
+    <title>SECURE RP PORTAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { -webkit-user-select: none; user-select: none; background: #020617; font-family: sans-serif; color: #fff; overflow-x: hidden; }
+        /* 1. SECURE UI CORE */
+        body { 
+            -webkit-user-select: none; user-select: none; 
+            background: #020617; font-family: sans-serif; color: #fff; 
+            overflow-x: hidden; position: relative;
+        }
+
+        /* 2. DYNAMIC WATERMARK (The Anti-Leak Suggestion) */
+        #watermark {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; opacity: 0.04;
+            display: flex; flex-wrap: wrap; justify-content: space-around;
+            content: ""; overflow: hidden; font-size: 12px; color: white;
+            transform: rotate(-15deg) scale(1.2);
+        }
+
+        /* 3. PRINT PROTECTION */
+        @media print { body { display: none !important; } }
+
+        /* 4. DESIGN COMPONENTS */
         .glass { background: #ffffff; color: #0f172a; border-radius: 24px; }
         .input-dark { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
-        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-bottom: 12px; }
+        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; margin-bottom: 12px; }
         .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #f8fafc; color: #0f172a; }
-        .expanded .station-content { max-height: 1000px; padding: 20px; }
+        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #f8fafc; color: #0f172a; }
+        .expanded .station-content { max-height: 2000px; padding: 20px; }
         .expanded { border-color: #6366f1; background: #1e293b; }
         .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -21,52 +40,72 @@
 </head>
 <body class="p-4" onload="checkPersistentLogin()">
 
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center p-6 z-50 transition-opacity duration-500">
+    <div id="watermark"></div>
+
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center p-6 z-50">
         <div class="glass w-full max-w-sm p-8 shadow-2xl">
-            <h1 class="text-2xl font-black italic mb-2 text-center uppercase tracking-tighter">Secure <span class="text-indigo-600">RP Check</span></h1>
-            <p class="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mb-8">Authorized Only</p>
-            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 block mb-1">Mobile Access Key</label>
-            <input type="number" id="loginMobile" inputmode="numeric" onkeydown="if(event.key==='Enter') doLogin()" placeholder="10 Digit Number" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none focus:ring-2 focus:ring-indigo-500">
+            <h1 class="text-2xl font-black italic mb-1 text-center uppercase tracking-tighter">Secure <span class="text-indigo-600">RP Check</span></h1>
+            <p class="text-[9px] text-center text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Official Police Use Only</p>
+            <input type="number" id="loginMobile" inputmode="numeric" onkeydown="if(event.key==='Enter') doLogin()" placeholder="Enter Access Key" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none focus:ring-2 focus:ring-indigo-500 text-center">
             <button onclick="doLogin()" id="loginBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <span>LOGIN</span>
+                <span>VERIFY IDENTITY</span>
                 <div id="loginLoader" class="hidden spinner"></div>
             </button>
         </div>
     </div>
 
     <div class="max-w-md mx-auto pt-4">
-        <header class="flex justify-between items-center mb-8 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+        <header class="flex justify-between items-center mb-6 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
             <div>
-                <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Active User</p>
-                <h2 id="profileName" class="text-white font-bold text-sm tracking-tight">Loading...</h2>
+                <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Logged In As</p>
+                <h2 id="profileName" class="text-white font-bold text-sm">--</h2>
                 <p id="profileStation" class="text-slate-500 text-[9px] font-bold uppercase"></p>
             </div>
-            <button onclick="logout()" class="p-2 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black uppercase border border-red-500/20">Logout</button>
+            <button onclick="logout()" class="p-2 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black border border-red-500/20">LOGOUT</button>
         </header>
 
         <div class="space-y-4 mb-8">
             <div class="flex gap-3">
                 <div class="flex-1">
-                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR No</label>
-                    <input type="number" id="fir" inputmode="numeric" placeholder="000" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
+                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR Number</label>
+                    <input type="number" id="fir" inputmode="numeric" placeholder="0" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
                 <div class="w-2/5">
                     <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">Year</label>
                     <input type="number" id="year" inputmode="numeric" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" onkeydown="if(event.key==='Enter') doSearch()" placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
             </div>
-            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                <span id="btnTxt">QUERY DATABASE</span>
+            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/20">
+                <span id="btnTxt">SEARCH DATABASE</span>
                 <div id="searchLoader" class="hidden spinner"></div>
             </button>
         </div>
 
-        <div id="resultContainer" class="space-y-4 mb-10"></div>
+        <div id="resultContainer" class="space-y-4 mb-20"></div>
     </div>
 
     <script>
         const API = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec";
         let user = null;
+
+        // --- SECURITY LOGIC ---
+        function applySecurity() {
+            // 1. Block Right Click
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            // 2. Block Shortcuts (Print, Save, DevTools)
+            document.addEventListener('keydown', e => {
+                if (e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u') || e.key === 'F12') e.preventDefault();
+            });
+            // 3. Clear Clipboard on Copy
+            document.addEventListener('copy', e => {
+                e.preventDefault();
+                alert("Data extraction prohibited.");
+            });
+            // 4. Generate Watermark
+            const wm = document.getElementById('watermark');
+            const text = `${user.name} ${user.mobile} `.repeat(200);
+            wm.innerText = text;
+        }
 
         function checkPersistentLogin() {
             const saved = localStorage.getItem('secure_rp_user');
@@ -75,12 +114,13 @@
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('profileName').innerText = user.name;
                 document.getElementById('profileStation').innerText = user.station;
+                applySecurity();
             }
         }
 
         async function doLogin() {
             const mob = document.getElementById('loginMobile').value;
-            if(mob.length !== 10) return alert("Enter 10 Digits");
+            if(mob.length < 5) return;
             document.getElementById('loginLoader').classList.remove('hidden');
             try {
                 const res = await fetch(`${API}?action=login&mobile=${mob}`);
@@ -89,7 +129,7 @@
                     user = { ...data, mobile: mob };
                     localStorage.setItem('secure_rp_user', JSON.stringify(user));
                     location.reload();
-                } else { alert("Access Denied"); }
+                } else { alert("ACCESS DENIED"); }
             } catch(e) { alert("Server Error"); }
             document.getElementById('loginLoader').classList.add('hidden');
         }
@@ -102,56 +142,49 @@
         async function doSearch() {
             const f = document.getElementById('fir').value;
             const y = document.getElementById('year').value;
-            if(!f || y.length !== 4) return alert("Enter FIR & 4-Digit Year");
+            if(!f || y.length !== 4) return alert("Missing Info");
 
             document.activeElement.blur();
             document.getElementById('searchBtn').disabled = true;
             document.getElementById('searchLoader').classList.remove('hidden');
-            const container = document.getElementById('resultContainer');
-            container.innerHTML = "";
-
+            
             try {
                 const res = await fetch(`${API}?action=search&fir=${f}&year=${y}`);
                 const matches = await res.json();
-                if(matches.length === 0) alert("No Data Found");
+                if(matches.length === 0) alert("Record Not Found");
                 else renderResults(matches);
-            } catch(e) { alert("Query Failed"); }
+            } catch(e) { alert("Network Error"); }
+            
             document.getElementById('searchLoader').classList.add('hidden');
             document.getElementById('searchBtn').disabled = false;
         }
 
         function renderResults(matches) {
             const container = document.getElementById('resultContainer');
+            container.innerHTML = "";
             matches.forEach((m, i) => {
                 const card = document.createElement('div');
                 card.className = "station-card";
-                
                 let desc = m.description.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
-
                 card.innerHTML = `
                     <div class="station-header" onclick="toggleCard(this, '${m.rpNo}', '${m.station}')">
                         <div>
-                            <p class="text-[9px] text-slate-500 font-bold uppercase">Police Station</p>
+                            <p class="text-[9px] text-slate-500 font-bold uppercase">Source Station</p>
                             <p class="font-bold text-white tracking-tight">${m.station}</p>
                         </div>
-                        <span class="text-indigo-400 text-xs font-black tracking-widest">DETAILS</span>
+                        <span class="text-indigo-400 text-[10px] font-black uppercase">View Details</span>
                     </div>
                     <div class="station-content">
                         <div class="border-b border-slate-200 pb-3 mb-3">
                              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
                              <h2 class="text-4xl font-black text-slate-900 leading-tight">${m.rpNo}</h2>
                         </div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Description</p>
-                        <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic mb-4">${desc}</div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Item Description</p>
+                        <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">${desc}</div>
                     </div>
                 `;
                 container.appendChild(card);
-
-                // Auto-expand and log if only one match
-                if(matches.length === 1) {
-                    card.classList.add('expanded');
-                    sendLog(m.rpNo, m.station);
-                }
+                if(matches.length === 1) { card.classList.add('expanded'); sendLog(m.rpNo, m.station); }
             });
         }
 
@@ -167,11 +200,8 @@
         }
 
         function sendLog(rpNo, targetStation) {
-            // Background log call
             fetch(`${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(targetStation)}`);
         }
-
-        document.addEventListener('contextmenu', e => e.preventDefault());
     </script>
 </body>
 </html>
