@@ -9,14 +9,11 @@
         body { -webkit-user-select: none; user-select: none; background: #020617; font-family: sans-serif; color: #fff; overflow-x: hidden; }
         .glass { background: #ffffff; color: #0f172a; border-radius: 24px; }
         .input-dark { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
-        
-        /* High-Speed Accordion Styles */
-        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .station-header { padding: 20px; display: flex; justify-between: space-between; align-items: center; cursor: pointer; }
+        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-bottom: 12px; }
+        .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .station-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #f8fafc; color: #0f172a; }
         .expanded .station-content { max-height: 1000px; padding: 20px; }
         .expanded { border-color: #6366f1; background: #1e293b; }
-        
         .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .highlight-jm { color: #4f46e5; font-weight: 800; }
@@ -108,37 +105,36 @@
             if(!f || y.length !== 4) return alert("Enter FIR & 4-Digit Year");
 
             document.activeElement.blur();
+            document.getElementById('searchBtn').disabled = true;
             document.getElementById('searchLoader').classList.remove('hidden');
             const container = document.getElementById('resultContainer');
             container.innerHTML = "";
 
             try {
-                const res = await fetch(`${API}?action=search&fir=${f}&year=${y}&user=${user.name}&mobile=${user.mobile}&station=${user.station}`);
+                const res = await fetch(`${API}?action=search&fir=${f}&year=${y}`);
                 const matches = await res.json();
-                
                 if(matches.length === 0) alert("No Data Found");
                 else renderResults(matches);
             } catch(e) { alert("Query Failed"); }
             document.getElementById('searchLoader').classList.add('hidden');
+            document.getElementById('searchBtn').disabled = false;
         }
 
         function renderResults(matches) {
             const container = document.getElementById('resultContainer');
-            
             matches.forEach((m, i) => {
                 const card = document.createElement('div');
                 card.className = "station-card";
-                if(matches.length === 1) card.classList.add('expanded'); // Auto-expand if only one
                 
                 let desc = m.description.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
 
                 card.innerHTML = `
-                    <div class="station-header" onclick="toggleCard(this)">
+                    <div class="station-header" onclick="toggleCard(this, '${m.rpNo}', '${m.station}')">
                         <div>
-                            <p class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Police Station</p>
+                            <p class="text-[9px] text-slate-500 font-bold uppercase">Police Station</p>
                             <p class="font-bold text-white tracking-tight">${m.station}</p>
                         </div>
-                        <span class="text-indigo-400 text-xs font-black">DETAILS</span>
+                        <span class="text-indigo-400 text-xs font-black tracking-widest">DETAILS</span>
                     </div>
                     <div class="station-content">
                         <div class="border-b border-slate-200 pb-3 mb-3">
@@ -147,30 +143,32 @@
                         </div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Description</p>
                         <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic mb-4">${desc}</div>
-                        <p class="text-[9px] text-center text-slate-400 uppercase font-bold tracking-widest">Authorized Only - JM1 Properties</p>
                     </div>
                 `;
                 container.appendChild(card);
-            });
 
-            // If auto-expanded, scroll to it
-            if(matches.length === 1) {
-                container.firstChild.scrollIntoView({ behavior: 'smooth' });
+                // Auto-expand and log if only one match
+                if(matches.length === 1) {
+                    card.classList.add('expanded');
+                    sendLog(m.rpNo, m.station);
+                }
+            });
+        }
+
+        function toggleCard(header, rpNo, station) {
+            const card = header.parentElement;
+            const isExpanded = card.classList.contains('expanded');
+            document.querySelectorAll('.station-card').forEach(c => c.classList.remove('expanded'));
+            if(!isExpanded) {
+                card.classList.add('expanded');
+                sendLog(rpNo, station);
+                setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
             }
         }
 
-        function toggleCard(header) {
-            const card = header.parentElement;
-            const isExpanded = card.classList.contains('expanded');
-            
-            // Close all other cards (Minimize others)
-            document.querySelectorAll('.station-card').forEach(c => c.classList.remove('expanded'));
-            
-            // Toggle clicked card (Maximize)
-            if(!isExpanded) {
-                card.classList.add('expanded');
-                setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
-            }
+        function sendLog(rpNo, targetStation) {
+            // Background log call
+            fetch(`${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(targetStation)}`);
         }
 
         document.addEventListener('contextmenu', e => e.preventDefault());
