@@ -6,33 +6,42 @@
     <title>SECURE RP PORTAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 1. SECURE UI CORE */
         body { 
             -webkit-user-select: none; user-select: none; 
             background: #020617; font-family: sans-serif; color: #fff; 
             overflow-x: hidden; position: relative;
         }
 
-        /* 2. DYNAMIC WATERMARK */
+        /* Background Watermark */
         #watermark {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 9999; opacity: 0.04;
+            pointer-events: none; z-index: 9999; opacity: 0.03;
             display: flex; flex-wrap: wrap; justify-content: space-around;
-            content: ""; overflow: hidden; font-size: 12px; color: white;
+            overflow: hidden; font-size: 10px; color: white;
             transform: rotate(-15deg) scale(1.2);
         }
 
-        /* 3. PRINT PROTECTION */
+        /* Card-Specific Watermark Overlay */
+        .card-wm {
+            position: absolute; inset: 0; pointer-events: none;
+            opacity: 0.05; font-size: 8px; line-height: 10px;
+            color: #000; overflow: hidden; word-break: break-all;
+            z-index: 0; display: none;
+        }
+        .expanded .card-wm { display: block; }
+
         @media print { body { display: none !important; } }
 
-        /* 4. DESIGN COMPONENTS */
         .glass { background: #ffffff; color: #0f172a; border-radius: 24px; }
         .input-dark { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
-        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; margin-bottom: 12px; }
-        .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #f8fafc; color: #0f172a; }
+        
+        .station-card { position: relative; background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; margin-bottom: 12px; }
+        .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; position: relative; z-index: 10; }
+        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #f8fafc; color: #0f172a; position: relative; }
+        
         .expanded .station-content { max-height: 2000px; padding: 20px; }
-        .expanded { border-color: #6366f1; background: #1e293b; }
+        .expanded { border-color: #6366f1; background: #1e293b; box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.4); }
+        
         .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .highlight-jm { color: #4f46e5; font-weight: 800; }
@@ -46,9 +55,9 @@
         <div class="glass w-full max-w-sm p-8 shadow-2xl">
             <h1 class="text-2xl font-black italic mb-1 text-center uppercase tracking-tighter">Secure <span class="text-indigo-600">RP Check</span></h1>
             <p class="text-[9px] text-center text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Official Police Use Only</p>
-            <input type="number" id="loginMobile" inputmode="numeric" onkeydown="if(event.key==='Enter') doLogin()" placeholder="Enter Access Key" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+            <input type="number" id="loginMobile" inputmode="numeric" placeholder="Enter Access Key" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none focus:ring-2 focus:ring-indigo-500 text-center">
             <button onclick="doLogin()" id="loginBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <span>VERIFY IDENTITY</span>
+                <span>VERIFY & SYNC</span>
                 <div id="loginLoader" class="hidden spinner"></div>
             </button>
         </div>
@@ -68,16 +77,15 @@
             <div class="flex gap-3">
                 <div class="flex-1">
                     <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR Number</label>
-                    <input type="number" id="fir" inputmode="numeric" placeholder="0" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
+                    <input type="number" id="fir" placeholder="0" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
                 <div class="w-2/5">
                     <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">Year</label>
-                    <input type="number" id="year" inputmode="numeric" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" onkeydown="if(event.key==='Enter') doSearch()" placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
+                    <input type="number" id="year" placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
             </div>
-            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/20">
-                <span id="btnTxt">SEARCH DATABASE</span>
-                <div id="searchLoader" class="hidden spinner"></div>
+            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                <span>SEARCH INSTANT</span>
             </button>
         </div>
 
@@ -87,26 +95,18 @@
     <script>
         const API = "https://script.google.com/macros/s/AKfycbx6yzarKvzGc_1GtwJZ1ltV0inwxCU6l0zs1STJQlNYFSR1H0d4F7IwqrrrY8tZOA0KBA/exec";
         let user = null;
-        let localDb = []; // Local memory for fast access
+        let localDb = [];
 
         function applySecurity() {
             document.addEventListener('contextmenu', e => e.preventDefault());
-            document.addEventListener('keydown', e => {
-                if (e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u') || e.key === 'F12') e.preventDefault();
-            });
-            document.addEventListener('copy', e => {
-                e.preventDefault();
-                alert("Data extraction prohibited.");
-            });
+            document.addEventListener('copy', e => { e.preventDefault(); alert("Prohibited"); });
             const wm = document.getElementById('watermark');
-            const text = `${user.name} ${user.mobile} `.repeat(200);
-            wm.innerText = text;
+            wm.innerText = `${user.name} ${user.mobile} `.repeat(200);
         }
 
         function checkPersistentLogin() {
             const savedUser = localStorage.getItem('secure_rp_user');
             const savedDb = sessionStorage.getItem('secure_rp_db');
-            
             if(savedUser && savedDb) {
                 user = JSON.parse(savedUser);
                 localDb = JSON.parse(savedDb);
@@ -122,14 +122,11 @@
             if(mob.length < 5) return;
             document.getElementById('loginLoader').classList.remove('hidden');
             try {
-                // Login now fetches the user AND the entire database
                 const res = await fetch(`${API}?action=login&mobile=${mob}`);
                 const data = await res.json();
                 if(data.success) {
                     user = { name: data.name, station: data.station, mobile: mob };
                     localStorage.setItem('secure_rp_user', JSON.stringify(user));
-                    
-                    // Cache the entire database on the phone
                     sessionStorage.setItem('secure_rp_db', JSON.stringify(data.db));
                     location.reload();
                 } else { alert("ACCESS DENIED"); }
@@ -138,67 +135,58 @@
         }
 
         function logout() {
-            localStorage.removeItem('secure_rp_user');
-            sessionStorage.removeItem('secure_rp_db');
+            localStorage.clear();
+            sessionStorage.clear();
             location.reload();
         }
 
-        // 0 MILLISECOND SEARCH - No internet call needed for finding data
         function doSearch() {
-            const fInput = document.getElementById('fir').value;
-            const yInput = document.getElementById('year').value;
-            if(!fInput || yInput.length !== 4) return alert("Missing Info");
+            const f = document.getElementById('fir').value;
+            const y = document.getElementById('year').value;
+            if(!f || y.length !== 4) return alert("Enter FIR/Year");
 
-            const searchStr = parseInt(fInput, 10).toString() + "/" + yInput.trim();
-            
-            // Search locally in the phone's memory
+            const searchStr = parseInt(f, 10).toString() + "/" + y.trim();
             const matches = localDb.filter(row => {
                 const parts = row.f.split("/");
-                const sheetFIR = parseInt(parts[0], 10).toString();
-                const sheetYear = parts[1] ? parts[1].trim() : "";
-                return (sheetFIR + "/" + sheetYear) === searchStr;
-            }).map(row => ({
-                rpNo: row.r, 
-                station: row.s, 
-                description: row.d
-            }));
+                return (parseInt(parts[0], 10).toString() + "/" + (parts[1]||"").trim()) === searchStr;
+            });
 
-            if(matches.length === 0) {
-                alert("Record Not Found");
-            } else {
-                renderResults(matches);
-            }
+            if(matches.length === 0) alert("No Record Found");
+            else renderResults(matches);
         }
 
         function renderResults(matches) {
             const container = document.getElementById('resultContainer');
             container.innerHTML = "";
-            matches.forEach((m, i) => {
+            matches.forEach(m => {
                 const card = document.createElement('div');
                 card.className = "station-card";
-                let desc = m.description.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
+                let desc = m.d.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
+                
+                // Add card-specific watermark for expansion security
+                const cardWmText = `${user.name} ${user.mobile} `.repeat(50);
+
                 card.innerHTML = `
-                    <div class="station-header" onclick="toggleCard(this, '${m.rpNo}', '${m.station}')">
+                    <div class="station-header" onclick="toggleCard(this, '${m.r}', '${m.s}')">
                         <div>
                             <p class="text-[9px] text-slate-500 font-bold uppercase">Source Station</p>
-                            <p class="font-bold text-white tracking-tight">${m.station}</p>
+                            <p class="font-bold text-white tracking-tight">${m.s}</p>
                         </div>
                         <span class="text-indigo-400 text-[10px] font-black uppercase">View Details</span>
                     </div>
                     <div class="station-content">
-                        <div class="border-b border-slate-200 pb-3 mb-3">
-                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
-                             <h2 class="text-4xl font-black text-slate-900 leading-tight">${m.rpNo}</h2>
+                        <div class="card-wm">${cardWmText}</div>
+                        <div class="relative z-10">
+                            <div class="border-b border-slate-200 pb-3 mb-3">
+                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
+                                 <h2 class="text-4xl font-black text-slate-900 leading-tight">${m.r}</h2>
+                            </div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Item Description</p>
+                            <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">${desc}</div>
                         </div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Item Description</p>
-                        <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">${desc}</div>
-                    </div>
-                `;
+                    </div>`;
                 container.appendChild(card);
-                if(matches.length === 1) { 
-                    card.classList.add('expanded'); 
-                    sendLog(m.rpNo, m.station); 
-                }
+                if(matches.length === 1) { card.classList.add('expanded'); sendLog(m.r, m.s); }
             });
         }
 
@@ -208,14 +196,14 @@
             document.querySelectorAll('.station-card').forEach(c => c.classList.remove('expanded'));
             if(!isExpanded) {
                 card.classList.add('expanded');
-                sendLog(rpNo, station);
+                sendLog(rpNo, station); // Log the specific RP access
                 setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
             }
         }
 
         function sendLog(rpNo, targetStation) {
-            // Background log - sent to server while UI remains responsive
-            navigator.sendBeacon(`${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(targetStation)}`);
+            const logUrl = `${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(targetStation)}`;
+            navigator.sendBeacon(logUrl); // Quiet background logging
         }
     </script>
 </body>
