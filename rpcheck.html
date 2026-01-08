@@ -191,9 +191,9 @@
             }
         }
 
-        function sendLog(rpNo, station) {
+       function sendLog(rpNo, station) {
             const logUrl = `${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(station)}`;
-            navigator.sendBeacon(logUrl);
+            fetch(logUrl, { mode: 'no-cors' }); // Forces the browser to send the log immediately
         }
     </script>
 </body>
