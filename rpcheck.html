@@ -20,29 +20,30 @@
             transform: rotate(-15deg) scale(1.2);
         }
 
-        .card-wm {
+        /* Card Description Watermark */
+        .desc-container { position: relative; overflow: hidden; border-radius: 12px; padding: 15px; background: white; }
+        .card-wm-text {
             position: absolute; inset: 0; pointer-events: none;
-            opacity: 0.05; font-size: 8px; line-height: 10px;
-            color: #000; overflow: hidden; word-break: break-all;
-            z-index: 0; display: none;
+            opacity: 0.08; font-size: 9px; color: #000;
+            line-height: 12px; word-break: break-all; z-index: 0;
+            transform: rotate(-5deg);
         }
-        .expanded .card-wm { display: block; }
 
         @media print { body { display: none !important; } }
 
         .glass { background: #ffffff; color: #0f172a; border-radius: 24px; }
         .input-dark { background: #0f172a !important; color: #fff !important; border: 1px solid #1e293b !important; }
         
-        .station-card { position: relative; background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; margin-bottom: 12px; }
-        .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; position: relative; z-index: 10; }
-        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #f8fafc; color: #0f172a; position: relative; }
+        .station-card { background: #111827; border: 1px solid #1e293b; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; margin-bottom: 12px; }
+        .station-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .station-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #f1f5f9; color: #0f172a; }
         
         .expanded .station-content { max-height: 2000px; padding: 20px; }
-        .expanded { border-color: #6366f1; background: #1e293b; box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.4); }
+        .expanded { border-color: #6366f1; background: #1e293b; }
         
         .spinner { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .highlight-jm { color: #4f46e5; font-weight: 800; }
+        .highlight-jm { color: #4f46e5; font-weight: 800; position: relative; z-index: 10; }
     </style>
 </head>
 <body class="p-4" onload="checkPersistentLogin()">
@@ -52,10 +53,9 @@
     <div id="loginOverlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center p-6 z-50">
         <div class="glass w-full max-w-sm p-8 shadow-2xl">
             <h1 class="text-2xl font-black italic mb-1 text-center uppercase tracking-tighter">Secure <span class="text-indigo-600">RP Check</span></h1>
-            <p class="text-[9px] text-center text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Official Police Use Only</p>
-            <input type="number" id="loginMobile" inputmode="numeric" onkeydown="if(event.key==='Enter') doLogin()" placeholder="Enter Access Key" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+            <input type="number" id="loginMobile" inputmode="numeric" onkeydown="if(event.key==='Enter') doLogin()" placeholder="Enter Access Key" class="w-full p-4 rounded-xl text-lg font-bold input-dark mb-6 outline-none text-center">
             <button onclick="doLogin()" id="loginBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <span>VERIFY & SYNC</span>
+                <span>VERIFY IDENTITY</span>
                 <div id="loginLoader" class="hidden spinner"></div>
             </button>
         </div>
@@ -64,26 +64,25 @@
     <div class="max-w-md mx-auto pt-4">
         <header class="flex justify-between items-center mb-6 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
             <div>
-                <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Logged In As</p>
+                <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest">User Profile</p>
                 <h2 id="profileName" class="text-white font-bold text-sm">--</h2>
-                <p id="profileStation" class="text-slate-500 text-[9px] font-bold uppercase"></p>
             </div>
-            <button onclick="logout()" class="p-2 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black border border-red-500/20">LOGOUT</button>
+            <button onclick="logout()" class="p-2 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black">LOGOUT</button>
         </header>
 
         <div class="space-y-4 mb-8">
             <div class="flex gap-3">
                 <div class="flex-1">
-                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">FIR Number</label>
-                    <input type="number" id="fir" onkeydown="if(event.key==='Enter') doSearch()" placeholder="0" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase mb-1 block">FIR No</label>
+                    <input type="number" id="fir" oninput="clearResults()" onkeydown="if(event.key==='Enter') doSearch()" placeholder="0" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
                 <div class="w-2/5">
-                    <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase mb-1 block">Year</label>
-                    <input type="number" id="year" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4)" onkeydown="if(event.key==='Enter') doSearch()" placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Year</label>
+                    <input type="number" id="year" oninput="clearResults()" onkeydown="if(event.key==='Enter') doSearch()" placeholder="2026" class="w-full p-4 rounded-2xl text-xl font-bold input-dark outline-none">
                 </div>
             </div>
-            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                <span>SEARCH INSTANT</span>
+            <button onclick="doSearch()" id="searchBtn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
+                <span>SEARCH DATABASE</span>
             </button>
         </div>
 
@@ -96,10 +95,14 @@
         let localDb = [];
 
         function applySecurity() {
-            document.addEventListener('contextmenu', e => e.preventDefault());
-            document.addEventListener('copy', e => { e.preventDefault(); alert("Prohibited"); });
             const wm = document.getElementById('watermark');
             wm.innerText = `${user.name} ${user.mobile} `.repeat(200);
+            document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        // Logic to clear results if FIR/Year is changed
+        function clearResults() {
+            document.getElementById('resultContainer').innerHTML = "";
         }
 
         function checkPersistentLogin() {
@@ -110,7 +113,6 @@
                 localDb = JSON.parse(savedDb);
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('profileName').innerText = user.name;
-                document.getElementById('profileStation').innerText = user.station;
                 applySecurity();
             }
         }
@@ -123,7 +125,7 @@
                 const res = await fetch(`${API}?action=login&mobile=${mob}`);
                 const data = await res.json();
                 if(data.success) {
-                    user = { name: data.name, station: data.station, mobile: mob };
+                    user = { ...data, mobile: mob };
                     localStorage.setItem('secure_rp_user', JSON.stringify(user));
                     sessionStorage.setItem('secure_rp_db', JSON.stringify(data.db));
                     location.reload();
@@ -139,12 +141,10 @@
         }
 
         function doSearch() {
-            // Hide keyboard on search
             document.activeElement.blur();
-
             const f = document.getElementById('fir').value;
             const y = document.getElementById('year').value;
-            if(!f || y.length !== 4) return alert("Enter FIR & 4-digit Year");
+            if(!f || y.length !== 4) return alert("Check FIR and Year");
 
             const searchStr = parseInt(f, 10).toString() + "/" + y.trim();
             const matches = localDb.filter(row => {
@@ -162,8 +162,8 @@
             matches.forEach(m => {
                 const card = document.createElement('div');
                 card.className = "station-card";
-                let desc = m.d.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
-                const cardWmText = `${user.name} ${user.mobile} `.repeat(50);
+                let descText = m.d.replace(/(JM1|Jayankondam)/gi, '<span class="highlight-jm">$1</span>');
+                const wmContent = `${user.name} ${user.mobile} `.repeat(40);
 
                 card.innerHTML = `
                     <div class="station-header" onclick="toggleCard(this, '${m.r}', '${m.s}')">
@@ -171,21 +171,25 @@
                             <p class="text-[9px] text-slate-500 font-bold uppercase">Source Station</p>
                             <p class="font-bold text-white tracking-tight">${m.s}</p>
                         </div>
-                        <span class="text-indigo-400 text-[10px] font-black uppercase">View Details</span>
+                        <span class="text-indigo-400 text-[10px] font-black uppercase">View</span>
                     </div>
                     <div class="station-content">
-                        <div class="card-wm">${cardWmText}</div>
-                        <div class="relative z-10">
-                            <div class="border-b border-slate-200 pb-3 mb-3">
-                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RP Number</p>
-                                 <h2 class="text-4xl font-black text-slate-900 leading-tight">${m.r}</h2>
-                            </div>
+                        <div class="p-5">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">RP Number</p>
+                            <h2 class="text-4xl font-black text-slate-900 mb-4">${m.r}</h2>
+                            
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Item Description</p>
-                            <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">${desc}</div>
+                            <div class="desc-container">
+                                <div class="card-wm-text">${wmContent}</div>
+                                <div class="relative z-10 text-slate-800 text-sm italic font-medium leading-relaxed">${descText}</div>
+                            </div>
                         </div>
                     </div>`;
                 container.appendChild(card);
-                if(matches.length === 1) { card.classList.add('expanded'); sendLog(m.r, m.s); }
+                if(matches.length === 1) { 
+                    card.classList.add('expanded'); 
+                    sendLog(m.r, m.s); 
+                }
             });
         }
 
@@ -200,8 +204,8 @@
             }
         }
 
-        function sendLog(rpNo, targetStation) {
-            const logUrl = `${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(targetStation)}`;
+        function sendLog(rpNo, station) {
+            const logUrl = `${API}?action=log&user=${encodeURIComponent(user.name)}&mobile=${user.mobile}&rpNo=${encodeURIComponent(rpNo)}&targetStation=${encodeURIComponent(station)}`;
             navigator.sendBeacon(logUrl);
         }
     </script>
