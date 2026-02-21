@@ -319,24 +319,54 @@ async function unlockRow(id, active) {
 async function executeDeletion() {
     let sel = $('input[name="delReason"]:checked').val();
     let finalReason = sel === "OTHER" ? $('#deleteReasonOther').val().trim() : sel;
+    
     if (sel === "OTHER" && !finalReason) { alert("Please provide a reason."); return; }
     if (!confirm("Are you sure? This will permanently remove your profile.")) return;
+
+    // High-End Logic: Determine if this is a "Hub Success"
+    const isHubSuccess = (sel === "Found Match through this site");
+
     $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").show();
+    $("#globalLoader").fadeIn(); // Use fadeIn for smoother UI
+
     try {
         const res = await fetch(API, {
             method: "POST",
-            body: JSON.stringify({ action: "deleteEntry", userPhone: MY_PHONE, reason: finalReason })
+            body: JSON.stringify({ 
+                action: "deleteEntry", 
+                userPhone: MY_PHONE, 
+                reason: finalReason,
+                isHubSuccess: isHubSuccess, // New flag for stats
+                moveToFormer: true          // Instruction for backend to move row
+            })
         });
+
         const data = await res.json();
         if (data.status === "SUCCESS") {
-            alert("Entry Successfully Deleted.");
+            // Update local stats before clearing identity
+            updateGlobalStats(isHubSuccess);
+            alert("Entry Successfully Removed. Data moved to Former User Archive.");
             clearIdentity();
         } else {
             alert("Error: " + data.error);
             $("#globalLoader").fadeOut();
         }
-    } catch(e) { $("#globalLoader").fadeOut(); alert("Connection Error."); }
+    } catch(e) { 
+        $("#globalLoader").fadeOut(); 
+        alert("Connection Error."); 
+    }
+}
+
+function updateGlobalStats(isHubSuccess) {
+    // Increment Total Leaved (Archived) for every deletion
+    let totalLeaved = parseInt($('#statArchived').text()) || 0;
+    $('#statArchived').text(totalLeaved + 1);
+
+    // Only increment Hub Success if they found match through THIS site
+    if (isHubSuccess) {
+        let hubSuccess = parseInt($('#statMatched').text()) || 0;
+        $('#statMatched').text(hubSuccess + 1);
+    }
 }
 
 function animateValue(id, start, end, duration) {
