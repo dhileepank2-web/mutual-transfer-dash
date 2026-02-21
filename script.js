@@ -224,7 +224,7 @@ function renderTableToDOM(data) {
                 </td>
                 <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
                 <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
-                <td class="desktop-only">
+                <td class="d-table-cell">
                     <div class="demand-pill ${demandCfg.c}">
                         <span class="pulse-dot-small" style="background:${demandCfg.d};"></span>
                         ${row.DEMAND_STATUS || 'Moderate'}
