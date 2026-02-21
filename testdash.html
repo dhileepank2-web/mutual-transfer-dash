@@ -115,6 +115,11 @@
             </a>
         </li>
         <li class="nav-item ml-2">
+    <a class="nav-link" id="feedback-tab" data-toggle="pill" href="#paneFeedback" role="tab">
+        <i class="fas fa-comment-dots mr-2"></i>Users Feedbacks
+    </a>
+</li>
+        <li class="nav-item ml-2">
             <a class="nav-link" id="archive-tab" data-toggle="pill" href="#paneArchive" role="tab">
                 <i class="fas fa-history mr-2"></i>Archive List
             </a>
@@ -258,7 +263,30 @@
         </div>
     </div>
 </div>
-
+<div class="tab-pane fade" id="paneFeedback" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="font-weight-bold text-uppercase text-muted mb-0">What our members say</h6>
+        <button class="btn btn-primary rounded-pill px-4" onclick="$('#modalFeedback').modal('show')">
+            <i class="fas fa-plus mr-2"></i>Give Feedback
+        </button>
+    </div>
+    <div id="feedbackContainer" class="row">
+        </div>
+</div>
+    <div class="modal fade" id="modalFeedback" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+            <div class="text-center mb-4">
+                <h4 class="font-weight-bold">Share Your Experience</h4>
+                <p class="text-muted small">Your feedback helps the community grow.</p>
+            </div>
+            <div class="form-group">
+                <textarea id="txtFeedback" class="form-control filter-control" style="height: 120px; padding-top:12px;" placeholder="Write your thoughts here..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="submitFeedback()">Submit Feedback</button>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="modalContact" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content border-0 shadow rounded-24">
