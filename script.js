@@ -42,15 +42,17 @@ async function professionalSync() {
             console.log("Sync Complete: Data Updated");
         }
 
+        // FIXED: Corrected 'response' to 'res' and moved inside try block
+        if (res.feedbacks) {
+            renderFeedbacks(res.feedbacks);
+        }
+
         showSlimProgress(100);
     } catch (e) {
         console.warn("Background sync failed.");
     } finally {
         setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
     }
-    if (response.feedbacks) {
-    renderFeedbacks(response.feedbacks);
-}
 }
 
 async function syncLiveFeed() {
@@ -76,6 +78,7 @@ async function syncLiveFeed() {
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
         if (res.publicHubActivity) renderHubActivity(res.publicHubActivity);
+        if (res.feedbacks) renderFeedbacks(res.feedbacks); // FIXED: Added to keep feedback live
         
     } catch (e) { 
         console.warn("Silent sync failed."); 
@@ -92,6 +95,7 @@ function loadData() {
         ARCHIVED_RECORDS = response.archivedRecords || [];
         
         if (response.publicHubActivity) renderHubActivity(response.publicHubActivity);
+        if (response.feedbacks) renderFeedbacks(response.feedbacks); // FIXED: Initial load call
 
         $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
 
@@ -127,22 +131,16 @@ function loadData() {
 // --- STATS LOGIC ---
 
 function updateStats(data, archivedCount) {
-    // 1. Unique Count (By Phone)
     const uniqueUsers = [...new Set(data.map(x => String(x.phone)))].length;
-    // 2. Total Count (All live requests)
     const totalRequests = data.length;
-    // 3. Current Live Matches
     const liveMatches = data.filter(r => (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
-    // 4. Total Leaved (archivedCount)
     const totalLeaved = archivedCount;
-    // 5. Overall Hub Success (Live Matches + Archived)
     const overallSuccess = liveMatches + archivedCount;
 
-    // Animate UI elements
     animateValue("statUnique", parseInt($('#statUnique').text()) || 0, uniqueUsers, 1000);
     animateValue("statTotal", parseInt($('#statTotal').text()) || 0, totalRequests, 1000);
     animateValue("statArchived", parseInt($('#statArchived').text()) || 0, totalLeaved, 1000);
-    animateValue("statLiveMatches", parseInt($('#statLiveMatches').text()) || 0, liveMatches, 1000); // Note: Ensure you have this ID in HTML
+    animateValue("statLiveMatches", parseInt($('#statLiveMatches').text()) || 0, liveMatches, 1000);
     animateValue("statMatched", parseInt($('#statMatched').text()) || 0, overallSuccess, 1000);
 }
 
@@ -243,6 +241,7 @@ function renderTableToDOM(data) {
     });
     tbody.html(rowsHtml);
 }
+
 function renderArchiveTable(archivedRecords) {
     const tbody = $('#archiveTbody').empty();
     const noDataView = $('#noArchiveData');
@@ -278,6 +277,7 @@ function renderArchiveTable(archivedRecords) {
         `);
     });
 }
+
 // --- UTILITY & ACTION FUNCTIONS ---
 
 async function unlockRow(id, active) {
@@ -413,38 +413,30 @@ function showToast(message, type = 'success') {
 
 function clearIdentity() { localStorage.removeItem("userPhone"); location.reload(); }
 function resetUI() { $('#selDesignation').val('all'); $('#selFrom').val('all'); $('#selTo').val('all'); FILTER_MATCHES = false; $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white'); renderTable(); }
+
 function deleteMyEntry() {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-
-    // 1. Find your record in the master data
     const myRecord = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
-    
-    // 2. Check if you have an active system match
     const isMatched = myRecord && (myRecord.MATCH_STATUS || "").toUpperCase().includes("MATCH");
-
-    // 3. Reset to default state first
     $('#r1').prop('checked', true); 
     $('#otherReasonWrapper').addClass('d-none');
-
-    // 4. Verification Check: Lock/Unlock the "Found Match" option
     if (!isMatched) {
-        // Disable the success option if no match exists in the system
         $('#r2').prop('disabled', true);
         $('#r2').parent().addClass('text-muted').css('cursor', 'not-allowed');
         $('#r2-hint').html('<small class="text-danger d-block">Not available: No system match found yet.</small>');
     } else {
-        // Enable it for truly matched users
         $('#r2').prop('disabled', false);
         $('#r2').parent().removeClass('text-muted').css('cursor', 'default');
         $('#r2-hint').html('<small class="text-success d-block">Available: System match verified!</small>');
     }
-
     $('#modalDeleteConfirm').modal('show');
 }
+
 function selectRadio(id) { $(`#${id}`).prop('checked', true); if(id === 'r3') $('#otherReasonWrapper').removeClass('d-none'); else $('#otherReasonWrapper').addClass('d-none'); }
 function redirectToRegistration() { const up = localStorage.getItem("userPhone"); const url = "https://dhileepank2-web.github.io/mutual-transfer-dash/testreg.html"; window.location.href = up ? `${url}?editPhone=${up}` : url; }
 function shareToWhatsApp() { const appUrl = window.location.href.split('?')[0]; const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district"; const text = `*Mutual Transfer Portal Update* 🌐\n\nI'm looking for a transfer from *${myDistrict}*.\nCheck live matches and register your profile here:\n\n👉 ${appUrl}`; const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(waUrl, '_blank'); }
 function copyInviteLink() { const appUrl = window.location.href.split('?')[0]; navigator.clipboard.writeText(appUrl).then(() => { showToast("Invite link copied!", "success"); }); }
+
 function renderHubActivity(activities) {
     const container = $('#hubActivityList').empty();
     if (!activities.length) {
@@ -513,9 +505,10 @@ function loadActivityLog() {
         <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div>
         <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
 }
+
 function renderFeedbacks(feedbacks) {
     const container = $('#feedbackContainer').empty();
-    if (!feedbacks.length) {
+    if (!feedbacks || !feedbacks.length) {
         container.append('<div class="col-12 text-center p-5 text-muted">No feedbacks yet. Be the first!</div>');
         return;
     }
@@ -526,14 +519,14 @@ function renderFeedbacks(feedbacks) {
                 <div class="bg-white p-3 rounded-24 border shadow-sm h-100">
                     <div class="d-flex align-items-center mb-2">
                         <div class="bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-2" style="width:35px; height:35px; font-size:0.8rem; font-weight:bold;">
-                            ${f.name.charAt(0).toUpperCase()}
+                            ${(f.name || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <div class="font-weight-bold text-dark" style="font-size:0.85rem;">${f.name}</div>
-                            <small class="text-muted" style="font-size:0.7rem;">ID: ${f.id}</small>
+                            <div class="font-weight-bold text-dark" style="font-size:0.85rem;">${f.name || 'Anonymous'}</div>
+                            <small class="text-muted" style="font-size:0.7rem;">ID: ${f.id || 'N/A'}</small>
                         </div>
                     </div>
-                    <p class="mb-0 text-muted small" style="font-style: italic;">"${f.comment}"</p>
+                    <p class="mb-0 text-muted small" style="font-style: italic;">"${f.comment || f.text || ''}"</p>
                 </div>
             </div>
         `);
