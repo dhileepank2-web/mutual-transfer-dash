@@ -321,13 +321,13 @@ async function executeDeletion() {
     let finalReason = sel === "OTHER" ? $('#deleteReasonOther').val().trim() : sel;
     
     if (sel === "OTHER" && !finalReason) { alert("Please provide a reason."); return; }
-    if (!confirm("Are you sure? This will permanently remove your profile.")) return;
+    if (!confirm("Are you sure? This will move your profile to the Archive.")) return;
 
-    // High-End Logic: Determine if this is a "Hub Success"
+    // KEY LOGIC: Only this specific reason counts as a Hub Success
     const isHubSuccess = (sel === "Found Match through this site");
 
     $('#modalDeleteConfirm').modal('hide');
-    $("#globalLoader").fadeIn(); // Use fadeIn for smoother UI
+    $("#globalLoader").fadeIn();
 
     try {
         const res = await fetch(API, {
@@ -336,24 +336,22 @@ async function executeDeletion() {
                 action: "deleteEntry", 
                 userPhone: MY_PHONE, 
                 reason: finalReason,
-                isHubSuccess: isHubSuccess, // New flag for stats
-                moveToFormer: true          // Instruction for backend to move row
+                isHubSuccess: isHubSuccess // Tells the backend to increment success stats
             })
         });
 
         const data = await res.json();
         if (data.status === "SUCCESS") {
-            // Update local stats before clearing identity
-            updateGlobalStats(isHubSuccess);
-            alert("Entry Successfully Removed. Data moved to Former User Archive.");
-            clearIdentity();
+            alert("Profile archived successfully. Total Leaved count updated.");
+            clearIdentity(); // Clear session
+            window.location.reload(); // Force reload to fetch new database stats
         } else {
             alert("Error: " + data.error);
             $("#globalLoader").fadeOut();
         }
     } catch(e) { 
         $("#globalLoader").fadeOut(); 
-        alert("Connection Error."); 
+        alert("System Sync Error."); 
     }
 }
 
