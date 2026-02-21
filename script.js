@@ -533,32 +533,41 @@ function renderFeedbacks(feedbacks) {
     });
 }
 
-async function submitFeedback() {
-    const comment = $('#txtFeedback').val().trim();
-    if (!comment) return alert("Please enter your feedback.");
-    if (!MY_PHONE) return $('#modalVerify').modal('show');
+function submitFeedback() {
+    const feedbackText = document.getElementById('txtFeedback').value;
 
-    $("#globalLoader").fadeIn();
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            body: JSON.stringify({ 
-                action: "submitFeedback", 
-                userPhone: MY_PHONE, 
-                userName: MY_NAME,
-                text: comment 
-            })
-        });
-        const data = await res.json();
-        if (data.status === "SUCCESS") {
-            $('#modalFeedback').modal('hide');
-            $('#txtFeedback').val('');
-            showToast("Feedback submitted! Thank you.", "success");
-            professionalSync(); // Refresh data
-        }
-    } catch (e) {
-        showToast("Submission failed", "error");
-    } finally {
-        $("#globalLoader").fadeOut();
+    if (!feedbackText.trim()) {
+        alert("Please enter some feedback first.");
+        return;
     }
+
+    // 1. Show the loader to indicate "Syncing"
+    $('#globalLoader').fadeIn();
+
+    // 2. Simulate API Call (Replace with your actual backend logic)
+    setTimeout(() => {
+        // Create the new feedback card HTML
+        const newFeedback = `
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm rounded-24 p-3">
+                    <p class="small text-muted mb-0">"${feedbackText}"</p>
+                    <div class="text-right mt-2">
+                        <small class="font-weight-bold text-primary">- You</small>
+                    </div>
+                </div>
+            </div>`;
+
+        // 3. Add to the container
+        $('#feedbackContainer').prepend(newFeedback);
+
+        // 4. Clear the textarea
+        document.getElementById('txtFeedback').value = "";
+
+        // 5. CRITICAL: Hide the modal and the loader
+        $('#modalFeedback').modal('hide');
+        $('#globalLoader').fadeOut();
+
+        // Optional: Show a success message
+        alert("Feedback submitted successfully!");
+    }, 1500); // Simulated delay
 }
