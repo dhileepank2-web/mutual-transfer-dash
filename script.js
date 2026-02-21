@@ -48,6 +48,9 @@ async function professionalSync() {
     } finally {
         setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
     }
+    if (response.feedbacks) {
+    renderFeedbacks(response.feedbacks);
+}
 }
 
 async function syncLiveFeed() {
@@ -510,4 +513,59 @@ function loadActivityLog() {
         <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div>
         <div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
 }
+function renderFeedbacks(feedbacks) {
+    const container = $('#feedbackContainer').empty();
+    if (!feedbacks.length) {
+        container.append('<div class="col-12 text-center p-5 text-muted">No feedbacks yet. Be the first!</div>');
+        return;
+    }
 
+    feedbacks.forEach(f => {
+        container.append(`
+            <div class="col-md-6 mb-3">
+                <div class="bg-white p-3 rounded-24 border shadow-sm h-100">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-2" style="width:35px; height:35px; font-size:0.8rem; font-weight:bold;">
+                            ${f.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="font-weight-bold text-dark" style="font-size:0.85rem;">${f.name}</div>
+                            <small class="text-muted" style="font-size:0.7rem;">ID: ${f.id}</small>
+                        </div>
+                    </div>
+                    <p class="mb-0 text-muted small" style="font-style: italic;">"${f.comment}"</p>
+                </div>
+            </div>
+        `);
+    });
+}
+
+async function submitFeedback() {
+    const comment = $('#txtFeedback').val().trim();
+    if (!comment) return alert("Please enter your feedback.");
+    if (!MY_PHONE) return $('#modalVerify').modal('show');
+
+    $("#globalLoader").fadeIn();
+    try {
+        const res = await fetch(API, {
+            method: "POST",
+            body: JSON.stringify({ 
+                action: "submitFeedback", 
+                userPhone: MY_PHONE, 
+                userName: MY_NAME,
+                text: comment 
+            })
+        });
+        const data = await res.json();
+        if (data.status === "SUCCESS") {
+            $('#modalFeedback').modal('hide');
+            $('#txtFeedback').val('');
+            showToast("Feedback submitted! Thank you.", "success");
+            professionalSync(); // Refresh data
+        }
+    } catch (e) {
+        showToast("Submission failed", "error");
+    } finally {
+        $("#globalLoader").fadeOut();
+    }
+}
