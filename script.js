@@ -32,7 +32,7 @@ async function professionalSync() {
         renderTable(); 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
-        renderHubActivity(res.publicHubActivity || []);
+        renderHubActivity(res.publicHubActivity || res.archivedStories || []);
         loadMyActivity();
         renderFeedbacks(res.feedbacks || []);
         $('#lastUpdated').text(res.serverTime || new Date().toLocaleTimeString());
@@ -67,7 +67,7 @@ async function syncLiveFeed() {
         renderTable();
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
-        renderHubActivity(res.publicHubActivity || []);
+        renderHubActivity(res.publicHubActivity || res.archivedStories || []);
         loadMyActivity();
         renderFeedbacks(res.feedbacks || []);
         setTimeout(updateMatches, 200);
@@ -77,44 +77,60 @@ async function syncLiveFeed() {
 }
 
 function loadData() {
+    $('#noData').html('<div class="spinner-border text-primary mb-3"></div><h6 class="text-muted font-weight-bold">Contacting server...</h6>');
     fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
-    .then(r => r.json())
-    .then(response => {
-        MASTER_DATA = response.records || [];
-        ARCHIVE_COUNT = response.archivedCount || 0;
-        ARCHIVED_RECORDS = response.archivedRecords || [];
+    .then(r => {
+        $('#noData').html('<div class="spinner-border text-primary mb-3"></div><h6 class="text-muted font-weight-bold">Parsing response...</h6>');
+        if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.text(); // Get response as text first
+    })
+    .then(text => {
+        try {
+            const response = JSON.parse(text);
+            $('#noData').html('<div class="spinner-border text-primary mb-3"></div><h6 class="text-muted font-weight-bold">Processing data...</h6>');
 
-        renderHubActivity(response.publicHubActivity || []);
-        renderFeedbacks(response.feedbacks || []);
+            MASTER_DATA = response.records || [];
+            ARCHIVE_COUNT = response.archivedCount || 0;
+            ARCHIVED_RECORDS = response.archivedRecords || [];
 
-        $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
+            renderHubActivity(response.publicHubActivity || response.archivedStories || []);
+            renderFeedbacks(response.feedbacks || []);
 
-        if (MY_PHONE) {
-            const currentUser = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
-            if (currentUser) {
-                MY_NAME = currentUser['Your Name'] || "User";
-                $('#idContainer').removeClass('d-none');
-                $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+            $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
+
+            if (MY_PHONE) {
+                const currentUser = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+                if (currentUser) {
+                    MY_NAME = currentUser['Your Name'] || "User";
+                    $('#idContainer').removeClass('d-none');
+                    $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+                } else {
+                    localStorage.removeItem("userPhone");
+                    MY_PHONE = null;
+                    $('#modalVerify').modal('show');
+                }
             } else {
-                localStorage.removeItem("userPhone");
-                MY_PHONE = null;
                 $('#modalVerify').modal('show');
             }
-        } else {
-            $('#modalVerify').modal('show');
-        }
 
-        updateStats(MASTER_DATA, ARCHIVE_COUNT);
-        buildFilters();
-        renderTable();
-        renderArchiveTable(ARCHIVED_RECORDS);
-        loadMyActivity();
-        loadActivityLog();
-        setTimeout(updateMatches, 200);
+            updateStats(MASTER_DATA, ARCHIVE_COUNT);
+            buildFilters();
+            renderTable();
+            renderArchiveTable(ARCHIVED_RECORDS);
+            loadMyActivity();
+            loadActivityLog();
+            setTimeout(updateMatches, 200);
+        } catch (e) {
+            console.error("JSON Parse Error:", e);
+            console.log("Response text:", text);
+             $('#noData').html('<div class="text-danger p-5"><h3><i class="fas fa-exclamation-triangle"></i> Error</h3><p>Could not parse server response. The API may be down.</p><p><small>' + e + '</small></p></div>');
+        }
     })
     .catch(err => {
         console.error("Critical Load Error:", err);
-        alert("Unable to load data. Please check your connection.");
+        $('#noData').html('<div class="text-danger p-5"><h3><i class="fas fa-exclamation-triangle"></i> Error</h3><p>Could not load the database. Please check your connection.</p><p><small>' + err + '</small></p></div>');
     });
 }
 
@@ -397,86 +413,72 @@ function redirectToRegistration() { const up = localStorage.getItem("userPhone")
 function shareToWhatsApp() { const appUrl = window.location.href.split('?')[0]; const myDistrict = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE))?.['Working District'] || "my district"; const text = `*Mutual Transfer Portal Update* 🌐\n\nI'm looking for a transfer from *${myDistrict}*. \nCheck live matches and register your profile here:\n\n👉 ${appUrl}`; const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(waUrl, '_blank'); }
 function copyInviteLink() { const appUrl = window.location.href.split('?')[0]; navigator.clipboard.writeText(appUrl).then(() => { showToast("Invite link copied!", "success"); }); }
 
+// UPDATED: Renders Hub Activity in a table view
 function renderHubActivity(activities) {
     const container = $('#hubActivityList').empty();
     if (!activities || !activities.length) {
-        container.html('<div class="text-center p-4 text-muted border rounded-24">No recent activity.</div>');
+        container.html('<tr><td colspan="4" class="text-center p-5"><p class="text-muted">No community activity to show right now.</p></td></tr>');
         return;
     }
 
-    // Sort by date
-    activities.sort((a, b) => {
-        const dateA = new Date(a.matchDate || a.time.split(',')[0]);
-        const dateB = new Date(b.matchDate || b.time.split(',')[0]);
-        if (isNaN(dateA)) return 1;
-        if (isNaN(dateB)) return -1;
-        return dateB - dateA;
-    });
+    activities.sort((a, b) => new Date(b.matchDate || b.time) - new Date(a.matchDate || a.time));
 
-    activities.forEach((act, i) => {
-        if (typeof act !== 'object' || act === null) return;
-        const delay = i * 0.1;
-
-        const date = new Date(act.matchDate || act.time);
-        const time = isNaN(date) ? (act.time || 'Recently') : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        const msg = act.msg ? act.msg : `✅ A successful transfer was completed for a <strong>${act.designation || 'user'}</strong> from ${act.from || 'a district'} to ${act.to || 'another'}.`;
-        const type = act.type || 'MATCH SUCCESS';
-        const user = act.user || act.name || 'Verified User';
-
-        const card = `
-            <div class="activity-card" style="animation-delay: ${delay}s">
-                <div class="activity-header">
-                    <div class="activity-title">${type}</div>
-                    <div class="activity-time">${time}</div>
-                </div>
-                <div class="activity-body">${msg}</div>
-                <div class="activity-footer">${user}</div>
-            </div>
+    activities.forEach(act => {
+        const isSuccessStory = act.hasOwnProperty('matchDate');
+        const time = new Date(act.matchDate || act.time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) || 'Recently';
+        const activityType = isSuccessStory ? '<span class="badge badge-success">MATCH SUCCESS</span>' : `<span class="badge badge-info">${act.type}</span>`;
+        const details = isSuccessStory ? `<strong>${act.designation || 'User'}</strong>: ${act.from} → ${act.to}` : act.msg;
+        const user = act.user || 'Verified User';
+        
+        const row = `
+            <tr>
+                <td>${time}</td>
+                <td>${activityType}</td>
+                <td>${details}</td>
+                <td>${user}</td>
+            </tr>
         `;
-        container.append(card);
+        container.append(row);
     });
 }
 
+// UPDATED: Renders My Recent Activity in a table view
 function loadMyActivity() {
     const container = $('#myActivityList').empty();
     if (!MY_PHONE) {
-        container.html('<div class="text-center p-4 text-muted border rounded-24">Login to see your activity.</div>');
+        container.html('<tr><td colspan="3" class="text-center p-5"><p class="text-muted">Please log in to view your activity history.</p></td></tr>');
         return;
     }
 
     fetch(`${API}?action=getUserUpdateHistory&userPhone=${MY_PHONE}`)
-    .then(r => r.json())
-    .then(activities => {
-        if (!activities || !activities.length) {
-            container.html('<div class="text-center p-4 text-muted border rounded-24">You have no recent activity.</div>');
-            return;
-        }
+        .then(r => r.json())
+        .then(activities => {
+            if (!activities || !activities.length) {
+                container.html('<tr><td colspan="3" class="text-center p-5"><p class="text-muted">You have no recent activity.</p></td></tr>');
+                return;
+            }
 
-        activities.forEach((act, i) => {
-            if (typeof act !== 'object' || act === null) return;
-            const delay = i * 0.1;
-            const time = act.date || new Date().toLocaleTimeString();
-            const msg = act.details || 'An update was posted.';
-            const type = act.action || 'PROFILE_UPDATE';
+            activities.forEach(act => {
+                const time = new Date(act.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const action = `<span class="badge badge-primary">${act.action.replace('_', ' ')}</span>`;
+                const details = act.details;
 
-            const card = `
-            <div class="activity-card" style="animation-delay: ${delay}s">
-                <div class="activity-header">
-                    <div class="activity-title">${type}</div>
-                    <div class="activity-time">${time}</div>
-                </div>
-                <div class="activity-body">${msg}</div>
-            </div>
-        `;
-
-            container.append(card);
+                const row = `
+                    <tr>
+                        <td>${time}</td>
+                        <td>${action}</td>
+                        <td>${details}</td>
+                    </tr>
+                `;
+                container.append(row);
+            });
+        })
+        .catch(err => {
+            container.html('<tr><td colspan="3" class="text-center p-4 text-danger">Failed to load your activity. Please try again later.</td></tr>');
+            console.error("My Activity Error:", err);
         });
-    })
-    .catch(err => {
-        container.html('<div class="text-center p-4 text-danger border rounded-24">Failed to load activity.</div>');
-        console.error("My Activity Error:", err);
-    });
 }
+
 
 function loadActivityLog() { const container = $('#notificationList').empty(); const audit = $('#auditLog').empty(); const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE)); if (myEntries.length === 0) { container.html(`<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>`); return; } const successfulMatches = myEntries.filter(e => (e.MATCH_STATUS || '').toUpperCase().includes("MATCH")); if (successfulMatches.length > 0) { successfulMatches.forEach(m => { const is3Way = (m.MATCH_STATUS || '').toUpperCase().includes("3-WAY"); container.append(`<div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};"><div class="d-flex justify-content-between align-items-start"><div><span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span><h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6><p class="small text-muted mb-0">A mutual match has been found for your request.</p></div><button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button></div></div>`); }); } myEntries.filter(e => !(e.MATCH_STATUS || '').toUpperCase().includes("MATCH")).forEach(p => { container.append(`<div class="history-card" style="border-left-color: #cbd5e1;"><div class="d-flex align-items-center"><div class="spinner-grow spinner-grow-sm text-muted mr-3" role="status"></div><div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div></div></div>`); }); audit.html(`<div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div><div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`); }
 
