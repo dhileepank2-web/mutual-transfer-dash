@@ -120,9 +120,9 @@
             <div class="tab-pane fade" id="paneFeedback" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h6 class="font-weight-bold text-uppercase text-muted mb-0">What our members say</h6>
-                    <button class="btn btn-primary rounded-pill px-4" onclick="$('#modalFeedback').modal('show')"><i class="fas fa-plus mr-2"></i>Give Feedback</button>
+                    <button class="btn btn-primary rounded-pill px-4" onclick="showFeedbackModal()"><i class="fas fa-plus mr-2"></i>Give Feedback</button>
                 </div>
-                <div id="feedbackContainer" class="row"><div class="col-12 text-center p-5 text-muted">Loading feedback...</div></div>
+                <div id="feedbackContainer"><div class="col-12 text-center p-5 text-muted">Loading feedback...</div></div>
             </div>
 
             <div class="tab-pane fade" id="paneArchive" role="tabpanel">
@@ -143,9 +143,9 @@
             <div class="tab-pane fade" id="paneHub" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="font-weight-bold text-uppercase text-muted mb-0"><i class="fas fa-users-rays mr-2"></i>Community Live Feed</h6>
-                    <span class="live-indicator"><span class="pulse-dot"></span>Live</span>
+                    <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="showFullFeed()"><i class="fas fa-expand-alt mr-1"></i> View Full Feed</button>
                 </div>
-                <div id="hubActivityList"><div class="text-center p-4 text-muted border rounded-24">Loading live feed...</div></div>
+                <div id="hubActivityList" style="max-height: 400px; overflow-y: auto;"><div class="text-center p-4 text-muted border rounded-24">Loading live feed...</div></div>
             </div>
 
             <div class="tab-pane fade" id="paneActivity" role="tabpanel">
@@ -176,7 +176,21 @@
     </div>
 
     <div class="modal fade" id="modalFeedback" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 p-4 rounded-24 shadow-lg"><div class="text-center mb-4"><h4 class="font-weight-bold">Share Your Experience</h4><p class="text-muted small">Your feedback helps the community grow.</p></div><div class="form-group"><textarea id="txtFeedback" class="form-control filter-control" style="height: 120px; padding-top:12px;" placeholder="Write your thoughts here..."></textarea></div><button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="submitFeedback()">Submit Feedback</button></div></div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title font-weight-bold">Share Your Experience</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="feedbackParentId">
+                    <div class="form-group">
+                        <textarea id="txtFeedback" class="form-control filter-control" style="height: 120px; padding-top:12px;" placeholder="Write your thoughts here..."></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 shadow-sm" onclick="submitFeedback()">Submit Feedback</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="modalContact" tabindex="-1" role="dialog" aria-hidden="true">
@@ -243,6 +257,20 @@
                 </div>
                 <button id="btnApproveDelete" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="approveMutualDeletion()" disabled>Approve & Delete Both Profiles</button>
                 <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalFullFeed" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-24">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-history text-primary mr-2"></i>Full Activity Feed</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                    <div id="fullFeedContainer"></div>
+                </div>
             </div>
         </div>
     </div>
