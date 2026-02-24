@@ -1,30 +1,45 @@
+/**
+ * MUTUAL TRANSFER HUB - CORE ENGINE
+ * Manages state, background synchronization, matching logic, and UI orchestration.
+ */
+
+// --- GLOBAL STATE & CONFIG ---
 const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
-let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0, ARCHIVED_RECORDS = [], POTENTIAL_MATCHES = [], HUB_ACTIVITY = [];
+let MASTER_DATA = [];
+let FILTER_MATCHES = false;
+let ARCHIVE_COUNT = 0;
+let ARCHIVED_RECORDS = [];
+let POTENTIAL_MATCHES = [];
+let HUB_ACTIVITY = [];
 let MY_PHONE = localStorage.getItem("userPhone");
 let MY_NAME = ""; 
 let IS_SYNCING = false;
-let LIVE_FEED_PAGE = 1;
-let LIVE_FEED_TOTAL_PAGES = 1;
 
-
+// --- INITIALIZATION ---
 $(document).ready(() => {
     loadData();
-    setInterval(professionalSync, 60000);
     
-    $('#modalFullFeed').on('shown.bs.modal', function () {
-        loadLiveFeed(1, 100, '#fullFeedContainer');
-    });
+    // Background sync every 30 seconds
+    setInterval(professionalSync, 30000);
     
+    // Live feed refresh every 2 minutes if the page is visible and no modal is open
+    setInterval(() => {
+        if (document.visibilityState === 'visible' && !$('.modal.show').length) {
+            syncLiveFeed();
+        }
+    }, 120000);
+
+    // Refresh feedback when tab is shown
     $('a[data-toggle="pill"][href="#paneFeedback"]').on('shown.bs.tab', function (e) {
         loadFeedback();
-    });
-     $('a[data-toggle="pill"][href="#paneActivity"]').on('shown.bs.tab', function (e) {
-        loadMyActivity();
     });
 });
 
 // --- SYNC & DATA LOADING ---
 
+/**
+ * Perform a background sync without interrupting the user experience
+ */
 async function professionalSync() {
     if (IS_SYNCING || document.visibilityState !== 'visible') return;
     IS_SYNCING = true;
@@ -37,20 +52,33 @@ async function professionalSync() {
         MASTER_DATA = res.records || [];
         ARCHIVE_COUNT = res.archivedCount || 0;
         ARCHIVED_RECORDS = res.archivedRecords || [];
+        HUB_ACTIVITY = res.publicHubActivity || [];
         
         renderTable(); 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
+        renderHubActivity(HUB_ACTIVITY);
+        loadMyActivity();
         setTimeout(updateMatches, 200);
 
         showSlimProgress(100);
     } catch (e) {
         console.warn("Background sync failed.", e);
     } finally {
-        setTimeout(() => { IS_SYNCING = false; hideSlimProgress(); }, 1000);
+        setTimeout(() => { 
+            IS_SYNCING = false; 
+            hideSlimProgress(); 
+        }, 1000);
     }
 }
 
+async function syncLiveFeed() {
+    await professionalSync(); 
+}
+
+/**
+ * Initial full data load with UI blocking loader
+ */
 function loadData() {
     $("#globalLoader").removeClass("d-none");
     fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
@@ -59,8 +87,9 @@ function loadData() {
         MASTER_DATA = response.records || [];
         ARCHIVE_COUNT = response.archivedCount || 0;
         ARCHIVED_RECORDS = response.archivedRecords || [];
+        HUB_ACTIVITY = response.publicHubActivity || [];
         
-        loadLiveFeed(1, 5, '#hubActivityList'); 
+        renderHubActivity(HUB_ACTIVITY);
 
         $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
 
@@ -81,6 +110,8 @@ function loadData() {
         buildFilters();
         renderTable();
         renderArchiveTable(ARCHIVED_RECORDS);
+        loadActivityLog(); 
+        loadMyActivity();
         loadFeedback();
         setTimeout(updateMatches, 200);
         $("#globalLoader").addClass("d-none");
@@ -88,7 +119,7 @@ function loadData() {
     .catch(err => {
         console.error("Critical Load Error:", err);
         $("#globalLoader").addClass("d-none");
-        alert("Unable to load data. Please check your connection.");
+        showToast("Unable to load data. Please check connection.", "error");
     });
 }
 
@@ -108,6 +139,9 @@ function updateStats(data, archivedCount) {
     animateValue("statMatched", parseInt($('#statMatched').text()) || 0, overallSuccess, 1000);
 }
 
+/**
+ * Calculates possible mutual matches based on user's Working/Willing districts
+ */
 function updateMatches() {
     if (!MY_PHONE) {
         POTENTIAL_MATCHES = [];
@@ -115,27 +149,30 @@ function updateMatches() {
         return;
     }
 
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
-    
+    // Get current user's active (unmatched) entries
+    const myEntries = MASTER_DATA.filter(x => 
+        String(x.phone) === String(MY_PHONE) && 
+        !(x.MATCH_STATUS || "").toUpperCase().includes("MATCH")
+    );
+
     const myCriteria = myEntries.flatMap(me => {
         const working = String(me['Working District']).trim().toUpperCase();
-        const willing = String(me['Willing District']).trim().toUpperCase();
-        return { working, willing };
+        const willingDistricts = String(me['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
+        return willingDistricts.map(willing => ({ working, willing }));
     });
 
+    // Check other entries where their working is my willing AND my working is in their willing
     POTENTIAL_MATCHES = MASTER_DATA.filter(r => {
-        if (String(r.phone) === String(MY_PHONE)) return false; 
-        
+        if (String(r.phone) === String(MY_PHONE) || (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")) return false;
         const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWilling = String(r['Willing District']).trim().toUpperCase();
+        const theirWillingDistricts = String(r['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
         
-        return myCriteria.some(me => theirWorking === me.willing && theirWilling === me.working);
+        return myCriteria.some(me => theirWorking === me.willing && theirWillingDistricts.includes(me.working));
     });
     
     $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i>My Matches <span class="badge badge-light ml-1">${POTENTIAL_MATCHES.length}</span>`);
     if (FILTER_MATCHES) renderTable();
 }
-
 
 // --- RENDERING FUNCTIONS ---
 
@@ -144,25 +181,18 @@ function renderTable() {
     const from = $('#selFrom').val();
     const to = $('#selTo').val();
 
-    let dataToRender;
-
+    let dataToRender = MASTER_DATA;
     if (FILTER_MATCHES) {
-        const myPhone = String(MY_PHONE);
-        const myEntries = MASTER_DATA.filter(r => String(r.phone) === myPhone);
-        
-        const matchPhones = POTENTIAL_MATCHES.map(m => String(m.phone));
-        const matchEntries = MASTER_DATA.filter(r => matchPhones.includes(String(r.phone)));
-
-        const allRelevantEntries = [...myEntries, ...matchEntries];
-        dataToRender = [...new Map(allRelevantEntries.map(item => [item.id, item])).values()];
-    } else {
-        dataToRender = MASTER_DATA;
+        const myOwnIds = MASTER_DATA.filter(r => String(r.phone) === String(MY_PHONE)).map(r => r.id);
+        const matchIds = POTENTIAL_MATCHES.map(m => m.id);
+        const allIds = [...new Set([...myOwnIds, ...matchIds])];
+        dataToRender = MASTER_DATA.filter(r => allIds.includes(r.id));
     }
 
     const filtered = dataToRender.filter(r => 
         (selectedDesig === 'all' || r['Your Designation'] === selectedDesig) &&
         (from === 'all' || r['Working District'] === from) &&
-        (to === 'all' || r['Willing District'] === to)
+        (to === 'all' || r['Willing District'].split(',').map(d=>d.trim()).includes(to))
     );
     renderTableToDOM(filtered);
 }
@@ -182,20 +212,23 @@ function renderTableToDOM(data) {
         const matchStat = (row.MATCH_STATUS || "").toUpperCase();
         const hasMatch = matchStat.includes("MATCH");
         
+        // Demand Indicators
         let demandCfg = { c: 'lvl-mod', d: '#f59e0b' };
         const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
         if (dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
         if (dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
 
+        // Status Badge Logic
         let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
         if (hasMatch) {
             statusMarkup = `<span class="badge badge-pill ${matchStat.includes("3-WAY") ? 'badge-secondary' : 'badge-success'}"><i class="fas fa-lock mr-1"></i>${matchStat.includes("3-WAY") ? '3-WAY' : 'DIRECT'} MATCH</span>`;
         }
-        
+
+        // Deletion Workflow Markup
         let deleteConcernMarkup = '<span class="text-muted small">N/A</span>';
         if (isMe && hasMatch) {
             const myRecord = MASTER_DATA.find(x => x.id === row.id);
-            const partnerRecord = MASTER_DATA.find(p => p.id === myRecord.MATCH_ID && p.phone !== MY_PHONE);
+            const partnerRecord = MASTER_DATA.find(p => p.id === myRecord.MATCH_ID);
             
             if (myRecord.DELETE_REQUEST === 'REQUESTED') {
                 deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Request Sent</div>`;
@@ -221,11 +254,9 @@ function renderTableToDOM(data) {
     tbody.html(rowsHtml);
 }
 
-
 function renderArchiveTable(archivedRecords) {
     const tbody = $('#archiveTbody').empty();
-    $('#noArchiveData').toggleClass('d-none', archivedRecords.length === 0);
-
+    $('#noArchiveData').toggleClass('d-none', archivedRecords.length > 0);
     if (archivedRecords.length === 0) return;
 
     archivedRecords.forEach((row, index) => {
@@ -242,31 +273,31 @@ function renderArchiveTable(archivedRecords) {
 
 // --- API & ACTION FUNCTIONS ---
 
-function openEditModal() {
-    if (!MY_PHONE) {
-        showToast("Please log in to edit your profile.", "error");
-        return;
-    }
-    // Redirect to the registration page with phone number as a parameter
-    window.location.href = `testreg.html?phone=${MY_PHONE}`;
-}
-
 async function unlockRow(id, active) {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
     if (!active) { showToast("Match required to view contact", "info"); return; }
     
     $("#globalLoader").removeClass("d-none");
     try {
-        const res = await fetch(API, { method: "POST", body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE }) });
+        const res = await fetch(API, { 
+            method: "POST", 
+            body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE }) 
+        });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        $('#resName').text(data.name || "N/A"); 
-        $('#resPhone').text(data.contact || "N/A");
-        $('#callLink').attr("href", "tel:" + data.contact);
-        $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-        $('#modalContact').modal('show'); 
-        
+        if (data.is3Way) {
+            $('#chainPersonB').text(data.partnerB.name); $('#chainPersonC').text(data.partnerC.name);
+            $('#distB').text(data.partnerB.workingDistrict); $('#distC').text(data.partnerC.workingDistrict);
+            $('#btnChatB').attr('href', `https://wa.me/91${data.partnerB.contact}`);
+            $('#btnChatC').attr('href', `https://wa.me/91${data.partnerC.contact}`);
+            $('#modalChain').modal('show'); 
+        } else {
+            $('#resName').text(data.name || "N/A"); $('#resPhone').text(data.contact || "N/A");
+            $('#callLink').attr("href", "tel:" + data.contact);
+            $('#waLink').attr("href", "https://wa.me/91" + data.contact);
+            $('#modalContact').modal('show'); 
+        }
         showToast("Contact Unlocked!", "success");
     } catch(e) { 
         showToast(`Error: ${e.message}`, "error"); 
@@ -290,13 +321,25 @@ async function executeDeletion() {
     if (reason === "OTHER") reason = $('#deleteReasonOther').val().trim();
     if (!reason) { alert("Please select or provide a reason."); return; }
 
+    const isSuccess = $('input[name="delReason"]:checked').val() === 'Found Match through this site';
+
     if (!confirm(`Are you sure you want to delete your profile? This cannot be undone.`)) return;
 
-    await callApi({ action: "deleteEntry", reason: reason}, "Deleting Profile...", "Profile successfully deleted.", () => { clearIdentity(true); setTimeout(() => location.reload(), 500); });
+    await callApi({ action: "deleteEntry", reason: reason, isHubSuccess: isSuccess }, "Deleting Profile...", "Profile successfully deleted.", () => { 
+        clearIdentity(true); 
+        setTimeout(() => location.reload(), 500); 
+    });
 }
 
-function requestDeletion() { callApi({ action: "requestDelete" }, "Requesting deletion...", "Deletion request sent. Your partner must approve.", professionalSync); }
-function approveDeletion() { callApi({ action: "approveDelete" }, "Approving deletion...", "Mutual deletion successful. Both profiles removed.", () => { setTimeout(() => location.reload(), 500); }); }
+function requestDeletion() { 
+    callApi({ action: "requestDelete" }, "Requesting deletion...", "Deletion request sent.", professionalSync); 
+}
+
+function approveDeletion() { 
+    callApi({ action: "approveDelete" }, "Approving deletion...", "Mutual deletion successful.", () => { 
+        setTimeout(() => location.reload(), 500); 
+    }); 
+}
 
 async function callApi(payload, loadingMsg, successMsg, callback) {
     $("#globalLoader").removeClass("d-none").find('h6').text(loadingMsg);
@@ -362,10 +405,7 @@ function renderFeedback(feedbackData) {
 }
 
 function showFeedbackModal(parentId = null) {
-    if (!MY_PHONE) {
-        $('#modalVerify').modal('show');
-        return;
-    }
+    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
     $('#feedbackParentId').val(parentId || '');
     $('#txtFeedback').val('');
     const modalTitle = parentId ? 'Post a Reply' : 'Share Your Experience';
@@ -388,7 +428,7 @@ async function submitFeedback() {
         'Feedback submitted successfully!',
         () => {
             $('#modalFeedback').modal('hide');
-            loadFeedback();
+            loadFeedback(); // Refresh list without full reload
         }
     );
 }
@@ -408,57 +448,100 @@ function animateValue(id, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
-function showSlimProgress(percent) { if (!$('#slim-progress').length) { $('body').append('<div id="slim-progress" style="position:fixed;top:0;left:0;height:3px;background:#4f46e5;z-index:9999;transition:width .4s ease;"></div>'); } $('#slim-progress').css('width', percent + '%').show(); }
-function hideSlimProgress() { $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%')); }
-function toggleMatches() { if (!MY_PHONE) { $('#modalVerify').modal('show'); return; } FILTER_MATCHES = !FILTER_MATCHES; $('#btnMatches').toggleClass('btn-primary text-white', FILTER_MATCHES).toggleClass('btn-outline-primary', !FILTER_MATCHES); renderTable(); }
+function showSlimProgress(percent) { 
+    if (!$('#slim-progress').length) { 
+        $('body').append('<div id="slim-progress" style="position:fixed;top:0;left:0;height:3px;background:#4f46e5;z-index:9999;transition:width .4s ease;"></div>'); 
+    } 
+    $('#slim-progress').css('width', percent + '%').show(); 
+}
+
+function hideSlimProgress() { 
+    $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%')); 
+}
+
+function toggleMatches() { 
+    if (!MY_PHONE) { $('#modalVerify').modal('show'); return; } 
+    FILTER_MATCHES = !FILTER_MATCHES; 
+    $('#btnMatches').toggleClass('btn-primary text-white', FILTER_MATCHES).toggleClass('btn-outline-primary', !FILTER_MATCHES); 
+    renderTable(); 
+}
 
 function buildFilters() {
     const desigSet = [...new Set(MASTER_DATA.map(x => x['Your Designation']))].filter(Boolean).sort();
     const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].filter(Boolean).sort();
     const toSet = [...new Set(MASTER_DATA.flatMap(x => x['Willing District'].split(',').map(d=>d.trim())))].filter(Boolean).sort();
 
-    const build = (id, set) => { $(id).html('<option value="all">All</option>').prop('disabled', false).append(set.map(v => `<option value="${v}">${v}</option>`).join('')); };
+    const build = (id, set) => { 
+        $(id).html('<option value="all">All</option>').prop('disabled', false).append(set.map(v => `<option value="${v}">${v}</option>`).join('')); 
+    };
     build('#selDesignation', desigSet);
     build('#selFrom', fromSet);
-    build('#selTo', [...new Set(toSet)]);
+    build('#selTo', toSet);
 }
 
-function saveVerify() { const val = $('#verifyPhone').val(); if (!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; } if (MASTER_DATA.some(x => String(x.phone) === String(val))) { localStorage.setItem("userPhone", val); location.reload(); } else { $('#loginError, #regSection').fadeIn(); } }
-function showToast(message, type = 'success') { $('.custom-toast').remove(); const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'; const bgColor = type === 'success' ? '#10b981' : '#ef4444'; $(`<div class="custom-toast shadow-lg"><i class="fas ${icon} mr-2"></i><span>${message}</span></div>`).css({ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: bgColor, color: 'white', padding: '12px 24px', borderRadius: '50px', zIndex: '10000', fontWeight: '600', display: 'none' }).appendTo('body').fadeIn(400).delay(3000).fadeOut(400, function() { $(this).remove(); }); }
-function clearIdentity(soft = false) { localStorage.removeItem("userPhone"); MY_PHONE = null; if (!soft) location.reload(); $('#idContainer').addClass('d-none'); }
-function resetUI() { $('select.filter-control').val('all'); FILTER_MATCHES = false; $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white'); renderTable(); }
-function selectRadio(id) { $(`#${id}`).prop('checked', true); $('#otherReasonWrapper').toggleClass('d-none', id !== 'r3'); }
+function saveVerify() { 
+    const val = $('#verifyPhone').val(); 
+    if (!/^\d{10}$/.test(val)) { alert("Invalid phone format."); return; } 
+    if (MASTER_DATA.some(x => String(x.phone) === String(val))) { 
+        localStorage.setItem("userPhone", val); 
+        location.reload(); 
+    } else { 
+        $('#loginError, #regSection').fadeIn(); 
+    } 
+}
+
+function showToast(message, type = 'success') { 
+    $('.custom-toast').remove(); 
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'; 
+    const bgColor = type === 'success' ? '#10b981' : '#ef4444'; 
+    $(`<div class="custom-toast shadow-lg"><i class="fas ${icon} mr-2"></i><span>${message}</span></div>`)
+    .css({ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: bgColor, color: 'white', padding: '12px 24px', borderRadius: '50px', zIndex: '10000', fontWeight: '600', display: 'none' })
+    .appendTo('body').fadeIn(400).delay(3000).fadeOut(400, function() { $(this).remove(); }); 
+}
+
+function clearIdentity(soft = false) { 
+    localStorage.removeItem("userPhone"); 
+    MY_PHONE = null; 
+    if (!soft) location.reload(); 
+    $('#idContainer').addClass('d-none'); 
+}
+
+function resetUI() { 
+    $('select.filter-control').val('all'); 
+    FILTER_MATCHES = false; 
+    $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white'); 
+    renderTable(); 
+}
+
+function selectRadio(id) { 
+    $(`#${id}`).prop('checked', true); 
+    $('#otherReasonWrapper').toggleClass('d-none', id !== 'r3'); 
+}
 
 // --- DATE & ACTIVITY FEED FUNCTIONS ---
+
 function parseDateString(dateString) {
     if (!dateString) return null;
     const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-    if (isoRegex.test(dateString) || !isNaN(new Date(dateString).getTime())) {
-        return new Date(dateString);
-    }
+    if (isoRegex.test(dateString)) return new Date(dateString);
+
     const parts = dateString.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ T](\d{1,2}):(\d{1,2}):(\d{1,2}))?/);
-    if (!parts) return null;
+    if (!parts) return new Date(dateString);
 
     let day, month, year;
-    if (parseInt(parts[1], 10) > 12) { // DD/MM/YY(YY)
-        day = parseInt(parts[1], 10);
-        month = parseInt(parts[2], 10) - 1;
-        year = parseInt(parts[3], 10);
-    } else { // MM/DD/YY(YY) or ambiguous
-        month = parseInt(parts[1], 10) - 1;
-        day = parseInt(parts[2], 10);
-        year = parseInt(parts[3], 10);
+    if (parseInt(parts[1], 10) > 12) { 
+        day = parseInt(parts[1], 10); month = parseInt(parts[2], 10) - 1; year = parseInt(parts[3], 10);
+    } else { 
+        month = parseInt(parts[1], 10) - 1; day = parseInt(parts[2], 10); year = parseInt(parts[3], 10);
     }
-    if (year < 100) {
-        year += (year > 50 ? 1900 : 2000);
-    }
-    const hour = parts[4] ? parseInt(parts[4], 10) : 0;
-    const minute = parts[5] ? parseInt(parts[5], 10) : 0;
-    const second = parts[6] ? parseInt(parts[6], 10) : 0;
-    
-    return new Date(year, month, day, hour, minute, second);
-}
 
+    if (String(year).length === 2) year += 2000;
+    const h = parts[4] ? parseInt(parts[4], 10) : 0;
+    const m = parts[5] ? parseInt(parts[5], 10) : 0;
+    const s = parts[6] ? parseInt(parts[6], 10) : 0;
+    
+    return new Date(year, month, day, h, m, s);
+}
 
 const formatDisplayDate = (dateString) => {
     if (!dateString) return 'Recently';
@@ -467,17 +550,14 @@ const formatDisplayDate = (dateString) => {
     
     const now = new Date();
     const diffSeconds = Math.round((now - date) / 1000);
-
-    if (diffSeconds < 0) {
-         return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
-    }
+    if (diffSeconds < 0) return 'Just now';
     if (diffSeconds < 60) return `${diffSeconds}s ago`;
     const diffMinutes = Math.round(diffSeconds / 60);
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
     const diffHours = Math.round(diffMinutes / 60);
     if (diffHours < 24) return `${diffHours}h ago`;
 
-    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }).format(date);
 };
 
 function renderActivity(containerId, activities) {
@@ -512,46 +592,17 @@ function renderActivity(containerId, activities) {
     });
 }
 
-async function loadLiveFeed(page, pageSize = 10, containerId = '#fullFeedContainer') {
-    const container = $(containerId);
-    container.html('<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>');
-    try {
-        const r = await fetch(`${API}?action=getLiveFeed&page=${page}&pageSize=${pageSize}&t=${Date.now()}`);
-        const res = await r.json();
-        
-        if (res.error) throw new Error(res.error);
-
-        HUB_ACTIVITY = res.activities || [];
-        LIVE_FEED_PAGE = res.page;
-        LIVE_FEED_TOTAL_PAGES = res.totalPages;
-        
-        renderActivity(containerId, HUB_ACTIVITY);
-        
-        if (containerId === '#fullFeedContainer') {
-            updateFeedPagination();
-        }
-
-    } catch (err) {
-        console.error("Live Feed Error:", err);
-        container.html('<div class="text-center p-4 text-danger border rounded-24">Failed to load live feed.</div>');
-    }
-}
-
-function updateFeedPagination() {
-    $('#feedPageInfo').text(`Page ${LIVE_FEED_PAGE} of ${LIVE_FEED_TOTAL_PAGES}`);
-    $('#btnFeedPrev').prop('disabled', LIVE_FEED_PAGE <= 1);
-    $('#btnFeedNext').prop('disabled', LIVE_FEED_PAGE >= LIVE_FEED_TOTAL_PAGES);
+function renderHubActivity(activities) {
+    renderActivity('#hubActivityList', activities);
 }
 
 function showFullFeed(){
+    renderActivity('#fullFeedContainer', HUB_ACTIVITY);
     $('#modalFullFeed').modal('show');
 }
 
 async function loadMyActivity() {
-    if (!MY_PHONE) {
-        renderActivity('#myActivityList', []);
-        return;
-    }
+    if (!MY_PHONE) { renderActivity('#myActivityList', []); return; }
     try {
         const r = await fetch(`${API}?action=getUserUpdateHistory&userPhone=${MY_PHONE}`);
         const activities = await r.json();
@@ -562,40 +613,55 @@ async function loadMyActivity() {
     }
 }
 
-function showInviteModal() {
-    const message = `Check out this Mutual Transfer platform to find your transfer partner! Link: ${window.location.href}`;
-    $('#whatsappMessage').val(message);
-    $('#modalInvite').modal('show');
-}
+function loadActivityLog() {
+    const container = $('#notificationList').empty();
+    const audit = $('#auditLog').empty();
+    if (!MY_PHONE) { 
+        container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">Please log in to see notifications.</p></div>');
+        return;
+    }
+    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
+    if (myEntries.length === 0) {
+        container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>');
+        return;
+    }
 
-function shareToWhatsApp() {
-    const message = encodeURIComponent($('#whatsappMessage').val());
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-}
+    const matchedEntries = myEntries.filter(e => (e.MATCH_STATUS || '').toUpperCase().includes("MATCH"));
+    if (matchedEntries.length > 0) {
+        matchedEntries.forEach(m => {
+            const is3Way = (m.MATCH_STATUS || '').toUpperCase().includes("3-WAY");
+            container.append(`
+                <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
+                            <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
+                            <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
+                        </div>
+                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
+                    </div>
+                </div>`);
+        });
+    }
 
-function openRegistrationModal() {
-    window.location.href = 'testreg.html';
-}
+    myEntries.filter(e => !(e.MATCH_STATUS || '').toUpperCase().includes("MATCH")).forEach(p => {
+        container.append(`
+            <div class="history-card" style="border-left-color: #cbd5e1;">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-grow spinner-grow-sm text-muted mr-3"></div>
+                    <div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div>
+                </div>
+            </div>`);
+    });
 
-async function submitRegistration() {
-     const userData = {
-        name: $('#regName').val(),
-        designation: $('#regDesignation').val(),
-        doj: $('#regDoj').val(),
-        workingDistrict: $('#regCurrentDist').val(),
-        willingDistrict: $('#regWillingDist').val(),
-        phone: $('#regPhone').val(),
-        email: $('#regEmail').val(),
-        probation: $('input[name="probation"]:checked').val(),
-        coa: $('input[name="coa"]:checked').val(),
-    };
-    await callApi(
-        { action: "register", userData: userData }, 
-        "Registering...", 
-        "Registration successful!", 
-        () => {
-            localStorage.setItem("userPhone", userData.phone);
-            setTimeout(() => window.location.href = 'testdash.html', 500); 
-        }
-    );
+    audit.html(`
+        <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm">
+            <div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div>
+        </div>
+        <div class="p-3 bg-white border rounded-15 shadow-sm">
+            <div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div>
+        </div>
+    `);
 }
