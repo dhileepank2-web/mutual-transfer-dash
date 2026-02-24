@@ -3,16 +3,18 @@ let MASTER_DATA = [], FILTER_MATCHES = false, ARCHIVE_COUNT = 0, ARCHIVED_RECORD
 let MY_PHONE = localStorage.getItem("userPhone");
 let MY_NAME = ""; 
 let IS_SYNCING = false;
+let LIVE_FEED_PAGE = 1;
+let LIVE_FEED_TOTAL_PAGES = 1;
+
 
 $(document).ready(() => {
     loadData();
-    setInterval(professionalSync, 30000);
-    setInterval(() => {
-        if (document.visibilityState === 'visible' && !$('.modal.show').length) {
-            syncLiveFeed();
-        }
-    }, 120000);
-
+    setInterval(professionalSync, 60000); // Sync every 60 seconds
+    
+    $('#modalFullFeed').on('shown.bs.modal', function () {
+        loadLiveFeed(1);
+    });
+    
     $('a[data-toggle="pill"][href="#paneFeedback"]').on('shown.bs.tab', function (e) {
         loadFeedback();
     });
@@ -32,12 +34,10 @@ async function professionalSync() {
         MASTER_DATA = res.records || [];
         ARCHIVE_COUNT = res.archivedCount || 0;
         ARCHIVED_RECORDS = res.archivedRecords || [];
-        HUB_ACTIVITY = res.publicHubActivity || [];
         
         renderTable(); 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
-        renderHubActivity(HUB_ACTIVITY);
         loadMyActivity();
         setTimeout(updateMatches, 200);
 
@@ -49,10 +49,6 @@ async function professionalSync() {
     }
 }
 
-async function syncLiveFeed() {
-    await professionalSync(); 
-}
-
 function loadData() {
     $("#globalLoader").removeClass("d-none");
     fetch(`${API}?action=getDashboardData&t=${Date.now()}`)
@@ -61,9 +57,8 @@ function loadData() {
         MASTER_DATA = response.records || [];
         ARCHIVE_COUNT = response.archivedCount || 0;
         ARCHIVED_RECORDS = response.archivedRecords || [];
-        HUB_ACTIVITY = response.publicHubActivity || [];
         
-        renderHubActivity(HUB_ACTIVITY);
+        loadLiveFeed(1, 5, '#hubActivityList'); 
 
         $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
 
@@ -84,7 +79,6 @@ function loadData() {
         buildFilters();
         renderTable();
         renderArchiveTable(ARCHIVED_RECORDS);
-        loadActivityLog(); 
         loadMyActivity();
         loadFeedback();
         setTimeout(updateMatches, 200);
@@ -120,23 +114,27 @@ function updateMatches() {
         return;
     }
 
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE) && !(x.MATCH_STATUS || "").toUpperCase().includes("MATCH"));
+    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
+    
     const myCriteria = myEntries.flatMap(me => {
         const working = String(me['Working District']).trim().toUpperCase();
-        const willingDistricts = String(me['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
-        return willingDistricts.map(willing => ({ working, willing }));
+        const willing = String(me['Willing District']).trim().toUpperCase();
+        return { working, willing };
     });
 
     POTENTIAL_MATCHES = MASTER_DATA.filter(r => {
-        if (String(r.phone) === String(MY_PHONE) || (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")) return false;
+        if (String(r.phone) === String(MY_PHONE)) return false; 
+        
         const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWillingDistricts = String(r['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
-        return myCriteria.some(me => theirWorking === me.willing && theirWillingDistricts.includes(me.working));
+        const theirWilling = String(r['Willing District']).trim().toUpperCase();
+        
+        return myCriteria.some(me => theirWorking === me.willing && theirWilling === me.working);
     });
     
     $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i>My Matches <span class="badge badge-light ml-1">${POTENTIAL_MATCHES.length}</span>`);
     if (FILTER_MATCHES) renderTable();
 }
+
 
 // --- RENDERING FUNCTIONS ---
 
@@ -145,18 +143,25 @@ function renderTable() {
     const from = $('#selFrom').val();
     const to = $('#selTo').val();
 
-    let dataToRender = MASTER_DATA;
+    let dataToRender;
+
     if (FILTER_MATCHES) {
-        const myOwnIds = MASTER_DATA.filter(r => String(r.phone) === String(MY_PHONE)).map(r => r.id);
-        const matchIds = POTENTIAL_MATCHES.map(m => m.id);
-        const allIds = [...new Set([...myOwnIds, ...matchIds])];
-        dataToRender = MASTER_DATA.filter(r => allIds.includes(r.id));
+        const myPhone = String(MY_PHONE);
+        const myEntries = MASTER_DATA.filter(r => String(r.phone) === myPhone);
+        
+        const matchPhones = POTENTIAL_MATCHES.map(m => String(m.phone));
+        const matchEntries = MASTER_DATA.filter(r => matchPhones.includes(String(r.phone)));
+
+        const allRelevantEntries = [...myEntries, ...matchEntries];
+        dataToRender = [...new Map(allRelevantEntries.map(item => [item.id, item])).values()];
+    } else {
+        dataToRender = MASTER_DATA;
     }
 
     const filtered = dataToRender.filter(r => 
         (selectedDesig === 'all' || r['Your Designation'] === selectedDesig) &&
         (from === 'all' || r['Working District'] === from) &&
-        (to === 'all' || r['Willing District'].split(',').map(d=>d.trim()).includes(to))
+        (to === 'all' || r['Willing District'] === to)
     );
     renderTableToDOM(filtered);
 }
@@ -185,11 +190,12 @@ function renderTableToDOM(data) {
         if (hasMatch) {
             statusMarkup = `<span class="badge badge-pill ${matchStat.includes("3-WAY") ? 'badge-secondary' : 'badge-success'}"><i class="fas fa-lock mr-1"></i>${matchStat.includes("3-WAY") ? '3-WAY' : 'DIRECT'} MATCH</span>`;
         }
-
+        
         let deleteConcernMarkup = '<span class="text-muted small">N/A</span>';
         if (isMe && hasMatch) {
             const myRecord = MASTER_DATA.find(x => x.id === row.id);
-            const partnerRecord = MASTER_DATA.find(p => p.id === myRecord.MATCH_ID);
+            const partnerRecord = MASTER_DATA.find(p => p.id === myRecord.MATCH_ID && p.phone !== MY_PHONE);
+            
             if (myRecord.DELETE_REQUEST === 'REQUESTED') {
                 deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Request Sent</div>`;
             } else if (partnerRecord && partnerRecord.DELETE_REQUEST === 'REQUESTED') {
@@ -214,6 +220,7 @@ function renderTableToDOM(data) {
     tbody.html(rowsHtml);
 }
 
+
 function renderArchiveTable(archivedRecords) {
     const tbody = $('#archiveTbody').empty();
     $('#noArchiveData').toggleClass('d-none', archivedRecords.length > 0);
@@ -234,6 +241,66 @@ function renderArchiveTable(archivedRecords) {
 
 // --- API & ACTION FUNCTIONS ---
 
+async function openEditModal() {
+    if (!MY_PHONE) {
+        showToast("Please verify your phone number first.", "error");
+        return;
+    }
+    
+    $("#globalLoader").removeClass("d-none").find('h6').text("Loading Profile...");
+    try {
+        const res = await fetch(`${API}?action=getUserProfile&userPhone=${MY_PHONE}`);
+        const profile = await res.json();
+        if (profile.error) throw new Error(profile.error);
+
+        $('#regName').val(profile.name);
+        $('#regDesignation').val(profile.designation);
+        $('#regDoj').val(profile.doj);
+        $('#regCurrentDist').val(profile.workingDistrict);
+        $('#regWillingDist').val(profile.willingDistrict);
+        $('#regPhone').val(profile.phone);
+        $('#regEmail').val(profile.email);
+        $(`input[name="probation"][value="${profile.probation}"]`).prop('checked', true);
+        $(`input[name="coa"][value="${profile.coa}"]`).prop('checked', true);
+
+        $('#registrationModal .modal-title').text('Update Your Profile');
+        $('#btnRegister').text('Save Changes');
+        $('#btnRegister').attr('onclick', 'submitProfileUpdate()');
+
+        $('#registrationModal').modal('show');
+
+    } catch(e) {
+        showToast(`Error loading profile: ${e.message}`, "error");
+    } finally {
+        $("#globalLoader").addClass("d-none").find('h6').text("Processing...");
+    }
+}
+
+async function submitProfileUpdate() {
+    const userData = {
+        name: $('#regName').val(),
+        designation: $('#regDesignation').val(),
+        doj: $('#regDoj').val(),
+        workingDistrict: $('#regCurrentDist').val(),
+        willingDistrict: $('#regWillingDist').val(),
+        phone: $('#regPhone').val(),
+        email: $('#regEmail').val(),
+        probation: $('input[name="probation"]:checked').val(),
+        coa: $('input[name="coa"]:checked').val(),
+    };
+
+    await callApi(
+        { action: "updateProfile", userData: userData }, 
+        "Updating Profile...", 
+        "Profile successfully updated.", 
+        () => {
+            $('#registrationModal').modal('hide');
+            setTimeout(() => location.reload(), 500); 
+        }
+    );
+}
+
+
 async function unlockRow(id, active) {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
     if (!active) { showToast("Match required to view contact", "info"); return; }
@@ -244,18 +311,12 @@ async function unlockRow(id, active) {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        if (data.is3Way) {
-            $('#chainPersonB').text(data.partnerB.name); $('#chainPersonC').text(data.partnerC.name);
-            $('#distB').text(data.partnerB.workingDistrict); $('#distC').text(data.partnerC.workingDistrict);
-            $('#btnChatB').attr('href', `https://wa.me/91${data.partnerB.contact}`);
-            $('#btnChatC').attr('href', `https://wa.me/91${data.partnerC.contact}`);
-            $('#modalChain').modal('show'); 
-        } else {
-            $('#resName').text(data.name || "N/A"); $('#resPhone').text(data.contact || "N/A");
-            $('#callLink').attr("href", "tel:" + data.contact);
-            $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-            $('#modalContact').modal('show'); 
-        }
+        $('#resName').text(data.name || "N/A"); 
+        $('#resPhone').text(data.contact || "N/A");
+        $('#callLink').attr("href", "tel:" + data.contact);
+        $('#waLink').attr("href", "https://wa.me/91" + data.contact);
+        $('#modalContact').modal('show'); 
+        
         showToast("Contact Unlocked!", "success");
     } catch(e) { 
         showToast(`Error: ${e.message}`, "error"); 
@@ -279,15 +340,13 @@ async function executeDeletion() {
     if (reason === "OTHER") reason = $('#deleteReasonOther').val().trim();
     if (!reason) { alert("Please select or provide a reason."); return; }
 
-    const isSuccess = $('input[name="delReason"]:checked').val() === 'Found Match through this site';
-
     if (!confirm(`Are you sure you want to delete your profile? This cannot be undone.`)) return;
 
-    await callApi({ action: "deleteEntry", reason: reason, isHubSuccess: isSuccess }, "Deleting Profile...", "Profile successfully deleted.", () => { clearIdentity(true); setTimeout(() => location.reload(), 500); });
+    await callApi({ action: "deleteEntry", reason: reason}, "Deleting Profile...", "Profile successfully deleted.", () => { clearIdentity(true); setTimeout(() => location.reload(), 500); });
 }
 
-function requestDeletion() { callApi({ action: "requestDelete" }, "Requesting deletion...", "Deletion request sent.", professionalSync); }
-function approveDeletion() { callApi({ action: "approveDelete" }, "Approving deletion...", "Mutual deletion successful.", () => { setTimeout(() => location.reload(), 500); }); }
+function requestDeletion() { callApi({ action: "requestDelete" }, "Requesting deletion...", "Deletion request sent. Your partner must approve.", professionalSync); }
+function approveDeletion() { callApi({ action: "approveDelete" }, "Approving deletion...", "Mutual deletion successful. Both profiles removed.", () => { setTimeout(() => location.reload(), 500); }); }
 
 async function callApi(payload, loadingMsg, successMsg, callback) {
     $("#globalLoader").removeClass("d-none").find('h6').text(loadingMsg);
@@ -326,9 +385,9 @@ function renderFeedback(feedbackData) {
 
     feedbackData.forEach(item => {
         const repliesHtml = item.replies.map(reply => `
-            <div class="feedback-reply">
-                <p class="mb-1 text-dark">${reply.text}</p>
-                <small class="text-muted">By User (***${String(reply.phone).slice(-4)}) • ${formatDisplayDate(reply.timestamp)}</small>
+            <div class="feedback-reply" style="border-left: 3px solid #e9ecef; padding-left: 15px; margin-top: 15px; margin-left: 25px;">
+                <p class="mb-1 text-dark" style="font-size: 0.9rem;">${reply.text}</p>
+                <small class="text-muted"><i class="fas fa-user-circle fa-xs mr-1"></i>User (***${String(reply.phone).slice(-4)}) • ${formatDisplayDate(reply.timestamp)}</small>
             </div>
         `).join('');
 
@@ -337,10 +396,10 @@ function renderFeedback(feedbackData) {
                 <div class="feedback-card">
                     <div class="feedback-body">
                         <p class="font-weight-bold mb-1">${item.text}</p>
-                        <small class="text-muted">By User (***${String(item.phone).slice(-4)}) • ${formatDisplayDate(item.timestamp)}</small>
+                        <small class="text-muted"><i class="fas fa-user fa-xs mr-1"></i>User (***${String(item.phone).slice(-4)}) • ${formatDisplayDate(item.timestamp)}</small>
                     </div>
-                    ${repliesHtml ? `<div class="feedback-replies">${repliesHtml}</div>` : ''}
-                    <div class="feedback-actions mt-2">
+                    ${repliesHtml ? `<div class="feedback-replies mt-3">${repliesHtml}</div>` : ''}
+                    <div class="feedback-actions mt-3">
                         <button class="btn btn-sm btn-outline-primary rounded-pill py-1 px-3" onclick="showFeedbackModal('${item.id}')">
                             <i class="fas fa-reply fa-xs mr-1"></i> Reply
                         </button>
@@ -421,36 +480,35 @@ function resetUI() { $('select.filter-control').val('all'); FILTER_MATCHES = fal
 function selectRadio(id) { $(`#${id}`).prop('checked', true); $('#otherReasonWrapper').toggleClass('d-none', id !== 'r3'); }
 
 // --- DATE & ACTIVITY FEED FUNCTIONS ---
-
 function parseDateString(dateString) {
     if (!dateString) return null;
-    // Handles "MM/DD/YYYY HH:mm:ss" or "DD/MM/YY HH:mm:ss" and ISO strings
     const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-    if (isoRegex.test(dateString)) return new Date(dateString);
-
+    if (isoRegex.test(dateString) || !isNaN(new Date(dateString).getTime())) {
+        return new Date(dateString);
+    }
     const parts = dateString.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ T](\d{1,2}):(\d{1,2}):(\d{1,2}))?/);
-    if (!parts) return new Date(dateString); // Fallback for unexpected formats
+    if (!parts) return null;
 
     let day, month, year;
-    // Check if the format is likely MM/DD/YYYY based on the first part > 12
     if (parseInt(parts[1], 10) > 12) { // DD/MM/YY(YY)
         day = parseInt(parts[1], 10);
         month = parseInt(parts[2], 10) - 1;
         year = parseInt(parts[3], 10);
-    } else { // MM/DD/YY(YY)
+    } else { // MM/DD/YY(YY) or ambiguous
         month = parseInt(parts[1], 10) - 1;
         day = parseInt(parts[2], 10);
         year = parseInt(parts[3], 10);
     }
-
-    if (String(year).length === 2) year += 2000;
-
+    if (year < 100) {
+        year += (year > 50 ? 1900 : 2000);
+    }
     const hour = parts[4] ? parseInt(parts[4], 10) : 0;
     const minute = parts[5] ? parseInt(parts[5], 10) : 0;
     const second = parts[6] ? parseInt(parts[6], 10) : 0;
     
     return new Date(year, month, day, hour, minute, second);
 }
+
 
 const formatDisplayDate = (dateString) => {
     if (!dateString) return 'Recently';
@@ -459,8 +517,9 @@ const formatDisplayDate = (dateString) => {
     
     const now = new Date();
     const diffSeconds = Math.round((now - date) / 1000);
+
     if (diffSeconds < 0) {
-        return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+         return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
     }
     if (diffSeconds < 60) return `${diffSeconds}s ago`;
     const diffMinutes = Math.round(diffSeconds / 60);
@@ -468,7 +527,7 @@ const formatDisplayDate = (dateString) => {
     const diffHours = Math.round(diffMinutes / 60);
     if (diffHours < 24) return `${diffHours}h ago`;
 
-    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }).format(date);
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 };
 
 function renderActivity(containerId, activities) {
@@ -503,12 +562,38 @@ function renderActivity(containerId, activities) {
     });
 }
 
-function renderHubActivity(activities) {
-    renderActivity('#hubActivityList', activities);
+async function loadLiveFeed(page, pageSize = 10, containerId = '#fullFeedContainer') {
+    const container = $(containerId);
+    container.html('<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>');
+    try {
+        const r = await fetch(`${API}?action=getLiveFeed&page=${page}&pageSize=${pageSize}&t=${Date.now()}`);
+        const res = await r.json();
+        
+        if (res.error) throw new Error(res.error);
+
+        HUB_ACTIVITY = res.activities || [];
+        LIVE_FEED_PAGE = res.page;
+        LIVE_FEED_TOTAL_PAGES = res.totalPages;
+        
+        renderActivity(containerId, HUB_ACTIVITY);
+        
+        if (containerId === '#fullFeedContainer') {
+            updateFeedPagination();
+        }
+
+    } catch (err) {
+        console.error("Live Feed Error:", err);
+        container.html('<div class="text-center p-4 text-danger border rounded-24">Failed to load live feed.</div>');
+    }
+}
+
+function updateFeedPagination() {
+    $('#feedPageInfo').text(`Page ${LIVE_FEED_PAGE} of ${LIVE_FEED_TOTAL_PAGES}`);
+    $('#btnFeedPrev').prop('disabled', LIVE_FEED_PAGE <= 1);
+    $('#btnFeedNext').prop('disabled', LIVE_FEED_PAGE >= LIVE_FEED_TOTAL_PAGES);
 }
 
 function showFullFeed(){
-    renderActivity('#fullFeedContainer', HUB_ACTIVITY);
     $('#modalFullFeed').modal('show');
 }
 
@@ -527,46 +612,44 @@ async function loadMyActivity() {
     }
 }
 
-function loadActivityLog() {
-    const container = $('#notificationList').empty();
-    const audit = $('#auditLog').empty();
-    if (!MY_PHONE) { 
-        container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">Please log in to see notifications.</p></div>');
-        return;
-     }
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
-    if (myEntries.length === 0) {
-        container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>');
-        return;
-    }
+function showInviteModal() {
+    const message = `Check out this Mutual Transfer platform to find your transfer partner! Link: ${window.location.href}`;
+    $('#whatsappMessage').val(message);
+    $('#modalInvite').modal('show');
+}
 
-    const matchedEntries = myEntries.filter(e => (e.MATCH_STATUS || '').toUpperCase().includes("MATCH"));
-    if (matchedEntries.length > 0) {
-        matchedEntries.forEach(m => {
-            const is3Way = (m.MATCH_STATUS || '').toUpperCase().includes("3-WAY");
-            container.append(`
-                <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
-                            <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
-                            <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
-                        </div>
-                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
-                    </div>
-                </div>`);
-        });
-    }
+function shareToWhatsApp() {
+    const message = encodeURIComponent($('#whatsappMessage').val());
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+}
 
-    myEntries.filter(e => !(e.MATCH_STATUS || '').toUpperCase().includes("MATCH")).forEach(p => {
-        container.append(`
-            <div class="history-card" style="border-left-color: #cbd5e1;">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-grow spinner-grow-sm text-muted mr-3"></div>
-                    <div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div>
-                </div>
-            </div>`);
-    });
+function openRegistrationModal() {
+    $('#registrationModal .modal-title').text('Register Your Profile');
+    $('#btnRegister').text('Register');
+    $('#btnRegister').attr('onclick', 'submitRegistration()');
+    $('#registrationForm')[0].reset();
+    $('#registrationModal').modal('show');
+}
 
-    audit.html(`<div class="p-3 bg-white border rounded-15 mb-2 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Profile Verified</div><div class="text-muted" style="font-size: 0.75rem;">Identity confirmed via ${MY_PHONE.slice(-4)}</div></div><div class="p-3 bg-white border rounded-15 shadow-sm"><div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div><div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div></div>`);
+async function submitRegistration() {
+     const userData = {
+        name: $('#regName').val(),
+        designation: $('#regDesignation').val(),
+        doj: $('#regDoj').val(),
+        workingDistrict: $('#regCurrentDist').val(),
+        willingDistrict: $('#regWillingDist').val(),
+        phone: $('#regPhone').val(),
+        email: $('#regEmail').val(),
+        probation: $('input[name="probation"]:checked').val(),
+        coa: $('input[name="coa"]:checked').val(),
+    };
+    await callApi(
+        { action: "register", userData: userData }, 
+        "Registering...", 
+        "Registration successful!", 
+        () => {
+            localStorage.setItem("userPhone", userData.phone);
+            setTimeout(() => location.reload(), 500); 
+        }
+    );
 }
