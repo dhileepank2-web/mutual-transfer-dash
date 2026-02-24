@@ -9,14 +9,17 @@ let LIVE_FEED_TOTAL_PAGES = 1;
 
 $(document).ready(() => {
     loadData();
-    setInterval(professionalSync, 60000); // Sync every 60 seconds
+    setInterval(professionalSync, 60000);
     
     $('#modalFullFeed').on('shown.bs.modal', function () {
-        loadLiveFeed(1);
+        loadLiveFeed(1, 100, '#fullFeedContainer');
     });
     
     $('a[data-toggle="pill"][href="#paneFeedback"]').on('shown.bs.tab', function (e) {
         loadFeedback();
+    });
+     $('a[data-toggle="pill"][href="#paneActivity"]').on('shown.bs.tab', function (e) {
+        loadMyActivity();
     });
 });
 
@@ -38,7 +41,6 @@ async function professionalSync() {
         renderTable(); 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
-        loadMyActivity();
         setTimeout(updateMatches, 200);
 
         showSlimProgress(100);
@@ -79,7 +81,6 @@ function loadData() {
         buildFilters();
         renderTable();
         renderArchiveTable(ARCHIVED_RECORDS);
-        loadMyActivity();
         loadFeedback();
         setTimeout(updateMatches, 200);
         $("#globalLoader").addClass("d-none");
@@ -223,7 +224,7 @@ function renderTableToDOM(data) {
 
 function renderArchiveTable(archivedRecords) {
     const tbody = $('#archiveTbody').empty();
-    $('#noArchiveData').toggleClass('d-none', archivedRecords.length > 0);
+    $('#noArchiveData').toggleClass('d-none', archivedRecords.length === 0);
 
     if (archivedRecords.length === 0) return;
 
@@ -241,65 +242,14 @@ function renderArchiveTable(archivedRecords) {
 
 // --- API & ACTION FUNCTIONS ---
 
-async function openEditModal() {
+function openEditModal() {
     if (!MY_PHONE) {
-        showToast("Please verify your phone number first.", "error");
+        showToast("Please log in to edit your profile.", "error");
         return;
     }
-    
-    $("#globalLoader").removeClass("d-none").find('h6').text("Loading Profile...");
-    try {
-        const res = await fetch(`${API}?action=getUserProfile&userPhone=${MY_PHONE}`);
-        const profile = await res.json();
-        if (profile.error) throw new Error(profile.error);
-
-        $('#regName').val(profile.name);
-        $('#regDesignation').val(profile.designation);
-        $('#regDoj').val(profile.doj);
-        $('#regCurrentDist').val(profile.workingDistrict);
-        $('#regWillingDist').val(profile.willingDistrict);
-        $('#regPhone').val(profile.phone);
-        $('#regEmail').val(profile.email);
-        $(`input[name="probation"][value="${profile.probation}"]`).prop('checked', true);
-        $(`input[name="coa"][value="${profile.coa}"]`).prop('checked', true);
-
-        $('#registrationModal .modal-title').text('Update Your Profile');
-        $('#btnRegister').text('Save Changes');
-        $('#btnRegister').attr('onclick', 'submitProfileUpdate()');
-
-        $('#registrationModal').modal('show');
-
-    } catch(e) {
-        showToast(`Error loading profile: ${e.message}`, "error");
-    } finally {
-        $("#globalLoader").addClass("d-none").find('h6').text("Processing...");
-    }
+    // Redirect to the registration page with phone number as a parameter
+    window.location.href = `testreg.html?phone=${MY_PHONE}`;
 }
-
-async function submitProfileUpdate() {
-    const userData = {
-        name: $('#regName').val(),
-        designation: $('#regDesignation').val(),
-        doj: $('#regDoj').val(),
-        workingDistrict: $('#regCurrentDist').val(),
-        willingDistrict: $('#regWillingDist').val(),
-        phone: $('#regPhone').val(),
-        email: $('#regEmail').val(),
-        probation: $('input[name="probation"]:checked').val(),
-        coa: $('input[name="coa"]:checked').val(),
-    };
-
-    await callApi(
-        { action: "updateProfile", userData: userData }, 
-        "Updating Profile...", 
-        "Profile successfully updated.", 
-        () => {
-            $('#registrationModal').modal('hide');
-            setTimeout(() => location.reload(), 500); 
-        }
-    );
-}
-
 
 async function unlockRow(id, active) {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
@@ -624,11 +574,7 @@ function shareToWhatsApp() {
 }
 
 function openRegistrationModal() {
-    $('#registrationModal .modal-title').text('Register Your Profile');
-    $('#btnRegister').text('Register');
-    $('#btnRegister').attr('onclick', 'submitRegistration()');
-    $('#registrationForm')[0].reset();
-    $('#registrationModal').modal('show');
+    window.location.href = 'testreg.html';
 }
 
 async function submitRegistration() {
@@ -649,7 +595,7 @@ async function submitRegistration() {
         "Registration successful!", 
         () => {
             localStorage.setItem("userPhone", userData.phone);
-            setTimeout(() => location.reload(), 500); 
+            setTimeout(() => window.location.href = 'testdash.html', 500); 
         }
     );
 }
