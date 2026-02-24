@@ -518,6 +518,14 @@ function selectRadio(id) {
     $('#otherReasonWrapper').toggleClass('d-none', id !== 'r3'); 
 }
 
+function editProfile() {
+    if (MY_PHONE) {
+        window.location.href = `testreg.html?editPhone=${MY_PHONE}`;
+    } else {
+        showToast("You must be logged in to edit your profile.", "error");
+    }
+}
+
 // --- DATE & ACTIVITY FEED FUNCTIONS ---
 
 function parseDateString(dateString) {
