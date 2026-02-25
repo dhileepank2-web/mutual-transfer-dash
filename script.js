@@ -5,6 +5,7 @@
 
 // --- GLOBAL STATE & CONFIG ---
 const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
+const ADMIN_PHONE = "9080141350";
 let MASTER_DATA = [];
 let FILTER_MATCHES = false;
 let ARCHIVE_COUNT = 0;
@@ -99,6 +100,13 @@ function loadData() {
                 MY_NAME = currentUser['Your Name'] || "User";
                 $('#idContainer').removeClass('d-none');
                 $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
+                
+                if (MY_PHONE === ADMIN_PHONE) {
+                    const adminBtn = $('#btnAdminPanel');
+                    adminBtn.removeClass('d-none');
+                    adminBtn.attr('href', `${API}?view=admin&userPhone=${ADMIN_PHONE}`);
+                }
+
             } else {
                 clearIdentity(true);
             }
