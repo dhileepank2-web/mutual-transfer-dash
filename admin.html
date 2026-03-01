@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>Mutual Hub | Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .is-duplicate {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffeeba;
+        }
+        .user-data-compare {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 0.85rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .data-diff {
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div id="globalLoader" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+        <h6 class="mt-4 font-weight-bold text-dark">Processing...</h6>
+    </div>
+
+    <header class="glass-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-danger text-white p-2 rounded-lg mr-3 shadow-sm">
+                    <i class="fas fa-user-shield fa-lg"></i>
+                </div>
+                <h5 class="font-weight-bold mb-0 text-dark">Admin Dashboard</h5>
+            </div>
+            <a href="testdash.html" class="btn btn-outline-primary btn-sm">Back to Main Dashboard</a>
+        </div>
+    </header>
+
+    <main class="container mt-4 pb-5">
+        <ul class="nav nav-pills nav-pills-custom mb-4 justify-content-center" id="adminTabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" id="full-user-tab" data-toggle="pill" href="#paneFullUser" role="tab"><i class="fas fa-users mr-2"></i>Full User List</a></li>
+            <li class="nav-item ml-2"><a class="nav-link" id="edit-requests-tab" data-toggle="pill" href="#paneEditRequests" role="tab"><i class="fas fa-user-edit mr-2"></i>Edit Requests <span id="edit-count-badge" class="badge badge-warning ml-1"></span></a></li>
+            <li class="nav-item ml-2"><a class="nav-link" id="delete-requests-tab" data-toggle="pill" href="#paneDeleteRequests" role="tab"><i class="fas fa-user-slash mr-2"></i>Delete Requests <span id="delete-count-badge" class="badge badge-danger ml-1"></span></a></li>
+        </ul>
+
+        <div class="tab-content" id="adminTabContent">
+            <!-- Full User List Pane -->
+            <div class="tab-pane fade show active" id="paneFullUser" role="tabpanel">
+                <div class="bg-white p-4 rounded-24 mb-4">
+                    <input type="text" id="userSearch" class="form-control" placeholder="Search by name, phone, or district...">
+                </div>
+                <div class="table-wrapper bg-white rounded-24">
+                    <div class="table-responsive">
+                        <table class="table m-0">
+                            <thead><tr><th>#</th><th>Name</th><th>Designation</th><th>Contact</th><th>Working District</th><th>Willing District(s)</th><th>Match Status</th></tr></thead>
+                            <tbody id="fullUserTbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="noUserData" class="text-center p-5" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Edit Requests Pane -->
+            <div class="tab-pane fade" id="paneEditRequests" role="tabpanel">
+                 <div id="edit-requests-container"><div class="text-center p-5"><div class="spinner-border text-primary"></div></div></div>
+            </div>
+
+            <!-- Delete Requests Pane -->
+            <div class="tab-pane fade" id="paneDeleteRequests" role="tabpanel">
+                <div id="delete-requests-container"><div class="text-center p-5"><div class="spinner-border text-primary"></div></div></div>
+            </div>
+        </div>
+    </main>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxST_AqkRH0OUBLvp1DWcFoujqlFIF1mi-yrVvCd3E1jq97XP_6k2MLgreOE0MGs0LA/exec";
+    const ADMIN_PHONE = localStorage.getItem("userPhone"); 
+    let ALL_USERS_DATA = [];
+
+    $(document).ready(() => {
+        if (!ADMIN_PHONE) {
+            alert("Admin phone not found. Please log in through the main dashboard first.");
+            window.location.href = "testdash.html";
+            return;
+        }
+        loadAdminData();
+
+        $('#userSearch').on('keyup', function() {
+            renderFullUserTable($(this).val().toLowerCase());
+        });
+    });
+
+    async function loadAdminData() {
+        showLoader(true);
+        $('#fullUserTbody').closest('table').hide();
+        $('#noUserData').html('<div class="spinner-border text-primary"></div>').show();
+
+        try {
+            const response = await fetch(`${API_URL}?action=getAdminDashboardData&userPhone=${ADMIN_PHONE}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            ALL_USERS_DATA = data.allUsers || [];
+            renderFullUserTable();
+            renderEditRequests(data.editRequests || []);
+            renderDeleteRequests(data.deleteRequests || []);
+
+        } catch (e) {
+            alert(`Failed to load admin data: ${e.message}`);
+            $('#fullUserTbody').closest('table').hide();
+            $('#noUserData').html('<p class="text-danger p-4">Failed to load user data.</p>').show();
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    function renderFullUserTable(searchTerm = '') {
+        const tbody = $('#fullUserTbody');
+        const noUserDataDiv = $('#noUserData');
+        const table = tbody.closest('table');
+        tbody.empty();
+
+        const filteredUsers = searchTerm ? ALL_USERS_DATA.filter(u =>
+            (u['Your Name'] || '').toLowerCase().includes(searchTerm) ||
+            (u.phone || '').includes(searchTerm) ||
+            (u['Working District'] || '').toLowerCase().includes(searchTerm) ||
+            (Array.isArray(u['Willing District']) ? u['Willing District'].join(', ') : u['Willing District'] || '').toLowerCase().includes(searchTerm)
+        ) : ALL_USERS_DATA;
+
+        if (ALL_USERS_DATA.length === 0) {
+            table.hide();
+            noUserDataDiv.html('<p class="text-muted p-4">No users have been registered yet.</p>').show();
+            return;
+        }
+
+        table.show();
+        noUserDataDiv.hide();
+
+        if (filteredUsers.length === 0) {
+            tbody.html('<tr><td colspan="7" class="text-center text-muted p-4">No users found matching your search.</td></tr>');
+            return;
+        }
+
+        let rowsHtml = '';
+        filteredUsers.forEach((user, index) => {
+            rowsHtml += `
+                <tr class="${user.isDuplicate ? 'is-duplicate' : ''}" title="${user.isDuplicate ? 'Potential duplicate entry' : ''}">
+                    <td>${index + 1}</td>
+                    <td>${user['Your Name'] || 'N/A'}</td>
+                    <td>${user['Your Designation'] || 'N/A'}</td>
+                    <td>${user.phone || 'N/A'}</td>
+                    <td>${user['Working District'] || 'N/A'}</td>
+                    <td>${Array.isArray(user['Willing District']) ? user['Willing District'].join(', ') : (user['Willing District'] || 'N/A')}</td>
+                    <td>${user.MATCH_STATUS || 'N/A'}</td>
+                </tr>
+            `;
+        });
+        tbody.html(rowsHtml);
+    }
+    
+    function renderEditRequests(requests) {
+        const container = $('#edit-requests-container');
+        container.empty();
+        $('#edit-count-badge').text(requests.length || '');
+
+        if (requests.length === 0) {
+            container.html('<div class="alert alert-info">No pending edit requests.</div>');
+            return;
+        }
+
+        let html = '';
+        requests.forEach(req => {
+            const currentDataHtml = JSON.stringify(req.currentUserData, null, 2);
+            const newDataHtml = JSON.stringify(req.newData, null, 2);
+            
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between">
+                        <strong>Request ID: ${req.requestId}</strong>
+                        <small>${new Date(req.timestamp).toLocaleString()}</small>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>User Phone:</strong> ${req.phone}</p>
+                        <p><strong>Reason:</strong> ${req.reason}</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Current Profile</h6>
+                                <div class="user-data-compare">${currentDataHtml}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Requested Changes</h6>
+                                <div class="user-data-compare data-diff">${newDataHtml}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white text-right">
+                        <button class="btn btn-success" onclick="approveEdit('${req.requestId}')">Approve</button>
+                        <button class="btn btn-danger" onclick="rejectEdit('${req.requestId}')">Reject</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.html(html);
+    }
+
+    function renderDeleteRequests(requests) {
+        const container = $('#delete-requests-container');
+        container.empty();
+        $('#delete-count-badge').text(requests.length || '');
+
+        if (requests.length === 0) {
+            container.html('<div class="alert alert-info">No pending deletion requests.</div>');
+            return;
+        }
+
+        let html = '';
+        requests.forEach(req => {
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header">Deletion Request</div>
+                    <div class="card-body">
+                        <p><strong>Requesting User:</strong> ${req.requestingUser.name} (${req.requestingUser.phone})</p>
+                        <p><strong>Partner:</strong> ${req.partnerUser ? `${req.partnerUser.name} (${req.partnerUser.phone})` : 'N/A'}</p>
+                        <div class="alert alert-warning mt-3">
+                            <strong>Warning:</strong> Approving this will delete both the requesting user and their matched partner from the database.
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white text-right">
+                        <button class="btn btn-danger" onclick="approveDelete('${req.requestingUser.phone}')">Approve & Delete Matched Pair</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.html(html);
+    }
+
+    async function adminAction(action, payload) {
+        const confirmationText = action === 'approveDeleteRequestAdmin' 
+            ? 'Are you sure you want to approve this deletion? This will permanently delete BOTH matched users.'
+            : 'Are you sure you want to proceed?';
+        
+        if (!confirm(confirmationText)) return;
+
+        showLoader(true, 'Processing action...');
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, userPhone: ADMIN_PHONE, ...payload })
+            });
+            const result = await response.json();
+            if (result.status !== 'SUCCESS') throw new Error(result.error || 'Unknown error');
+            
+            alert('Action successful!');
+            loadAdminData(); // Refresh all data
+        } catch (e) {
+            alert(`Action failed: ${e.message}`);
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    function approveEdit(requestId) { adminAction('approveEditRequest', { requestId: requestId }); }
+    function rejectEdit(requestId) { adminAction('rejectEditRequest', { requestId: requestId }); }
+    function approveDelete(requestingUserPhone) { adminAction('approveDeleteRequestAdmin', { requestingUserPhone: requestingUserPhone }); }
+
+    function showLoader(show, text = 'Loading Admin Data...') {
+        const loader = $('#globalLoader');
+        if (show) {
+            loader.find('h6').text(text);
+            loader.removeClass('d-none');
+        } else {
+            loader.addClass('d-none');
+        }
+    }
+
+</script>
+</body>
+</html>
