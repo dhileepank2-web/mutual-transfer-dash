@@ -9,9 +9,120 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .profile-modal-content {
+            border-radius: 24px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            position: relative;
+        }
+        .profile-header .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            opacity: 0.8;
+            text-shadow: none;
+            font-size: 1.5rem;
+        }
+        .profile-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            margin: 0 auto 1rem auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid white;
+        }
+        .profile-avatar i {
+            font-size: 2.5rem;
+            color: white;
+        }
+        .profile-header h4 {
+            font-size: 1.5rem;
+        }
+        #profPhone {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+        .profile-header-actions {
+            margin-top: 1.5rem;
+        }
+        .btn-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            margin: 0 5px;
+            border: none;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-circle:hover {
+            background-color: rgba(255,255,255,0.3);
+        }
+        .profile-body {
+            padding: 2rem;
+        }
+        .profile-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+        .detail-item i {
+            font-size: 1.2rem;
+            color: #6a11cb;
+            margin-right: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+        .detail-item div {
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-item span {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .detail-item strong {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #343a40;
+        }
+        @media (max-width: 576px) {
+            .profile-details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="globalLoader" class="d-none">
+    <div id="globalLoader" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;"></div>
         <h6 class="mt-4 font-weight-bold text-dark">Processing...</h6>
     </div>
@@ -28,7 +139,8 @@
                 <div class="bg-white border px-3 py-2 rounded-xl d-flex align-items-center shadow-sm">
                     <div class="bg-success rounded-circle mr-2" style="width:8px; height:8px"></div>
                     <small class="font-weight-bold mr-3" id="lblUserPhone">00...00</small>
-                    <a id="btnAdminPanel" href="#" class="btn btn-sm btn-outline-danger font-weight-bold mr-3 d-none">Admin Panel</a>
+                    <a id="btnAdminPanel" class="btn btn-sm btn-outline-danger font-weight-bold mr-3 d-none">Admin Panel</a>
+                    <i class="fas fa-user-circle text-info mr-3 cursor-pointer" title="My Profile" onclick="viewMyProfile()"></i>
                     <i class="fas fa-edit text-primary mr-3 cursor-pointer" title="Edit Profile" onclick="editProfile()"></i>
                     <i class="fas fa-trash-alt text-warning mr-3 cursor-pointer" title="Delete My Entry" onclick="deleteMyEntry()"></i>
                     <i class="fas fa-power-off text-danger cursor-pointer" title="Logout" onclick="clearIdentity()"></i>
@@ -37,40 +149,40 @@
         </div>
     </header>
 
-    <div class="container mt-4 pb-5">
-        <div class="text-right mb-2">
-            <small class="text-muted">
+    <main class="container mt-4 pb-5">
+        <div class="text-right mb-3">
+            <small class="text-muted font-weight-bold">
                 <i class="fas fa-sync-alt fa-spin mr-1"></i> 
                 Last Sync: <span id="lastUpdated">Never</span>
             </small>
         </div>
 
-        <div class="stat-container mb-4">
+        <section class="stat-container mb-4">
             <div class="row no-gutters bg-white border rounded-24 shadow-sm overflow-hidden">
                 <div class="col-md col-6 stat-box p-3 text-center">
-                    <span class="stat-label d-block small text-muted text-uppercase font-weight-bold">Unique Members</span>
+                    <span class="stat-label d-block small text-muted text-uppercase">Unique Members</span>
                     <span class="stat-value h4 font-weight-bold mb-0" id="statUnique"><div class="spinner-border spinner-border-sm text-muted"></div></span>
                 </div>
                 <div class="col-md col-6 stat-box p-3 text-center border-left">
-                    <span class="stat-label d-block small text-muted text-uppercase font-weight-bold">Total Requests</span>
+                    <span class="stat-label d-block small text-muted text-uppercase">Total Requests</span>
                     <span class="stat-value h4 font-weight-bold text-info mb-0" id="statTotal"><div class="spinner-border spinner-border-sm text-info"></div></span>
                 </div>
                 <div class="col-md col-4 stat-box p-3 text-center border-left">
-                    <span class="stat-label d-block small text-muted text-uppercase font-weight-bold">Live Matches</span>
+                    <span class="stat-label d-block small text-muted text-uppercase">Live Matches</span>
                     <span class="stat-value h4 font-weight-bold text-primary mb-0" id="statLiveMatches"><div class="spinner-border spinner-border-sm text-primary"></div></span>
                 </div>
                 <div class="col-md col-4 stat-box p-3 text-center border-left">
-                    <span class="stat-label d-block small text-muted text-uppercase font-weight-bold">Total Leaved</span>
+                    <span class="stat-label d-block small text-muted text-uppercase">Total Leaved</span>
                     <span class="stat-value h4 font-weight-bold text-secondary mb-0" id="statArchived"><div class="spinner-border spinner-border-sm text-secondary"></div></span>
                 </div>
                 <div class="col-md col-4 stat-box p-3 text-center border-left">
-                    <span class="stat-label d-block small text-muted text-uppercase font-weight-bold">Hub Success</span>
+                    <span class="stat-label d-block small text-muted text-uppercase">Hub Success</span>
                     <span class="stat-value h4 font-weight-bold text-success mb-0" id="statMatched"><div class="spinner-border spinner-border-sm text-success"></div></span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <ul class="nav nav-pills nav-pills-custom mb-4" id="dashboardTabs" role="tablist">
+        <ul class="nav nav-pills nav-pills-custom mb-4 justify-content-center" id="dashboardTabs" role="tablist">
             <li class="nav-item"><a class="nav-link active" id="listings-tab" data-toggle="pill" href="#paneListings" role="tab"><i class="fas fa-list-ul mr-2"></i>Live Listings</a></li>
             <li class="nav-item ml-2"><a class="nav-link" id="feedback-tab" data-toggle="pill" href="#paneFeedback" role="tab"><i class="fas fa-comment-dots mr-2"></i>Users Feedback</a></li>
             <li class="nav-item ml-2"><a class="nav-link" id="archive-tab" data-toggle="pill" href="#paneArchive" role="tab"><i class="fas fa-history mr-2"></i>Archive List</a></li>
@@ -80,34 +192,33 @@
 
         <div class="tab-content" id="dashboardTabContent">
             <div class="tab-pane fade show active" id="paneListings" role="tabpanel">
-                <div class="bg-white p-4 rounded-24 border mb-4 shadow-sm">
+                <div class="bg-white p-4 rounded-24 mb-4">
                     <div class="row align-items-end">
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <label class="small font-weight-bold text-muted text-uppercase ml-1">Designation Filter</label>
+                        <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
+                            <label class="small font-weight-bold text-muted text-uppercase ml-1">Designation</label>
                             <select id="selDesignation" onchange="renderTable()" class="form-control filter-control" disabled><option>Loading...</option></select>
                         </div>
-                        <div class="col-lg-2 col-md-3 mb-3">
+                        <div class="col-lg-2 col-md-3 mb-3 mb-lg-0">
                             <label class="small font-weight-bold text-muted text-uppercase ml-1">FROM</label>
                             <select id="selFrom" class="form-control filter-control" onchange="renderTable()" disabled><option>Loading...</option></select>
                         </div>
-                        <div class="col-lg-2 col-md-3 mb-3">
+                        <div class="col-lg-2 col-md-3 mb-3 mb-lg-0">
                             <label class="small font-weight-bold text-muted text-uppercase ml-1">TO</label>
                             <select id="selTo" class="form-control filter-control" onchange="renderTable()" disabled><option>Loading...</option></select>
                         </div>
-                        <div class="col-auto mb-3">
-                            <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14" style="height:52px;" onclick="toggleMatches()"><i class="fas fa-filter mr-2"></i>My Matches</button>
-                        </div>
-                        <div class="col-auto mb-3 d-flex" style="gap:10px;">
-                            <button class="btn btn-outline-success rounded-pill px-3 shadow-sm" style="height:52px;" onclick="shareToWhatsApp()"><i class="fab fa-whatsapp mr-1"></i> Invite</button>
-                            <button class="btn btn-light border rounded-14" style="height:52px; width:52px;" onclick="resetUI()"><i class="fas fa-redo"></i></button>
+                        <div class="col-lg-5 col-md-12 d-flex justify-content-lg-end align-items-center mt-3 mt-lg-0">
+                            <button id="btnAllMatches" class="btn btn-outline-info font-weight-bold rounded-14 mr-2" style="height:52px;" onclick="toggleAllMatches()"><i class="fas fa-star mr-2"></i>All Matches</button>
+                            <button id="btnMatches" class="btn btn-outline-primary font-weight-bold rounded-14 mr-2" style="height:52px;" onclick="toggleMatches()"><i class="fas fa-handshake mr-2"></i>My Matches</button>
+                            <button class="btn btn-light border rounded-14 mr-2" style="height:52px; width:52px;" onclick="resetUI()"><i class="fas fa-redo"></i></button>
+                            <button class="btn btn-outline-success rounded-pill px-3" style="height:52px;" onclick="shareToWhatsApp()"><i class="fab fa-whatsapp mr-1"></i> Invite</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="table-wrapper bg-white rounded-24 border shadow-sm overflow-hidden">
+                <div class="table-wrapper bg-white rounded-24">
                     <div class="table-responsive">
-                        <table class="table m-0">
-                            <thead class="bg-light"><tr><th>#</th><th>Employee Listing</th><th>Current Place</th><th>Transfer To</th><th class="d-table-cell">Willing District Demand</th><th>Status</th><th class="text-center">Connect</th><th>Delete Concern</th></tr></thead>
+                        <table class="table m-0"> 
+                            <thead><tr><th>#</th><th>Employee Listing</th><th>Current Place</th><th>Transfer To</th><th>Willing District Demand</th><th>Status</th><th class="text-center">Connect</th><th>Delete Concern</th></tr></thead>
                             <tbody id="mainTbody"></tbody>
                         </table>
                     </div>
@@ -116,6 +227,10 @@
                         <h6 class="text-muted font-weight-bold">Syncing live database...</h6>
                     </div>
                 </div>
+                <nav class="mt-4" aria-label="Main Table Pagination">
+                  <ul class="pagination justify-content-center" id="mainTablePagination">
+                  </ul>
+                </nav>
             </div>
 
             <div class="tab-pane fade" id="paneFeedback" role="tabpanel">
@@ -123,14 +238,14 @@
                     <h6 class="font-weight-bold text-uppercase text-muted mb-0">What our members say</h6>
                     <button class="btn btn-primary rounded-pill px-4" onclick="showFeedbackModal()"><i class="fas fa-plus mr-2"></i>Give Feedback</button>
                 </div>
-                <div id="feedbackContainer"><div class="col-12 text-center p-5 text-muted">Loading feedback...</div></div>
+                <div class="row" id="feedbackContainer"><div class="col-12 text-center p-5 text-muted">Loading feedback...</div></div>
             </div>
 
             <div class="tab-pane fade" id="paneArchive" role="tabpanel">
-                <div class="table-wrapper bg-white rounded-24 border shadow-sm overflow-hidden">
+                <div class="table-wrapper bg-white rounded-24">
                     <div class="table-responsive">
                         <table class="table m-0">
-                            <thead class="bg-light"><tr><th>#</th><th>Employee</th><th>From/To</th><th>Deletion Reason</th></tr></thead>
+                            <thead><tr><th>#</th><th>Employee</th><th>From/To</th><th>Deletion Reason</th></tr></thead>
                             <tbody id="archiveTbody"></tbody>
                         </table>
                     </div>
@@ -142,41 +257,50 @@
             </div>
 
             <div class="tab-pane fade" id="paneHub" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="font-weight-bold text-uppercase text-muted mb-0"><i class="fas fa-users-rays mr-2"></i>Community Live Feed</h6>
-                    <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="showFullFeed()"><i class="fas fa-expand-alt mr-1"></i> View Full Feed</button>
+                 <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="font-weight-bold text-uppercase text-muted mb-0">Full Activity Feed</h6>
+                    <button class="btn btn-light btn-sm" onclick="loadHubActivityPage(1)"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
                 </div>
-                <div id="hubActivityList" style="max-height: 400px; overflow-y: auto;"><div class="text-center p-4 text-muted border rounded-24">Loading live feed...</div></div>
+                <div id="hubActivityList" class="p-1">
+                    <div class="text-center p-5 text-muted">Loading live feed...</div>
+                </div>
+                <nav class="mt-3" aria-label="Hub Activity Pagination">
+                  <ul class="pagination justify-content-center" id="hubActivityPagination">
+                  </ul>
+                </nav>
             </div>
 
             <div class="tab-pane fade" id="paneActivity" role="tabpanel">
                  <div class="row">
-                    <div class="col-md-7">
-                        <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
-                        <div id="notificationList"><div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">Syncing your activity...</p></div></div>
+                    <div class="col-lg-7">
+                         <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-bell mr-2"></i>Notifications & Matches</h6>
+                        <div id="notificationList"><div class="text-center p-5 history-card"><p class="text-muted mb-0">Syncing your activity...</p></div></div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                            <h6 class="font-weight-bold text-uppercase text-muted mb-0"><i class="fas fa-user-clock mr-2"></i>My Recent Activity</h6>
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewFullActivity()">View Full Activity <i class="fas fa-arrow-right ml-1"></i></button>
+                        </div>
+                        <div id="myActivityList"><div class="text-center p-4 text-muted activity-item">Loading your activity...</div></div>
                     </div>
-                    <div class="col-md-5">
-                        <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-user-clock mr-2"></i>Update History</h6>
-                        <div id="auditLog" class="small bg-white p-3 rounded-24 border"><div class="text-center text-muted p-3">Loading history...</div></div>
+                    <div class="col-lg-5 mt-4 mt-lg-0">
+                        <h6 class="font-weight-bold text-uppercase text-muted mb-3"><i class="fas fa-shield-alt mr-2"></i>Audit Trail</h6>
+                        <div id="auditLog" class="small"><div class="text-center text-muted p-3">Loading history...</div></div>
                     </div>
                 </div>
-                 <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
-                    <h6 class="font-weight-bold text-uppercase text-muted mb-0"><i class="fas fa-user-clock mr-2"></i>My Recent Activity</h6>
-                </div>
-                <div id="myActivityList"><div class="text-center p-4 text-muted border rounded-24">Loading your activity...</div></div>
             </div>
         </div>
+    </main>
+
+    <!-- MODALS -->
+    <div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static" role="dialog">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 p-4 rounded-24 shadow-lg"><div class="text-center mb-4"><div class="bg-light d-inline-block p-3 rounded-circle mb-3"><i class="fas fa-trash-alt text-danger fa-lg"></i></div><h4 class="font-weight-bold">Delete Your Entry?</h4><p class="text-muted">Please select the reason for removing your listing from the hub.</p></div><div class="form-group"><div id="r1-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r1')"><input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site"><label class="custom-control-label font-weight-bold cursor-pointer w-100" for="r1">Found Match via MutualHub</label></div><div id="r2-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r2')"><input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere"><label class="custom-control-label font-weight-bold cursor-pointer w-100" for="r2">Found Match Elsewhere</label></div><div id="r3-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r3')"><input type="radio" id="r3" name="delReason" class="custom-control-input" value="OTHER"><label class="custom-control-label font-weight-bold cursor-pointer w-100" for="r3">Other Reason</label></div></div><div id="otherReasonWrapper" class="form-group d-none"><textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px; border-radius: 12px;" placeholder="Please describe your reason..."></textarea></div><div class="d-flex"><button class="btn btn-light font-weight-bold text-muted mt-2 mr-2 w-100" data-dismiss="modal">Cancel</button><button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-2 w-100" onclick="executeDeletion()">Confirm Delete</button></div></div></div>
     </div>
 
-    <div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 p-4 rounded-24 shadow-lg"><div class="text-center mb-4"><div class="bg-light d-inline-block p-3 rounded-circle mb-2"><i class="fas fa-trash-alt text-danger fa-lg"></i></div><h4 class="font-weight-bold">Delete Entry?</h4><p class="text-muted small">Select the reason for removing your listing.</p></div><div class="form-group"><div id="r1-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r1')"><input type="radio" id="r1" name="delReason" class="custom-control-input" value="Found Match through this site"><label class="custom-control-label font-weight-bold cursor-pointer" for="r1">Found Match through this site</label></div><div id="r2-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r2')"><input type="radio" id="r2" name="delReason" class="custom-control-input" value="Found Match elsewhere"><label class="custom-control-label font-weight-bold cursor-pointer" for="r2">Found Match elsewhere</label></div><div id="r3-wrapper" class="custom-control custom-radio mb-3 p-3 border rounded-15 bg-light clickable-option" onclick="selectRadio('r3')"><input type="radio" id="r3" name="delReason" class="custom-control-input" value="OTHER"><label class="custom-control-label font-weight-bold cursor-pointer" for="r3">Other Reasons</label></div></div><div id="otherReasonWrapper" class="form-group d-none"><textarea id="deleteReasonOther" class="form-control filter-control" style="height: 80px; border-radius: 12px;" placeholder="Please describe your reason..."></textarea></div><button class="btn btn-danger btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="executeDeletion()">Confirm Permanent Delete</button><button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button></div></div>
+    <div class="modal fade" id="modalVerify" tabindex="-1" data-backdrop="static" role="dialog">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 p-4 rounded-24 shadow-lg"><div class="text-center py-3"><div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3 shadow"><i class="fas fa-user-lock fa-2x"></i></div><h4 class="font-weight-bold">Member Login</h4><p class="text-muted small">To access all features, please verify your registered phone number.</p><input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="10-digit mobile"><div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div><button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button><div id="regSection" style="display:none;" class="border-top pt-3"><p class="text-muted small mb-2">Not a member yet? Join the hub to find your match.</p><a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15"><i class="fas fa-user-plus mr-2"></i>Register Now</a></div></div></div></div>
     </div>
 
-    <div class="modal fade" id="modalVerify" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 p-4 rounded-24 shadow-lg"><div class="text-center py-3"><div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3 shadow"><i class="fas fa-user-lock fa-2x"></i></div><h4 class="font-weight-bold">Member Login</h4><p class="text-muted small">Access contact details by entering your registered number.</p><input id="verifyPhone" type="tel" maxlength="10" class="form-control text-center font-weight-bold mb-3" style="height:60px; font-size:1.8rem; border-radius:15px;" placeholder="10-digit mobile"><div id="loginError" class="text-danger font-weight-bold small mb-3" style="display:none;">This number is not registered.</div><button class="btn btn-primary btn-block py-3 font-weight-bold rounded-15 mb-3" onclick="saveVerify()">Verify & Sync</button><div id="regSection" style="display:none;" class="border-top pt-3"><p class="text-muted small mb-2">Not a member yet?</p><a href="https://dhileepank2-web.github.io/mutual-transfer-dash/Registration.html" class="btn btn-success btn-block py-3 font-weight-bold rounded-15"><i class="fas fa-user-plus mr-2"></i>Register Now</a></div></div></div></div>
-    </div>
-
-    <div class="modal fade" id="modalFeedback" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal fade" id="modalFeedback" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
                 <div class="modal-header border-0 pb-0">
@@ -194,83 +318,32 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalContact" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document"><div class="modal-content border-0 shadow rounded-24"><div class="modal-body text-center p-4"><div class="mb-3"><i class="fas fa-id-card fa-3x text-primary"></i></div><h4 id="resName" class="font-weight-bold">...</h4><p id="resPhone" class="lead text-muted">...</p><div class="d-flex justify-content-center"><a id="callLink" href="#" class="btn btn-primary rounded-pill px-4 mx-1"><i class="fas fa-phone"></i> Call</a><a id="waLink" href="#" target="_blank" class="btn btn-success rounded-pill px-4 mx-1"><i class="fab fa-whatsapp"></i> WhatsApp</a></div></div></div></div>
-    </div>
-
-    <div class="modal fade" id="modalChain" tabindex="-1" aria-hidden="true" role="dialog">
-        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg rounded-24"><div class="modal-header border-0 pb-0"><h5 class="modal-title font-weight-bold"><i class="fas fa-link text-primary mr-2"></i>3-Way Transfer Chain</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button></div><div class="modal-body text-center pt-4"><p class="small text-muted mb-4">A complete cycle has been found. Everyone moves one step forward!</p><div class="d-flex justify-content-around align-items-center mb-5 position-relative"><div class="chain-node active"><div class="node-icon bg-primary text-white"><i class="fas fa-user"></i></div><div class="node-label small font-weight-bold">You</div></div><div class="chain-arrow text-muted"><i class="fas fa-chevron-right"></i></div><div class="chain-node"><div class="node-icon bg-light"><i class="fas fa-user-friends"></i></div><div class="node-label small font-weight-bold" id="chainPersonB">Partner B</div></div><div class="chain-arrow text-muted"><i class="fas fa-chevron-right"></i></div><div class="chain-node"><div class="node-icon bg-light"><i class="fas fa-user-tag"></i></div><div class="node-label small font-weight-bold" id="chainPersonC">Partner C</div></div></div><div class="bg-light p-3 rounded-15 text-left mb-4"><div class="small mb-2"><i class="fas fa-info-circle text-primary mr-1"></i> <strong>Transfer Routes:</strong></div><ul class="small text-muted pl-3 mb-0"><li>You move to <span id="distB" class="text-dark font-weight-bold">...</span></li><li><span id="nameB" class="text-dark">Partner B</span> moves to <span id="distC" class="text-dark font-weight-bold">...</span></li><li><span id="nameC" class->"text-dark">Partner C</span> fills your current spot.</li></ul></div><div class="row"><div class="col-6"><a id="btnChatB" href="#" target="_blank" class="btn btn-success btn-block rounded-pill btn-sm py-2"><i class="fab fa-whatsapp mr-1"></i> Chat with B</a></div><div class="col-6"><a id="btnChatC" href="#" target="_blank" class="btn btn-success btn-block rounded-pill btn-sm py-2"><i class="fab fa-whatsapp mr-1"></i> Chat with C</a></div></div></div></div></div>
-    </div>
-    
-    <div class="modal fade" id="modalSuccessConfirm" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-                <div class="text-center mb-4">
-                    <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
-                        <i class="fas fa-check-circle text-success fa-2x"></i>
+    <div class="modal fade" id="modalProfile" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content profile-modal-content">
+                <div class="profile-header">
+                     <div id="myProfileBadge" style="position: absolute; top: 20px; right: 60px; display: none; color: white; font-weight: 600; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 10px; font-size: 0.8rem;">
+                        <i class="fas fa-user-check mr-1"></i>My Profile
                     </div>
-                    <h4 class="font-weight-bold">Confirm Success!</h4>
-                    <p class="text-muted">You are about to archive your profile because you found a match through this hub. This is great news!</p>
-                </div>
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="chkConfirmSuccess" onchange="$('#btnFinalizeDelete').prop('disabled', !this.checked)">
-                        <label class="custom-control-label" for="chkConfirmSuccess">I confirm this is a successful mutual transfer.</label>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                    <div class="profile-avatar"><i class="fas fa-user-tie"></i></div>
+                    <h4 id="profName" class="font-weight-bold mb-1"></h4>
+                    <p id="profDesig" class="text-white-50 mb-2"></p>
+                    <h3 id="profPhone" class="font-weight-bold"></h3>
+                    <div class="profile-header-actions">
+                        <a id="profCallLink" href="#" class="btn btn-circle"><i class="fas fa-phone-alt"></i></a>
+                        <a id="profWaLink" href="#" target="_blank" class="btn btn-circle"><i class="fab fa-whatsapp"></i></a>
                     </div>
                 </div>
-                <button id="btnFinalizeDelete" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="finalizeSuccessDeletion()" disabled>Finalize & Archive</button>
-                <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalRequestDelete" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-                <div class="text-center mb-4">
-                    <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
-                        <i class="fas fa-exclamation-triangle text-warning fa-2x"></i>
+                <div class="modal-body profile-body">
+                    <div class="profile-details-grid">
+                        <div class="detail-item"><i class="fas fa-briefcase"></i><div><span>Working District</span><strong id="profWorking"></strong></div></div>
+                        <div class="detail-item"><i class="fas fa-map-marked-alt"></i><div><span>Willing Districts</span><strong id="profWilling"></strong></div></div>
+                        <div class="detail-item"><i class="fas fa-calendar-alt"></i><div><span>Date of Joining</span><strong id="profDoj"></strong></div></div>
+                        <div class="detail-item"><i class="fas fa-user-graduate"></i><div><span>Probation</span><strong id="profProbation"></strong></div></div>
+                        <div class="detail-item"><i class="fas fa-file-contract"></i><div><span>COA</span><strong id="profCoa"></strong></div></div>
+                        <div class="detail-item"><i class="fas fa-envelope"></i><div><span>Email</span><strong id="profEmail"></strong></div></div>
                     </div>
-                    <h4 class="font-weight-bold">Request Mutual Deletion</h4>
-                    <p class="text-muted">This will send a deletion request to your matched partner. They must approve it before both profiles are deleted. Continue?</p>
-                </div>
-                <button class="btn btn-warning btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="sendDeleteRequest()">Yes, Send Request</button>
-                <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalApproveDelete" tabindex="-1" data-backdrop="static" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 p-4 rounded-24 shadow-lg">
-                <div class="text-center mb-4">
-                    <div class="bg-light d-inline-block p-3 rounded-circle mb-2">
-                        <i class="fas fa-check-double text-success fa-2x"></i>
-                    </div>
-                    <h4 class="font-weight-bold">Approve Deletion Request</h4>
-                    <p class="text-muted">Your partner has requested to delete this match. Approving will permanently delete both your profiles. This cannot be undone.</p>
-                </div>
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="chkApproveDeletion" onchange="$('#btnApproveDelete').prop('disabled', !this.checked)">
-                        <label class="custom-control-label" for="chkApproveDeletion">I understand and approve the deletion.</label>
-                    </div>
-                </div>
-                <button id="btnApproveDelete" class="btn btn-success btn-block py-3 font-weight-bold rounded-15 shadow-sm mt-3" onclick="approveMutualDeletion()" disabled>Approve & Delete Both Profiles</button>
-                <button class="btn btn-light btn-block font-weight-bold text-muted mt-2" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalFullFeed" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-24">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title font-weight-bold"><i class="fas fa-history text-primary mr-2"></i>Full Activity Feed</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-                </div>
-                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
-                    <div id="fullFeedContainer"></div>
                 </div>
             </div>
         </div>
