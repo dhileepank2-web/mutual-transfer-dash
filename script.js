@@ -4,10 +4,11 @@
  */
 
 // --- GLOBAL STATE & CONFIG ---
-const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
+const API = "https://script.google.com/macros/s/AKfycbxST_AqkRH0OUBLvp1DWcFoujqlFIF1mi-yrVvCd3E1jq97XP_6k2MLgreOE0MGs0LA/exec";
 const ADMIN_PHONE = "9080141350";
 let MASTER_DATA = [];
 let FILTER_MATCHES = false;
+let FILTER_ALL_MATCHES = false;
 let ARCHIVE_COUNT = 0;
 let ARCHIVED_RECORDS = [];
 let POTENTIAL_MATCHES = [];
@@ -15,6 +16,61 @@ let HUB_ACTIVITY = [];
 let MY_PHONE = localStorage.getItem("userPhone");
 let MY_NAME = ""; 
 let IS_SYNCING = false;
+let MAIN_TABLE_CURRENT_PAGE = 1;
+const MAIN_TABLE_PAGE_SIZE = 100;
+
+// --- NEW HELPER FUNCTIONS ---
+/**
+ * Unpacks master data so each willing district has its own row.
+ * @param {Array} data The original MASTER_DATA.
+ * @returns {Array} A new, flattened array of records.
+ */
+function unpackMasterData(data) {
+    const unpacked = [];
+    if (!data) return unpacked;
+
+    data.forEach(row => {
+        const willingDistricts = (row['Willing District'] || '').split(',').map(d => d.trim()).filter(Boolean);
+        if (willingDistricts.length > 0) {
+            willingDistricts.forEach(district => {
+                // Create a new object for each willing district
+                unpacked.push({
+                    ...row, // Copy all original data
+                    'Willing District': district, // Override with the single district
+                });
+            });
+        } else {
+            // Keep users even if they have no willing district listed
+            unpacked.push({
+                ...row
+            });
+        }
+    });
+    return unpacked;
+}
+
+/**
+ * Extracts a specific status from a pipe-separated status string.
+ * @param {string} statusString The string like "DIST1:STATUS | DIST2:STATUS".
+ * @param {string} district The district to find the status for.
+ * @param {string} defaultValue The value to return if not found.
+ * @returns {string} The specific status string (e.g., "STATUS(1)") or the default.
+ */
+function getSubStatus(statusString, district, defaultValue) {
+    if (!statusString || !district) return defaultValue;
+    const statuses = statusString.split('|');
+    const upperDistrict = district.toUpperCase();
+    const specificStatus = statuses.find(s => s.trim().toUpperCase().startsWith(upperDistrict));
+
+    if (specificStatus) {
+        const parts = specificStatus.split(':');
+        if (parts.length > 1) {
+            return parts[1].trim(); // Return only the status part, e.g., HIGH(5)
+        }
+    }
+    return defaultValue;
+}
+
 
 // --- INITIALIZATION ---
 $(document).ready(() => {
@@ -33,6 +89,12 @@ $(document).ready(() => {
     // Refresh feedback when tab is shown
     $('a[data-toggle="pill"][href="#paneFeedback"]').on('shown.bs.tab', function (e) {
         loadFeedback();
+    });
+    
+    // Add event listener for the Hub Activity tab
+    $('a[data-toggle="pill"][href="#paneHub"]').on('shown.bs.tab', function () {
+        // Load the first page of the full, searchable feed when the tab is viewed
+        loadHubActivityPage(1);
     });
 });
 
@@ -55,10 +117,15 @@ async function professionalSync() {
         ARCHIVED_RECORDS = res.archivedRecords || [];
         HUB_ACTIVITY = res.publicHubActivity || [];
         
-        renderTable(); 
+        renderTable(MAIN_TABLE_CURRENT_PAGE); 
         updateStats(MASTER_DATA, ARCHIVE_COUNT);
         renderArchiveTable(ARCHIVED_RECORDS);
-        renderHubActivity(HUB_ACTIVITY);
+        
+        // Only update the preview if the main hub isn't visible
+        if (!$('#paneHub').is(':visible')) {
+            renderActivity('#hubActivityList', HUB_ACTIVITY);
+        }
+
         loadMyActivity();
         setTimeout(updateMatches, 200);
 
@@ -90,7 +157,8 @@ function loadData() {
         ARCHIVED_RECORDS = response.archivedRecords || [];
         HUB_ACTIVITY = response.publicHubActivity || [];
         
-        renderHubActivity(HUB_ACTIVITY);
+        // Render initial preview
+        renderActivity('#hubActivityList', HUB_ACTIVITY);
 
         $('#lastUpdated').text(response.serverTime || new Date().toLocaleTimeString());
 
@@ -102,9 +170,22 @@ function loadData() {
                 $('#lblUserPhone').text(MY_PHONE.slice(0, 2) + '****' + MY_PHONE.slice(-2));
                 
                 if (MY_PHONE === ADMIN_PHONE) {
+
                     const adminBtn = $('#btnAdminPanel');
-                    adminBtn.removeClass('d-none');
-                    adminBtn.attr('href', `${API}?view=admin&userPhone=${ADMIN_PHONE}`);
+                
+                    adminBtn.removeClass('d-none')
+                        .addClass('btn-danger text-white font-weight-bold shadow');
+                
+                    adminBtn.html('<i class="fas fa-user-shield mr-2"></i> Admin Panel');
+                
+                    // remove any existing href that points to script
+                    adminBtn.removeAttr('href');
+                
+                    // remove old handlers and add new one
+                    adminBtn.off('click').on('click', function (event) {
+                        event.preventDefault();
+                        window.location.href = "admin.html?view=admin&userPhone=" + ADMIN_PHONE;
+                    });
                 }
 
             } else {
@@ -131,11 +212,61 @@ function loadData() {
     });
 }
 
+// --- HUB ACTIVITY SEARCH & PAGINATION ---
+
+/**
+ * Fetches and renders a specific page of the Hub Activity feed.
+ * Handles both pagination and search queries.
+ * @param {number} [page=1] - The page number to fetch.
+ */
+async function loadHubActivityPage(page = 1) {
+    const searchTerm = ''; // Search functionality removed
+    
+    $('#hubActivityList').html('<div class="text-center p-5 text-muted"><div class="spinner-border spinner-border-sm"></div> Loading Feed...</div>');
+    $('#hubActivityPagination').empty();
+
+    try {
+        const response = await fetch(`${API}?action=getLiveFeed&page=${page}&pageSize=100&searchTerm=${encodeURIComponent(searchTerm)}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        renderActivity('#hubActivityList', data.activities || []);
+        renderHubPagination(data.page, data.totalPages);
+
+    } catch (err) {
+        console.error("Hub Activity Load Error:", err);
+        $('#hubActivityList').html('<div class="text-center p-5 text-danger">Failed to load activity feed. Please try again.</div>');
+    }
+}
+
+/**
+ * Renders the pagination controls for the Hub Activity feed.
+ * @param {number} currentPage - The current active page.
+ * @param {number} totalPages - The total number of pages available.
+ */
+function renderHubPagination(currentPage, totalPages) {
+    const paginationContainer = $('#hubActivityPagination');
+    paginationContainer.empty();
+    if (totalPages <= 1) return;
+
+    let paginationHtml = '';
+    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); loadHubActivityPage(${currentPage - 1});">« Prev</a></li>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); loadHubActivityPage(${i});">${i}</a></li>`;
+    }
+
+    paginationHtml += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); loadHubActivityPage(${currentPage + 1});">Next »</a></li>`;
+
+    paginationContainer.html(paginationHtml);
+}
+
 // --- STATS & MATCHING LOGIC ---
 
 function updateStats(data, archivedCount) {
     const uniqueUsers = [...new Set(data.map(x => String(x.phone)))].length;
-    const totalRequests = data.length;
+    const totalRequests = unpackMasterData(data).length;
     const liveMatches = data.filter(r => (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")).length;
     const totalLeaved = archivedCount;
     const overallSuccess = liveMatches + archivedCount;
@@ -147,9 +278,6 @@ function updateStats(data, archivedCount) {
     animateValue("statMatched", parseInt($('#statMatched').text()) || 0, overallSuccess, 1000);
 }
 
-/**
- * Calculates possible mutual matches based on user's Working/Willing districts
- */
 function updateMatches() {
     if (!MY_PHONE) {
         POTENTIAL_MATCHES = [];
@@ -157,109 +285,191 @@ function updateMatches() {
         return;
     }
 
-    // Get current user's active (unmatched) entries
-    const myEntries = MASTER_DATA.filter(x => 
-        String(x.phone) === String(MY_PHONE) && 
-        !(x.MATCH_STATUS || "").toUpperCase().includes("MATCH")
-    );
+    const myEntry = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
 
-    const myCriteria = myEntries.flatMap(me => {
-        const working = String(me['Working District']).trim().toUpperCase();
-        const willingDistricts = String(me['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
-        return willingDistricts.map(willing => ({ working, willing }));
-    });
+    if (!myEntry || !myEntry.MATCH_ID) {
+        POTENTIAL_MATCHES = [];
+        $('#btnMatches').html('<i class="fas fa-handshake mr-1"></i>My Matches <span class="badge badge-light ml-1">0</span>');
+        if (FILTER_MATCHES) renderTable();
+        return;
+    }
 
-    // Check other entries where their working is my willing AND my working is in their willing
-    POTENTIAL_MATCHES = MASTER_DATA.filter(r => {
-        if (String(r.phone) === String(MY_PHONE) || (r.MATCH_STATUS || "").toUpperCase().includes("MATCH")) return false;
-        const theirWorking = String(r['Working District']).trim().toUpperCase();
-        const theirWillingDistricts = String(r['Willing District']).split(',').map(d => d.trim().toUpperCase()).filter(d => d);
-        
-        return myCriteria.some(me => theirWorking === me.willing && theirWillingDistricts.includes(me.working));
-    });
+    const findRecordById = (id) => MASTER_DATA.find(p => String(p.id) === String(id));
     
+    const allPartners = new Map();
+    const partnersToExplore = String(myEntry.MATCH_ID).split(',').map(id => id.trim()).filter(Boolean);
+    const exploredIds = new Set();
+    
+    // Start exploring from our direct partners
+    while(partnersToExplore.length > 0) {
+        const currentPartnerId = partnersToExplore.shift();
+
+        // Skip if we've seen this partner or if it's ourselves
+        if (exploredIds.has(currentPartnerId) || String(currentPartnerId) === String(myEntry.id)) {
+            continue;
+        }
+
+        const partnerRecord = findRecordById(currentPartnerId);
+        if (partnerRecord) {
+            // Add to our list of confirmed partners and mark as explored
+            allPartners.set(partnerRecord.id, partnerRecord);
+            exploredIds.add(currentPartnerId);
+
+            // Get the next partners in the chain from this partner
+            const nextPartnerIds = String(partnerRecord.MATCH_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+            
+            // Add them to the exploration queue if we haven't seen them
+            nextPartnerIds.forEach(nextId => {
+                if (!exploredIds.has(nextId)) {
+                    partnersToExplore.push(nextId);
+                }
+            });
+        }
+    }
+
+    POTENTIAL_MATCHES = Array.from(allPartners.values());
+
     $('#btnMatches').html(`<i class="fas fa-handshake mr-1"></i>My Matches <span class="badge badge-light ml-1">${POTENTIAL_MATCHES.length}</span>`);
-    if (FILTER_MATCHES) renderTable();
+
+    if (FILTER_MATCHES) {
+        renderTable();
+    }
 }
+
 
 // --- RENDERING FUNCTIONS ---
 
-function renderTable() {
+function renderTable(page = 1) {
+    MAIN_TABLE_CURRENT_PAGE = page;
     const selectedDesig = $('#selDesignation').val();
     const from = $('#selFrom').val();
     const to = $('#selTo').val();
 
-    let dataToRender = MASTER_DATA;
-    if (FILTER_MATCHES) {
-        const myOwnIds = MASTER_DATA.filter(r => String(r.phone) === String(MY_PHONE)).map(r => r.id);
-        const matchIds = POTENTIAL_MATCHES.map(m => m.id);
-        const allIds = [...new Set([...myOwnIds, ...matchIds])];
-        dataToRender = MASTER_DATA.filter(r => allIds.includes(r.id));
+    let dataToRender = unpackMasterData(MASTER_DATA);
+
+    if (FILTER_ALL_MATCHES) {
+        dataToRender = dataToRender.filter(row => {
+            const matchStatusStr = (row.MATCH_STATUS || "").toUpperCase();
+            if (!matchStatusStr.includes("MATCH")) {
+                return false;
+            }
+            const matchedStatuses = matchStatusStr.split('|').filter(s => s.includes("MATCH"));
+            if (matchedStatuses.length === 0) return false;
+            const matchedDistricts = matchedStatuses.map(s => s.split(':')[0].trim());
+            const currentWillingDistrict = (row['Willing District'] || '').toUpperCase().trim();
+            return matchedDistricts.includes(currentWillingDistrict);
+        });
+    } else if (FILTER_MATCHES) {
+        if (!MY_PHONE) {
+            dataToRender = [];
+        } else {
+            const matchPhones = POTENTIAL_MATCHES.map(m => String(m.phone));
+            const allMatchRelatedPhones = [...new Set([MY_PHONE, ...matchPhones])];
+            dataToRender = dataToRender.filter(r => allMatchRelatedPhones.includes(String(r.phone)));
+        }
     }
 
-    const filtered = dataToRender.filter(r => 
+    const filtered = dataToRender.filter(r =>
         (selectedDesig === 'all' || r['Your Designation'] === selectedDesig) &&
         (from === 'all' || r['Working District'] === from) &&
-        (to === 'all' || r['Willing District'].split(',').map(d=>d.trim()).includes(to))
+        (to === 'all' || r['Willing District'] === to)
     );
-    renderTableToDOM(filtered);
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / MAIN_TABLE_PAGE_SIZE);
+    const startIndex = (page - 1) * MAIN_TABLE_PAGE_SIZE;
+    const paginatedItems = filtered.slice(startIndex, startIndex + MAIN_TABLE_PAGE_SIZE);
+
+    renderTableToDOM(paginatedItems, startIndex);
+    renderMainTablePagination(page, totalPages);
 }
 
-function renderTableToDOM(data) {
+function renderTableToDOM(data, startIndex = 0) {
     const tbody = $('#mainTbody').empty();
     $('#noData').toggleClass('d-none', data.length > 0);
-    
+
     if (data.length === 0) {
         $('#noData').html('<img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="No data" width="80" class="mb-3 opacity-50"><h6 class="text-muted font-weight-bold">No results for your criteria</h6>');
+        $('#mainTablePagination').empty();
         return;
     }
 
     let rowsHtml = "";
     data.forEach((row, index) => {
         const isMe = String(row.phone) === String(MY_PHONE);
-        const matchStat = (row.MATCH_STATUS || "").toUpperCase();
-        const hasMatch = matchStat.includes("MATCH");
-        
-        // Demand Indicators
-        let demandCfg = { c: 'lvl-mod', d: '#f59e0b' };
-        const dStatus = (row.DEMAND_STATUS || '').toUpperCase();
-        if (dStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
-        if (dStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+        const willingDistrict = row['Willing District']; // This is now a single district
 
-        // Status Badge Logic
-        let statusMarkup = `<span class="badge badge-pill badge-light text-muted border">PENDING</span>`;
+        // Get status specific to this willing district
+        const demandStatus = getSubStatus(row.DEMAND_STATUS, willingDistrict, 'N/A');
+        const matchStatus = getSubStatus(row.MATCH_STATUS, willingDistrict, 'PENDING').toUpperCase();
+
+        const hasMatch = matchStatus.includes("MATCH");
+
+        // Demand Pill styling
+        let demandCfg = { c: 'lvl-mod', d: '#f59e0b' };
+        if (demandStatus.includes('HIGH')) demandCfg = { c: 'lvl-high', d: '#ef4444' };
+        if (demandStatus.includes('LOW')) demandCfg = { c: 'lvl-low', d: '#10b981' };
+        
+        // Match Status Pill styling
+        let statusMarkup = `<span class="status-pill status-pending">PENDING</span>`;
         if (hasMatch) {
-            statusMarkup = `<span class="badge badge-pill ${matchStat.includes("3-WAY") ? 'badge-secondary' : 'badge-success'}"><i class="fas fa-lock mr-1"></i>${matchStat.includes("3-WAY") ? '3-WAY' : 'DIRECT'} MATCH</span>`;
+            if (matchStatus.includes("3-WAY")) {
+                statusMarkup = `<span class="status-pill status-3-way"><i class="fas fa-lock mr-1"></i>3-WAY MATCH</span>`;
+            } else { // Direct match
+                statusMarkup = `<span class="status-pill status-matched"><i class="fas fa-lock mr-1"></i>DIRECT MATCH</span>`;
+            }
+        }
+        
+        let deleteConcernMarkup = '<span class="text-muted small">N/A</span>';
+        if (isMe) {
+            // This logic can stay as it is since it's per-user not per-district
+            if (row.DELETE_REQUEST === 'REQUESTED') {
+                 deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Request Sent</div>`;
+            } else {
+                 deleteConcernMarkup = `<button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="requestDeletion()"><i class="fas fa-trash-alt mr-1"></i>Request Deletion</button>`;
+            }
         }
 
-        // Deletion Workflow Markup
-        let deleteConcernMarkup = '<span class="text-muted small">N/A</span>';
-        if (isMe && hasMatch) {
-            const myRecord = MASTER_DATA.find(x => x.id === row.id);
-            const partnerRecord = MASTER_DATA.find(p => p.id === myRecord.MATCH_ID);
-            
-            if (myRecord.DELETE_REQUEST === 'REQUESTED') {
-                deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Request Sent</div>`;
-            } else if (partnerRecord && partnerRecord.DELETE_REQUEST === 'REQUESTED') {
-                deleteConcernMarkup = `<button class="btn btn-sm btn-glow-success rounded-pill px-3" onclick="approveDeletion()"><i class="fas fa-check-double mr-1"></i>Approve Request</button>`;
-            } else {
-                deleteConcernMarkup = `<button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="requestDeletion()"><i class="fas fa-trash-alt mr-1"></i>Request Deletion</button>`;
-            }
+        const isMyPartner = POTENTIAL_MATCHES.some(p => String(p.id) === String(row.id));
+        const canUnlock = hasMatch || isMyPartner; // You can always unlock a matched profile
+        
+        let connectButton;
+        if (isMe) {
+            connectButton = `<button class="btn btn-unlock shadow-sm btn-hover-grow" onclick="unlockRow('${row.id}', true)"><i class="fas fa-user-check"></i></button>`;
+        } else {
+            connectButton = `<button class="btn btn-unlock shadow-sm ${!canUnlock ? 'opacity-50' : 'btn-hover-grow'}" onclick="unlockRow('${row.id}', ${canUnlock})"><i class="fas ${canUnlock ? 'fa-lock-open' : 'fa-lock text-white-50'} "></i></button>`;
         }
 
         rowsHtml += `
             <tr class="${isMe ? 'row-identity' : ''}" data-id="${row.id}">
-                <td>${index + 1}</td>
-                <td><div class="font-weight-bold text-dark">${row['Your Designation']}</div>${isMe ? '<div class="text-primary font-weight-bold" style="font-size:0.65rem;">MY ENTRY</div>' : ''}</td>
+                <td>${startIndex + index + 1}</td>
+                <td><div class="font-weight-bold text-dark">${isMe ? '<i class="fas fa-user-circle text-primary mr-2" title="This is you"></i>' : ''}${row['Your Name']}</div><div class="text-muted small">${row['Your Designation']}</div></td>
                 <td><i class="fas fa-map-marker-alt text-muted mr-1"></i> ${row['Working District']}</td>
-                <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${row['Willing District']}</strong></td>
-                <td class="d-table-cell"><div class="demand-pill ${demandCfg.c}"><span class="pulse-dot-small" style="background:${demandCfg.d};"></span> ${row.DEMAND_STATUS || 'Moderate'}</div></td>
+                <td><i class="fas fa-paper-plane text-primary mr-1"></i> <strong>${willingDistrict}</strong></td>
+                <td><div class="demand-pill ${demandCfg.c}"><span class="pulse-dot-small" style="background:${demandCfg.d};"></span> ${demandStatus}</div></td>
                 <td>${statusMarkup}</td>
-                <td class="text-center"><button class="btn btn-unlock shadow-sm ${!hasMatch ? 'opacity-50' : 'btn-hover-grow'}" onclick="unlockRow('${row.id}', ${hasMatch})"><i class="fas ${hasMatch ? 'fa-lock-open' : 'fa-lock text-white-50'} "></i></button></td>
+                <td class="text-center">${connectButton}</td>
                 <td>${deleteConcernMarkup}</td>
             </tr>`;
     });
     tbody.html(rowsHtml);
+}
+
+function renderMainTablePagination(currentPage, totalPages) {
+    const paginationContainer = $('#mainTablePagination');
+    paginationContainer.empty();
+    if (totalPages <= 1) return;
+
+    let paginationHtml = '';
+    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); renderTable(${currentPage - 1});">« Prev</a></li>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); renderTable(${i});">${i}</a></li>`;
+    }
+
+    paginationHtml += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); renderTable(${currentPage + 1});">Next »</a></li>`;
+
+    paginationContainer.html(paginationHtml);
 }
 
 function renderArchiveTable(archivedRecords) {
@@ -283,32 +493,57 @@ function renderArchiveTable(archivedRecords) {
 
 async function unlockRow(id, active) {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    if (!active) { showToast("Match required to view contact", "info"); return; }
-    
+
+    const targetRecord = MASTER_DATA.find(r => String(r.id) === String(id));
+    const isMe = targetRecord && String(targetRecord.phone) === String(MY_PHONE);
+
+    if (!isMe && !active) {
+        showToast("This profile is not your match.", "error");
+        return;
+    }
+
     $("#globalLoader").removeClass("d-none");
     try {
-        const res = await fetch(API, { 
-            method: "POST", 
-            body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE }) 
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        if (data.is3Way) {
-            $('#chainPersonB').text(data.partnerB.name); $('#chainPersonC').text(data.partnerC.name);
-            $('#distB').text(data.partnerB.workingDistrict); $('#distC').text(data.partnerC.workingDistrict);
-            $('#btnChatB').attr('href', `https://wa.me/91${data.partnerB.contact}`);
-            $('#btnChatC').attr('href', `https://wa.me/91${data.partnerC.contact}`);
-            $('#modalChain').modal('show'); 
+        let profile;
+        if (isMe) {
+            const res = await fetch(`${API}?action=getUserProfile&userPhone=${MY_PHONE}`);
+            profile = await res.json();
         } else {
-            $('#resName').text(data.name || "N/A"); $('#resPhone').text(data.contact || "N/A");
-            $('#callLink').attr("href", "tel:" + data.contact);
-            $('#waLink').attr("href", "https://wa.me/91" + data.contact);
-            $('#modalContact').modal('show'); 
+            const res = await fetch(API, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "getContact", rowId: id, userPhone: MY_PHONE })
+            });
+            const data = await res.json();
+            if (data.status !== "SUCCESS") throw new Error(data.error || "Failed to get partner data.");
+            profile = data.partnerProfile;
         }
-        showToast("Contact Unlocked!", "success");
+
+        if (!profile || profile.error) throw new Error(profile.error || "Failed to get profile data.");
+
+        $('#profName').text(profile.name || profile["Your Name"]);
+        $('#profDesig').text(profile.designation || profile["Your Designation"]);
+        $('#profPhone').text(profile.phone);
+        $('#profDoj').text(profile.doj);
+        $('#profWorking').text(profile.workingDistrict || profile["Working District"]);
+        $('#profWilling').text(profile.willingDistrict || profile["Willing District"]);
+        $('#profProbation').text(profile.probation);
+        $('#profCoa').text(profile.coa);
+        $('#profEmail').text(profile.email);
+
+        if (isMe) {
+            $('#myProfileBadge').show();
+            $('.profile-header-actions').hide();
+        } else {
+            $('#myProfileBadge').hide();
+            $('.profile-header-actions').show();
+            $('#profCallLink').attr("href", "tel:" + profile.phone);
+            $('#profWaLink').attr("href", "https://wa.me/91" + profile.phone);
+        }
+
+        $('#modalProfile').modal('show');
+        showToast(isMe ? "Viewing Your Profile" : "Partner Profile Unlocked!", "success");
     } catch(e) { 
-        showToast(`Error: ${e.message}`, "error"); 
+        showToast(`Unlock Failed: ${e.message}`, "error"); 
     } finally {
         $("#globalLoader").addClass("d-none");
     }
@@ -316,11 +551,6 @@ async function unlockRow(id, active) {
 
 function deleteMyEntry() {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    const myRecords = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
-    if (myRecords.some(r => (r.MATCH_STATUS || "").toUpperCase().includes("MATCH"))) {
-        showToast("For matched profiles, please use the 'Request Deletion' option in the table.", "info");
-        return;
-    }
     $('#modalDeleteConfirm').modal('show');
 }
 
@@ -329,24 +559,15 @@ async function executeDeletion() {
     if (reason === "OTHER") reason = $('#deleteReasonOther').val().trim();
     if (!reason) { alert("Please select or provide a reason."); return; }
 
-    const isSuccess = $('input[name="delReason"]:checked').val() === 'Found Match through this site';
+    if (!confirm(`Are you sure you want to request deletion of your profile? This will be sent for admin approval.`)) return;
 
-    if (!confirm(`Are you sure you want to delete your profile? This cannot be undone.`)) return;
-
-    await callApi({ action: "deleteEntry", reason: reason, isHubSuccess: isSuccess }, "Deleting Profile...", "Profile successfully deleted.", () => { 
-        clearIdentity(true); 
+    await callApi({ action: "requestDelete", reason: reason }, "Requesting Deletion...", "Deletion request sent to admin for approval.", () => { 
         setTimeout(() => location.reload(), 500); 
     });
 }
 
 function requestDeletion() { 
-    callApi({ action: "requestDelete" }, "Requesting deletion...", "Deletion request sent.", professionalSync); 
-}
-
-function approveDeletion() { 
-    callApi({ action: "approveDelete" }, "Approving deletion...", "Mutual deletion successful.", () => { 
-        setTimeout(() => location.reload(), 500); 
-    }); 
+    $('#modalDeleteConfirm').modal('show');
 }
 
 async function callApi(payload, loadingMsg, successMsg, callback) {
@@ -469,15 +690,25 @@ function hideSlimProgress() {
 
 function toggleMatches() { 
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; } 
-    FILTER_MATCHES = !FILTER_MATCHES; 
+    FILTER_MATCHES = !FILTER_MATCHES;
+    if (FILTER_MATCHES) FILTER_ALL_MATCHES = false;
     $('#btnMatches').toggleClass('btn-primary text-white', FILTER_MATCHES).toggleClass('btn-outline-primary', !FILTER_MATCHES); 
+    $('#btnAllMatches').removeClass('btn-info text-white').addClass('btn-outline-info');
     renderTable(); 
+}
+
+function toggleAllMatches() {
+    FILTER_ALL_MATCHES = !FILTER_ALL_MATCHES;
+    if (FILTER_ALL_MATCHES) FILTER_MATCHES = false;
+    $('#btnAllMatches').toggleClass('btn-info text-white', FILTER_ALL_MATCHES).toggleClass('btn-outline-info', !FILTER_ALL_MATCHES);
+    $('#btnMatches').removeClass('btn-primary text-white').addClass('btn-outline-primary');
+    renderTable();
 }
 
 function buildFilters() {
     const desigSet = [...new Set(MASTER_DATA.map(x => x['Your Designation']))].filter(Boolean).sort();
     const fromSet = [...new Set(MASTER_DATA.map(x => x['Working District']))].filter(Boolean).sort();
-    const toSet = [...new Set(MASTER_DATA.flatMap(x => x['Willing District'].split(',').map(d=>d.trim())))].filter(Boolean).sort();
+    const toSet = [...new Set(MASTER_DATA.flatMap(x => (x['Willing District'] || '').split(',').map(d=>d.trim())))].filter(Boolean).sort();
 
     const build = (id, set) => { 
         $(id).html('<option value="all">All</option>').prop('disabled', false).append(set.map(v => `<option value="${v}">${v}</option>`).join('')); 
@@ -516,8 +747,10 @@ function clearIdentity(soft = false) {
 
 function resetUI() { 
     $('select.filter-control').val('all'); 
-    FILTER_MATCHES = false; 
+    FILTER_MATCHES = false;
+    FILTER_ALL_MATCHES = false;
     $('#btnMatches').addClass('btn-outline-primary').removeClass('btn-primary text-white'); 
+    $('#btnAllMatches').addClass('btn-outline-info').removeClass('btn-info text-white');
     renderTable(); 
 }
 
@@ -532,6 +765,21 @@ function editProfile() {
     } else {
         showToast("You must be logged in to edit your profile.", "error");
     }
+}
+
+function viewMyProfile() {
+    if (!MY_PHONE) {
+        showToast("You must be logged in to view your profile.", "error");
+        return;
+    }
+    const myEntry = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+    if (myEntry) {
+        unlockRow(myEntry.id, true); 
+    }
+}
+
+function viewFullActivity() {
+    $('#hub-tab').tab('show');
 }
 
 // --- DATE & ACTIVITY FEED FUNCTIONS ---
@@ -577,7 +825,8 @@ const formatDisplayDate = (dateString) => {
 };
 
 function renderActivity(containerId, activities) {
-    const container = $(containerId).empty();
+    const container = $(containerId);
+    container.empty();
     if (!activities || !activities.length) {
         container.html(`<div class="text-center p-4 text-muted border rounded-24">No activity to display.</div>`);
         return;
@@ -608,15 +857,6 @@ function renderActivity(containerId, activities) {
     });
 }
 
-function renderHubActivity(activities) {
-    renderActivity('#hubActivityList', activities);
-}
-
-function showFullFeed(){
-    renderActivity('#fullFeedContainer', HUB_ACTIVITY);
-    $('#modalFullFeed').modal('show');
-}
-
 async function loadMyActivity() {
     if (!MY_PHONE) { renderActivity('#myActivityList', []); return; }
     try {
@@ -632,43 +872,74 @@ async function loadMyActivity() {
 function loadActivityLog() {
     const container = $('#notificationList').empty();
     const audit = $('#auditLog').empty();
-    if (!MY_PHONE) { 
+    if (!MY_PHONE) {
         container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">Please log in to see notifications.</p></div>');
         return;
     }
-    const myEntries = MASTER_DATA.filter(x => String(x.phone) === String(MY_PHONE));
-    if (myEntries.length === 0) {
+    const myEntry = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+    if (!myEntry) {
         container.append('<div class="text-center p-5 border rounded-24 bg-white"><p class="text-muted mb-0">No active registration found.</p></div>');
         return;
     }
 
-    const matchedEntries = myEntries.filter(e => (e.MATCH_STATUS || '').toUpperCase().includes("MATCH"));
-    if (matchedEntries.length > 0) {
-        matchedEntries.forEach(m => {
-            const is3Way = (m.MATCH_STATUS || '').toUpperCase().includes("3-WAY");
-            container.append(`
-                <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
-                            <h6 class="font-weight-bold mb-1">Transfer to ${m['Willing District']} Ready</h6>
-                            <p class="small text-muted mb-0">A mutual match has been found for your request.</p>
-                        </div>
-                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${m.id}', true)">View Contact</button>
-                    </div>
-                </div>`);
-        });
+    const hasMatch = (myEntry.MATCH_STATUS || '').toUpperCase().includes("MATCH");
+    
+    let matchedDistrictInfo = null;
+    if(hasMatch) {
+        const matchStatuses = (myEntry.MATCH_STATUS || '').split('|');
+        const matchInfo = matchStatuses.find(s => s.toUpperCase().includes('MATCH'));
+        if (matchInfo) {
+            matchedDistrictInfo = {
+                district: matchInfo.split(':')[0].trim(),
+                status: matchInfo
+            };
+        }
     }
 
-    myEntries.filter(e => !(e.MATCH_STATUS || '').toUpperCase().includes("MATCH")).forEach(p => {
-        container.append(`
-            <div class="history-card" style="border-left-color: #cbd5e1;">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-grow spinner-grow-sm text-muted mr-3"></div>
-                    <div><p class="mb-0 font-weight-bold">Searching for ${p['Willing District']}...</p></div>
+    const allWillingDistricts = (myEntry['Willing District'] || '').split(',').map(d => d.trim()).filter(Boolean);
+
+    if (allWillingDistricts.length > 0) {
+        allWillingDistricts.forEach(district => {
+            if (matchedDistrictInfo && district.toUpperCase() === matchedDistrictInfo.district.toUpperCase()) {
+                const is3Way = matchedDistrictInfo.status.toUpperCase().includes("3-WAY");
+                container.append(`
+                    <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">${is3Way ? '3-WAY MATCH' : 'DIRECT MATCH'}</span>
+                                <h6 class="font-weight-bold mb-1">Transfer to ${district} Ready</h6>
+                                <p class="small text-muted mb-0">A mutual match has been found for this request.</p>
+                            </div>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${myEntry.MATCH_ID}', true)">View Contact</button>
+                        </div>
+                    </div>`);
+            } else {
+                container.append(`
+                    <div class="history-card" style="border-left-color: #cbd5e1;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-grow spinner-grow-sm text-muted mr-3"></div>
+                            <div><p class="mb-0 font-weight-bold">Searching for ${district}...</p></div>
+                        </div>
+                    </div>`);
+            }
+        });
+    } else if (hasMatch && myEntry.MATCH_ID) {
+         // Fallback for users with no willing districts but a match somehow
+         const is3Way = (myEntry.MATCH_STATUS || '').toUpperCase().includes("3-WAY");
+         container.append(`
+            <div class="history-card" style="border-left-color: ${is3Way ? '#7c3aed' : '#10b981'};">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge ${is3Way ? 'badge-secondary' : 'badge-success'} mb-2">MATCH FOUND</span>
+                        <h6 class="font-weight-bold mb-1">Transfer Ready</h6>
+                        <p class="small text-muted mb-0">A mutual match has been found.</p>
+                    </div>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="unlockRow('${myEntry.MATCH_ID}', true)">View Contact</button>
                 </div>
             </div>`);
-    });
+    } else {
+        container.append('<div class="text-center p-5 history-card"><p class="text-muted mb-0">You have no willing districts specified. Edit your profile to add some.</p></div>');
+    }
 
     audit.html(`
         <div class="p-3 bg-white border rounded-15 mb-2 shadow-sm">
@@ -677,7 +948,7 @@ function loadActivityLog() {
         </div>
         <div class="p-3 bg-white border rounded-15 shadow-sm">
             <div class="font-weight-bold" style="font-size: 0.8rem;">Syncing Districts</div>
-            <div class="text-muted" style="font-size: 0.75rem;">Tracking ${myEntries.length} location(s)</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Tracking ${allWillingDistricts.length} location(s)</div>
         </div>
     `);
 }
