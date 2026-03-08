@@ -4,7 +4,7 @@
  */
 
 // --- GLOBAL STATE & CONFIG ---
-const API = "https://script.google.com/macros/s/AKfycbxST_AqkRH0OUBLvp1DWcFoujqlFIF1mi-yrVvCd3E1jq97XP_6k2MLgreOE0MGs0LA/exec";
+const API = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
 const ADMIN_PHONE = "9080141350";
 let MASTER_DATA = [];
 let FILTER_MATCHES = false;
@@ -18,6 +18,61 @@ let MY_NAME = "";
 let IS_SYNCING = false;
 let MAIN_TABLE_CURRENT_PAGE = 1;
 const MAIN_TABLE_PAGE_SIZE = 100;
+
+// --- VISITOR COUNT LOGIC ---
+async function handleVisitorCount(namespace) {
+    if (!namespace) return;
+    const liveVisitorsEl = document.getElementById('live-visitors');
+    const todayVisitorsEl = document.getElementById('today-visitors');
+    if (!liveVisitorsEl || !todayVisitorsEl) return;
+
+    const visitedFlag = `visited-${namespace}`;
+    const hasVisited = sessionStorage.getItem(visitedFlag);
+
+    const updateUI = (total, today) => {
+        if (total !== undefined) {
+            liveVisitorsEl.innerText = new Intl.NumberFormat().format(total);
+        }
+        if (today !== undefined) {
+            todayVisitorsEl.innerText = new Intl.NumberFormat().format(today);
+        }
+    };
+    
+    const animateUI = (total, today) => {
+        const liveStart = total > 20 ? total - 20 : 0;
+        animateValue('live-visitors', liveStart, total || 0, 1500);
+
+        const todayStart = today > 10 ? today - 10 : 0;
+        animateValue('today-visitors', todayStart, today || 0, 1500);
+    };
+
+    if (hasVisited) {
+        liveVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div>';
+        todayVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-success"></div>';
+        try {
+            const response = await fetch(`${API}?action=getVisitorCount&namespace=${namespace}`);
+            const result = await response.json();
+            updateUI(result.total, result.today);
+        } catch (e) {
+            console.error("Could not fetch visitor count", e);
+            updateUI('N/A', 'N/A');
+        }
+    } else {
+        try {
+            const response = await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'updateVisitorCount', namespace: namespace })
+            });
+            const result = await response.json();
+            animateUI(result.total, result.today);
+            sessionStorage.setItem(visitedFlag, 'true');
+        } catch (e) {
+            console.error("Could not update/fetch visitor count", e);
+            updateUI('N/A', 'N/A');
+        }
+    }
+}
 
 // --- NEW HELPER FUNCTIONS ---
 /**
@@ -76,6 +131,14 @@ function getSubStatus(statusString, district, defaultValue) {
 $(document).ready(() => {
     loadData();
     
+    // Determine namespace and load visitor count
+    const path = window.location.pathname;
+    if (path.includes('testdash.html')) {
+        handleVisitorCount('mutual-transfer-project-dash');
+    } else if (path.includes('testreg.html')) {
+        handleVisitorCount('mutual-transfer-project-reg');
+    }
+
     // Background sync every 30 seconds
     setInterval(professionalSync, 30000);
     
@@ -422,16 +485,19 @@ function renderTableToDOM(data, startIndex = 0) {
         
         let deleteConcernMarkup = '<span class="text-muted small">N/A</span>';
         if (isMe) {
-            // This logic can stay as it is since it's per-user not per-district
             if (row.DELETE_REQUEST === 'REQUESTED') {
-                 deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Request Sent</div>`;
+                deleteConcernMarkup = `<div class="badge-pending-approval"><i class="fas fa-hourglass-half mr-2"></i>Approval Pending</div>`;
+            } else if (row.REJECT_REASON) {
+                deleteConcernMarkup = `<div class="badge-rejected" title="${row.REJECT_REASON}"><i class="fas fa-times-circle mr-2"></i>Rejected</div>`;
             } else {
-                 deleteConcernMarkup = `<button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="requestDeletion()"><i class="fas fa-trash-alt mr-1"></i>Request Deletion</button>`;
+                deleteConcernMarkup = `<button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="requestDeletion()"><i class="fas fa-trash-alt mr-1"></i>Request Deletion</button>`;
             }
+        } else if (row.DELETE_REQUEST === 'REQUESTED') {
+            deleteConcernMarkup = `<div class="badge-partner-pending"><i class="fas fa-user-clock mr-2"></i>Partner Requested</div>`;
         }
 
         const isMyPartner = POTENTIAL_MATCHES.some(p => String(p.id) === String(row.id));
-        const canUnlock = hasMatch || isMyPartner; // You can always unlock a matched profile
+        const canUnlock = hasMatch || isMyPartner;
         
         let connectButton;
         if (isMe) {
@@ -549,9 +615,30 @@ async function unlockRow(id, active) {
     }
 }
 
-function deleteMyEntry() {
+function requestDeletion() {
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; }
-    $('#modalDeleteConfirm').modal('show');
+
+    const myEntry = MASTER_DATA.find(x => String(x.phone) === String(MY_PHONE));
+    if (!myEntry) {
+        showToast("Could not find your profile to delete.", "error");
+        return;
+    }
+
+    let confirmationMessage = "Are you sure you want to request deletion of your profile? This will be sent for admin approval.";
+    
+    if ((myEntry.MATCH_STATUS || "").toUpperCase().includes("MATCH")) {
+        const partners = POTENTIAL_MATCHES;
+        const allPartnersRequested = partners.every(p => p.DELETE_REQUEST === 'REQUESTED');
+        if (partners.length > 0 && allPartnersRequested) {
+            confirmationMessage = "All matched partners have also requested deletion. Your profiles will be deleted together upon admin approval. Proceed?";
+        } else if (partners.length > 0) {
+             confirmationMessage = "You are in a match. For your profile to be deleted, all partners in the match must also request deletion. Your request will be pending until all partners agree. Do you want to proceed?";
+        }
+    }
+
+    if (confirm(confirmationMessage)) {
+        $('#modalDeleteConfirm').modal('show');
+    }
 }
 
 async function executeDeletion() {
@@ -559,15 +646,15 @@ async function executeDeletion() {
     if (reason === "OTHER") reason = $('#deleteReasonOther').val().trim();
     if (!reason) { alert("Please select or provide a reason."); return; }
 
-    if (!confirm(`Are you sure you want to request deletion of your profile? This will be sent for admin approval.`)) return;
-
-    await callApi({ action: "requestDelete", reason: reason }, "Requesting Deletion...", "Deletion request sent to admin for approval.", () => { 
-        setTimeout(() => location.reload(), 500); 
-    });
-}
-
-function requestDeletion() { 
-    $('#modalDeleteConfirm').modal('show');
+    await callApi(
+        { action: "requestDelete", reason: reason }, 
+        "Submitting Deletion Request...", 
+        "Your deletion request has been submitted for admin approval.", 
+        () => { 
+            $('#modalDeleteConfirm').modal('hide');
+            setTimeout(() => location.reload(), 1500); 
+        }
+    );
 }
 
 async function callApi(payload, loadingMsg, successMsg, callback) {
@@ -577,7 +664,7 @@ async function callApi(payload, loadingMsg, successMsg, callback) {
         const data = await res.json();
         if (data.status !== "SUCCESS") throw new Error(data.error || 'Unknown API error');
         showToast(successMsg, "success");
-        if (callback) callback();
+        if (callback) callback(data);
     } catch (e) { 
         showToast(`Error: ${e.message}`, "error");
     } finally {
@@ -663,16 +750,28 @@ async function submitFeedback() {
 }
 
 // --- UI & UTILITY FUNCTIONS ---
+function shareToWhatsApp() {
+    const message = "Check out the Mutual Transfer Hub for Government Employees! Find your transfer partner easily. Visit now: " + window.location.href;
+    const whatsappUrl = "whatsapp://send?text=" + encodeURIComponent(message);
+    window.open(whatsappUrl, '_blank');
+}
 
 function animateValue(id, start, end, duration) {
-    const obj = document.getElementById(id); 
-    if (!obj || start === end) { if(obj) obj.innerHTML = end; return; } 
+    const obj = document.getElementById(id);
+    if (!obj) { return; }
+    if (start === end) {
+        obj.innerHTML = new Intl.NumberFormat().format(end);
+        return;
+    }
     let startTimestamp = null;
     const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp; 
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1); 
-        obj.innerHTML = Math.floor(progress * (end - start) + start);
-        if (progress < 1) window.requestAnimationFrame(step);
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const currentValue = Math.floor(progress * (end - start) + start);
+        obj.innerHTML = new Intl.NumberFormat().format(currentValue);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
     };
     window.requestAnimationFrame(step);
 }
@@ -686,7 +785,7 @@ function showSlimProgress(percent) {
 
 function hideSlimProgress() { 
     $('#slim-progress').fadeOut(() => $('#slim-progress').css('width', '0%')); 
-}
+} 
 
 function toggleMatches() { 
     if (!MY_PHONE) { $('#modalVerify').modal('show'); return; } 
