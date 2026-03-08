@@ -114,6 +114,46 @@
             font-weight: 700;
             color: #343a40;
         }
+        .card-stat {
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+            transition: all 0.2s ease-in-out;
+        }
+        .card-stat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .card-stat-icon {
+            font-size: 1.5rem;
+            margin-right: 1.25rem;
+            width: 48px;
+            height: 48px;
+            background-color: #f0f3ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-stat-title {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: 0.5px;
+        }
+        .card-stat-value {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: #343a40;
+            margin-bottom: 0;
+            line-height: 1.2;
+        }
         @media (max-width: 576px) {
             .profile-details-grid {
                 grid-template-columns: 1fr;
@@ -150,11 +190,31 @@
     </header>
 
     <main class="container mt-4 pb-5">
-        <div class="text-right mb-3">
-            <small class="text-muted font-weight-bold">
-                <i class="fas fa-sync-alt fa-spin mr-1"></i> 
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+            <div class="d-flex mb-3 mb-md-0">
+                <div class="card-stat">
+                    <div class="card-stat-icon" style="color: #4f46e5; background-color: #eef2ff;">
+                        <i class="fas fa-globe-americas"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-stat-title">Total Visits</h6>
+                        <h4 id="live-visitors" class="card-stat-value">...</h4>
+                    </div>
+                </div>
+                <div class="card-stat ml-3">
+                    <div class="card-stat-icon" style="color: #16a34a; background-color: #f0fdf4;">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-stat-title">Today's Visits</h6>
+                        <h4 id="today-visitors" class="card-stat-value">...</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="text-muted font-weight-bold bg-white px-3 py-2 rounded-lg shadow-sm border">
+                <i class="fas fa-sync-alt fa-spin mr-1"></i>
                 Last Sync: <span id="lastUpdated">Never</span>
-            </small>
+            </div>
         </div>
 
         <section class="stat-container mb-4">
@@ -352,5 +412,85 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
+
+        function shareToWhatsApp() {
+            const message = "Check out the Mutual Transfer Hub for Government Employees! Find your transfer partner easily. Visit now: " + window.location.href;
+            const whatsappUrl = "whatsapp://send?text=" + encodeURIComponent(message);
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function animateVisitorValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = new Intl.NumberFormat().format(Math.floor(progress * (end - start) + start));
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        async function handleVisitorCount() {
+            const namespace = 'mutual-transfer-project-dash';
+            const liveVisitorsEl = document.getElementById('live-visitors');
+            const todayVisitorsEl = document.getElementById('today-visitors');
+            const visitedFlag = `visited-${namespace}`;
+
+            const hasVisited = sessionStorage.getItem(visitedFlag);
+
+            if (hasVisited) {
+                liveVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div>';
+                todayVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-success"></div>';
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?action=getVisitorCount&namespace=${namespace}`);
+                    const result = await response.json();
+                    if(result.total !== undefined) {
+                        liveVisitorsEl.innerText = new Intl.NumberFormat().format(result.total);
+                    }
+                    if(result.today !== undefined) {
+                        todayVisitorsEl.innerText = new Intl.NumberFormat().format(result.today);
+                    }
+                } catch (e) {
+                    console.error("Could not fetch visitor count", e);
+                    liveVisitorsEl.innerText = 'N/A';
+                    todayVisitorsEl.innerText = 'N/A';
+                }
+            } else {
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'updateVisitorCount', namespace: namespace })
+                    });
+                    const result = await response.json();
+                    if(result.total) {
+                        const start = result.total > 20 ? result.total - 20 : 0;
+                        animateVisitorValue(liveVisitorsEl, start, result.total, 1500);
+                    } else {
+                        liveVisitorsEl.innerText = result.total || 0;
+                    }
+
+                    if(result.today) {
+                        const start = result.today > 10 ? result.today - 10 : 0;
+                        animateVisitorValue(todayVisitorsEl, start, result.today, 1500);
+                    } else {
+                        todayVisitorsEl.innerText = result.today || 0;
+                    }
+                    sessionStorage.setItem(visitedFlag, 'true');
+                } catch (e) {
+                    console.error("Could not update/fetch visitor count", e);
+                    liveVisitorsEl.innerText = 'N/A';
+                    todayVisitorsEl.innerText = 'N/A';
+                }
+            }
+        }
+
+        $(document).ready(function () {
+            handleVisitorCount();
+        });
+    </script>
 </body>
 </html>
