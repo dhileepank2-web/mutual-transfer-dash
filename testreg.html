@@ -7,6 +7,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
     body {
@@ -59,6 +60,40 @@
       gap: 6px;
       animation: fadeIn 0.2s ease-out;
     }
+    .card-stat {
+        background: white;
+        border-radius: 1rem;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: 1px solid #eef2f7;
+    }
+    .card-stat-icon {
+        font-size: 1.25rem;
+        margin-right: 1rem;
+        width: 40px;
+        height: 40px;
+        background-color: #f0f3ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .card-stat-title {
+        font-size: 0.7rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.1rem;
+    }
+    .card-stat-value {
+        font-weight: 800;
+        font-size: 1.5rem;
+        color: #343a40;
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
   </style>
 </head>
 
@@ -85,7 +120,26 @@
   </div>
 
   <div class="bg-white/80 backdrop-blur-md w-full max-w-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 md:p-12 border border-white/50 fade-in">
-
+    <div class="flex justify-center gap-4 mb-6">
+        <div class="card-stat">
+            <div class="card-stat-icon" style="color: #4f46e5; background-color: #eef2ff;">
+                <i class="fas fa-globe-americas"></i>
+            </div>
+            <div>
+                <h6 class="card-stat-title">Total Visits</h6>
+                <h4 id="live-visitors" class="card-stat-value">...</h4>
+            </div>
+        </div>
+        <div class="card-stat">
+            <div class="card-stat-icon" style="color: #16a34a; background-color: #f0fdf4;">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div>
+                <h6 class="card-stat-title">Today's Visits</h6>
+                <h4 id="today-visitors" class="card-stat-value">...</h4>
+            </div>
+        </div>
+    </div>
     <div id="updateBanner" class="flash-update border-2 rounded-2xl p-4 mb-8 flex items-center space-x-4">
       <div class="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded animate-pulse">ATTENTION</div>
       <p class="text-sm font-bold text-red-700">New Update: Multiple registrations & Multiple Willing Districts are now enabled!</p>
@@ -207,7 +261,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxST_AqkRH0OUBLvp1DWcFoujqlFIF1mi-yrVvCd3E1jq97XP_6k2MLgreOE0MGs0LA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpOofnWNMX_9k0alBViu1rq54ReVdR7VUhqs28WYYlansyFXuX58CxRqnDz_KU_zLO/exec";
     let selectedWillingDistricts = [];
     let IS_EDIT_MODE = false;
     let EDIT_REQUIRES_APPROVAL = false;
@@ -260,6 +314,74 @@
       `).join('');
     }
 
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = new Intl.NumberFormat().format(Math.floor(progress * (end - start) + start));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    async function handleVisitorCount() {
+        const namespace = 'mutual-transfer-project-reg';
+        const liveVisitorsEl = document.getElementById('live-visitors');
+        const todayVisitorsEl = document.getElementById('today-visitors');
+        const visitedFlag = `visited-${namespace}`;
+
+        const hasVisited = sessionStorage.getItem(visitedFlag);
+
+        if (hasVisited) {
+            liveVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div>';
+            todayVisitorsEl.innerHTML = '<div class="spinner-border spinner-border-sm text-success"></div>';
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getVisitorCount&namespace=${namespace}`);
+                const result = await response.json();
+                 if(result.total !== undefined) {
+                    liveVisitorsEl.innerText = new Intl.NumberFormat().format(result.total);
+                }
+                if(result.today !== undefined) {
+                    todayVisitorsEl.innerText = new Intl.NumberFormat().format(result.today);
+                }
+            } catch (e) {
+                console.error("Could not fetch visitor count", e);
+                liveVisitorsEl.innerText = 'N/A';
+                todayVisitorsEl.innerText = 'N/A';
+            }
+        } else {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'updateVisitorCount', namespace: namespace })
+                });
+                const result = await response.json();
+                if(result.total) {
+                    const start = result.total > 20 ? result.total - 20 : 0;
+                    animateValue(liveVisitorsEl, start, result.total, 1500);
+                } else {
+                    liveVisitorsEl.innerText = result.total || 0;
+                }
+
+                if(result.today) {
+                    const start = result.today > 10 ? result.today - 10 : 0;
+                    animateValue(todayVisitorsEl, start, result.today, 1500);
+                } else {
+                    todayVisitorsEl.innerText = result.today || 0;
+                }
+                sessionStorage.setItem(visitedFlag, 'true');
+            } catch (e) {
+                console.error("Could not update/fetch visitor count", e);
+                liveVisitorsEl.innerText = 'N/A';
+                todayVisitorsEl.innerText = 'N/A';
+            }
+        }
+    }
+
     window.onload = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const editPhone = urlParams.get('editPhone');
@@ -273,6 +395,7 @@
 
           if (editPhone) prepareEditMode(editPhone);
         });
+        handleVisitorCount();
     };
 
     async function prepareEditMode(phone) {
@@ -342,10 +465,52 @@
         return;
       }
 
-      document.getElementById('loader').classList.remove("hidden");
-      // ... (rest of the registration logic)
-    }
+      const loader = document.getElementById('loader');
+      loader.classList.remove("hidden");
+      loader.querySelector('#loaderText').innerText = "Submitting Registration...";
 
+      const payload = {
+        action: "register",
+        userData: {
+          name: document.getElementById('name').value.trim(),
+          designation: document.getElementById('designation').value === "OTHER" 
+            ? document.getElementById('otherDesignation').value.trim()
+            : document.getElementById('designation').value,
+          doj: document.getElementById('doj').value,
+          workingDistrict: document.getElementById('workingDistrict').value,
+          willingDistrict: selectedWillingDistricts,
+          probation: document.getElementById('probation').value,
+          coa: document.getElementById('coa').value,
+          phone: document.getElementById('phone').value.trim(),
+          email: document.getElementById('email').value.trim()
+        }
+      };
+
+      if(selectedWillingDistricts.length === 0) {
+          alert("Please select at least one willing district.");
+          loader.classList.add("hidden");
+          return;
+      }
+
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.status === 'SUCCESS') {
+          alert("✅ Registration successful!");
+          window.location.href = "testdash.html"; 
+        } else {
+          alert("❌ Error: " + (result.error || 'An unknown error occurred.'));
+        }
+      } catch (err) {
+        alert("❌ Connection failed. Please try again.");
+      } finally {
+        loader.classList.add("hidden");
+      }
+    }
+    
     function cancelEditRequest() {
       document.getElementById('editReasonModal').classList.add('hidden');
     }
@@ -400,59 +565,7 @@
         document.getElementById('loader').classList.add("hidden");
       }
     }
-    
-    // Added registration logic
-    async function submitForm() {
-      if (IS_EDIT_MODE) {
-        document.getElementById('editReasonModal').classList.remove('hidden');
-        return;
-      }
 
-      const loader = document.getElementById('loader');
-      loader.classList.remove("hidden");
-      loader.querySelector('#loaderText').innerText = "Submitting Registration...";
-
-      const payload = {
-        action: "register",
-        userData: {
-          name: document.getElementById('name').value.trim(),
-          designation: document.getElementById('designation').value === "OTHER" 
-            ? document.getElementById('otherDesignation').value.trim()
-            : document.getElementById('designation').value,
-          doj: document.getElementById('doj').value,
-          workingDistrict: document.getElementById('workingDistrict').value,
-          willingDistrict: selectedWillingDistricts,
-          probation: document.getElementById('probation').value,
-          coa: document.getElementById('coa').value,
-          phone: document.getElementById('phone').value.trim(),
-          email: document.getElementById('email').value.trim()
-        }
-      };
-
-      if(selectedWillingDistricts.length === 0) {
-          alert("Please select at least one willing district.");
-          loader.classList.add("hidden");
-          return;
-      }
-
-      try {
-        const response = await fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-        if (result.status === 'SUCCESS') {
-          alert("✅ Registration successful!");
-          window.location.href = "testdash.html"; 
-        } else {
-          alert("❌ Error: " + (result.error || 'An unknown error occurred.'));
-        }
-      } catch (err) {
-        alert("❌ Connection failed. Please try again.");
-      } finally {
-        loader.classList.add("hidden");
-      }
-    }
   </script>
 </body>
 </html>
